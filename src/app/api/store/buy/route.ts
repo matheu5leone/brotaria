@@ -7,8 +7,8 @@ import { addStackableItem } from '@/services/inventoryService';
 /**
  * Compra de um produto da loja usando moedas.
  *
- * Hoje há um único produto: `seed`. Gasta moedas de forma atômica (RPC
- * spend_coins) e, no caso da semente, insere a linha em `seeds`. Se o insert
+ * Suporta múltiplos produtos (seed, wrapping_kit). Gasta moedas de forma atômica (RPC
+ * spend_coins) e entrega o item ao inventário via addStackableItem. Se a entrega
  * falhar após o débito, faz refund das moedas (add_coins).
  */
 export async function POST(request: Request) {
