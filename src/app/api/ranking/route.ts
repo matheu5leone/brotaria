@@ -45,15 +45,17 @@ export async function GET() {
           .eq('plant_id', id)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single(),
+          .maybeSingle(),
       ),
     );
 
     // 4. Busca emails dos donos
-    const { data: profiles } = await supabaseAdmin
+    const { data: profiles, error: profilesError } = await supabaseAdmin
       .from('profiles')
       .select('id, email')
       .in('id', top5UserIds);
+
+    if (profilesError) console.error('[Ranking API] Profiles error:', profilesError);
 
     const emailMap = new Map((profiles ?? []).map((p) => [p.id, p.email as string]));
 
@@ -65,7 +67,7 @@ export async function GET() {
       return {
         rank: i + 1,
         plant_id: plant.id,
-        owner_name: email.split('@')[0] ?? 'anônimo',
+        owner_name: (email.split('@')[0] || 'anônimo'),
         image_url,
         rarity: dna.rarity as Rarity,
         stage_name: plant.current_stage.name,
