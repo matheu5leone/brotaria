@@ -77,6 +77,25 @@ interface RarityEffectProps {
 </div>
 ```
 
+### Variáveis CSS de raridade em `:root` (`src/app/globals.css`)
+
+Todas as cores de raridade declaradas como CSS custom properties — **nunca hex bruto** no código de componente:
+
+```css
+:root {
+  --rarity-comum:    rgba(255, 255, 255, 0.85);
+  --rarity-incomum:  #06b6d4;   /* cyan-500   */
+  --rarity-raro:     #1e3a8a;   /* blue-900   */
+  --rarity-epico:    #7c3aed;   /* violet-600 */
+  --rarity-lendario: #f97316;   /* orange-500 */
+  --rarity-brotaria: #4ade80;   /* green-400  */
+
+  --rarity-brotaria-dark:  #166534;   /* green-800 — para ciclo de borda */
+  --rarity-brotaria-mid:   #16a34a;   /* green-600 */
+  --rarity-brotaria-light: #86efac;   /* green-300 */
+}
+```
+
 ### Keyframes em `src/app/globals.css`
 
 ```css
@@ -96,24 +115,24 @@ interface RarityEffectProps {
 }
 
 @keyframes brotaria-border {
-  0%   { outline-color: #16a34a; }  /* green-600 */
-  25%  { outline-color: #4ade80; }  /* green-400 */
-  50%  { outline-color: #166534; }  /* green-800 */
-  75%  { outline-color: #86efac; }  /* green-300 */
-  100% { outline-color: #16a34a; }
+  0%   { outline-color: var(--rarity-brotaria-mid);   }
+  25%  { outline-color: var(--rarity-brotaria);       }
+  50%  { outline-color: var(--rarity-brotaria-dark);  }
+  75%  { outline-color: var(--rarity-brotaria-light); }
+  100% { outline-color: var(--rarity-brotaria-mid);   }
 }
 ```
 
 ### Mapeamento de efeitos por raridade
 
-| Raridade | Partículas (cor/opacidade) | Glow | Extra |
-|----------|---------------------------|------|-------|
-| comum    | branco, 15% opacidade, r=3px | `drop-shadow(0 0 4px rgba(255,255,255,0.4))` | — |
-| incomum  | ciano `#06b6d4`, 30% opacidade | `drop-shadow(0 0 6px #06b6d4)` | — |
-| raro     | azul marinho `#1e3a8a`, 40% | `drop-shadow(0 0 8px #1e3a8a)` | — |
-| epico    | roxo `#7c3aed`, 50% | `drop-shadow(0 0 10px #7c3aed)` | — |
-| lendario | laranja `#f97316`, 60% | `drop-shadow(0 0 14px #f97316)` | `<div>` absoluto com `conic-gradient(#f97316, transparent, #f97316)` rotacionando com `lendario-spin 3s linear infinite`, atrás da imagem (`z-index: -1`) |
-| brotaria | verde `#4ade80`, 50% | — | `outline: 3px solid` com `brotaria-border 2s linear infinite`, `drop-shadow(0 0 8px #16a34a)` |
+| Raridade | Partículas | Glow | Extra |
+|----------|-----------|------|-------|
+| comum    | `var(--rarity-comum)`, 15% opacidade | `drop-shadow(0 0 4px var(--rarity-comum))` | — |
+| incomum  | `var(--rarity-incomum)`, 30% | `drop-shadow(0 0 6px var(--rarity-incomum))` | — |
+| raro     | `var(--rarity-raro)`, 40% | `drop-shadow(0 0 8px var(--rarity-raro))` | — |
+| epico    | `var(--rarity-epico)`, 50% | `drop-shadow(0 0 10px var(--rarity-epico))` | — |
+| lendario | `var(--rarity-lendario)`, 60% | `drop-shadow(0 0 14px var(--rarity-lendario))` | `<div>` absoluto com `conic-gradient(var(--rarity-lendario), transparent, var(--rarity-lendario))` + `lendario-spin 3s linear infinite`, `z-index: -1` |
+| brotaria | `var(--rarity-brotaria)`, 50% | `drop-shadow(0 0 8px var(--rarity-brotaria-mid))` | `outline: 3px solid` com `brotaria-border 2s linear infinite` |
 
 ### Integração em `Garden.tsx`
 
@@ -172,16 +191,18 @@ interface PlantHistoryModalProps {
 │                                                       │
 │  [X] fechar (top-right)                               │
 │                                                       │
-│  ┌───── infos da fase em foco ─────┐                  │
-│  │  Nome da fase · Data · Bioma    │  (texto branco)   │
-│  │  Rarity badge                   │                  │
-│  └─────────────────────────────────┘                  │
-│                                                       │
 │  ←  [card-2] [CARD-1-DESTAQUE] [card-3]  →           │
 │         (coverflow 3D, scroll horizontal)             │
 │                                                       │
+│  ┌───── infos da fase em foco ─────┐                  │
+│  │  ● Nome da fase  [RARIDADE]     │  (texto branco)  │
+│  │    Data · Bioma                 │                  │
+│  └─────────────────────────────────┘                  │
+│                                                       │
 └──────────────────────────────────────────────────────┘
 ```
+
+Cards ficam na metade superior do modal; infos na metade inferior.
 
 ### Coverflow 3D
 
@@ -237,11 +258,13 @@ supabase
   .order('created_at', { ascending: true })
 ```
 
-Infos exibidas no painel superior (derivadas da versão em foco):
-- Nome do estágio (`version.stage.name`)
+Infos exibidas no painel **inferior** (derivadas da versão em foco):
+- **Bolinha** `●` colorida com `color: var(--rarity-<raridade>)` + nome do estágio (`version.stage.name`)
+- Nome da **raridade** em texto na cor da raridade: `color: var(--rarity-<raridade>)` — ex.: "LENDÁRIO" em laranja, "ÉPICO" em roxo
 - Data formatada com `date-fns/format`
-- Raridade (`version.dna_snapshot.rarity`) com badge colorido
 - Bioma (`version.dna_snapshot.biome`)
+
+A cor é resolvida em runtime via `style={{ color: `var(--rarity-${rarity})` }}`.
 
 ### `RarityEffect` no modal
 
@@ -260,13 +283,13 @@ Cada card renderiza `<RarityEffect rarity={version.dna_snapshot.rarity} alwaysVi
   "crons": [
     {
       "path": "/api/scheduler",
-      "schedule": "0 * * * *"
+      "schedule": "*/15 * * * *"
     }
   ]
 }
 ```
 
-Executa a cada hora cheia (ex.: 14:00, 15:00…).
+Executa a cada 15 minutos (ex.: 14:00, 14:15, 14:30, 14:45…).
 
 ### Proteção do endpoint
 
