@@ -9,18 +9,10 @@ import { useWallet } from '@/hooks/useWallet';
 import { Droplets, Plus, Shovel, Trash2, X } from 'lucide-react';
 import Loader from './Loader';
 import CoinPurchaseModal from './CoinPurchaseModal';
+import { PlantRow, PlantVersionRow } from '@/hooks/usePlantData';
 
 const DIG_DURATION_MS = 60_000;
 const SHOVEL_COOLDOWN_MS = 24 * 60 * 60 * 1000;
-
-// Minimal types for Supabase join responses (not worth exporting to types/index.ts)
-type PlantRow = {
-  id: string;
-  hydration_status: string;
-  current_stage_waters: number;
-  current_stage: { id: string; name: string; waters_required: number };
-};
-type PlantVersionRow = { id: string; image_url: string | null };
 
 type PotState = 'digging' | 'ready' | 'planted';
 
