@@ -1,16 +1,26 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { PlantDNA } from '@/types';
 
 export type PlantRow = {
   id: string;
   hydration_status: string;
   current_stage_waters: number;
   current_stage: { id: string; name: string; waters_required: number };
+  dna: PlantDNA;
 };
 
 export type PlantVersionRow = {
   id: string;
   image_url: string | null;
+};
+
+export type PlantVersionHistoryRow = {
+  id: string;
+  image_url: string | null;
+  created_at: string;
+  dna_snapshot: PlantDNA;
+  stage: { name: string; code: string } | null;
 };
 
 async function fetchPlant(plantId: string): Promise<PlantRow> {
@@ -36,6 +46,16 @@ async function fetchPlantVersion(plantId: string): Promise<PlantVersionRow | nul
   return (data as PlantVersionRow | null) ?? null;
 }
 
+async function fetchPlantHistory(plantId: string): Promise<PlantVersionHistoryRow[]> {
+  const { data, error } = await supabase
+    .from('plant_versions')
+    .select('id, image_url, created_at, dna_snapshot, stage:plant_stages(name, code)')
+    .eq('plant_id', plantId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as unknown as PlantVersionHistoryRow[];
+}
+
 export function usePlant(plantId: string | null | undefined) {
   return useQuery({
     queryKey: ['plant', plantId],
@@ -51,6 +71,16 @@ export function usePlantVersion(plantId: string | null | undefined) {
     queryFn: () => fetchPlantVersion(plantId!),
     enabled: !!plantId,
     // Versões são imutáveis (cada evolução gera ID novo); nunca revalida
+    staleTime: Infinity,
+    gcTime: 30 * 60_000,
+  });
+}
+
+export function usePlantHistory(plantId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['plant', plantId, 'history'],
+    queryFn: () => fetchPlantHistory(plantId!),
+    enabled: !!plantId,
     staleTime: Infinity,
     gcTime: 30 * 60_000,
   });
