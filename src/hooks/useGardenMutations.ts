@@ -78,6 +78,7 @@ export function useWaterMutation(userId: string) {
     onSuccess: (_data, { plantId }) => {
       qc.invalidateQueries({ queryKey: ['plant', plantId] });
       qc.invalidateQueries({ queryKey: ['plant', plantId, 'version'] });
+      qc.invalidateQueries({ queryKey: ['plant', plantId, 'history'] });
     },
   });
 }

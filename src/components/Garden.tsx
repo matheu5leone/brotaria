@@ -414,6 +414,7 @@ function PotSlot({
 
           {plant && (
             <PlantHistoryModal
+              key={historyOpen ? 1 : 0}
               plant={plant}
               open={historyOpen}
               onClose={() => setHistoryOpen(false)}
