@@ -16,6 +16,8 @@ import {
   useDeleteMutation,
 } from '@/hooks/useGardenMutations';
 import { useQueryClient } from '@tanstack/react-query';
+import { RarityEffect } from '@/components/RarityEffect';
+import { PlantHistoryModal } from '@/components/PlantHistoryModal';
 
 const DIG_DURATION_MS = 60_000;
 
@@ -255,6 +257,7 @@ function PotSlot({
 
   const [isEvolving, setIsEvolving] = useState(false);
   const [msLeft, setMsLeft] = useState(0);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
     if (state !== 'digging' || !pot.digging_started_at) return;
@@ -344,14 +347,20 @@ function PotSlot({
             {isEvolving ? (
               <Loader variant="inline" spin size={56} />
             ) : latestVersion?.image_url ? (
-              <div className="relative w-full h-full">
-                <Image
-                  src={latestVersion.image_url}
-                  alt={plant.current_stage.name}
-                  fill
-                  draggable={false}
-                  className="drop-shadow-lg object-contain animate-in fade-in zoom-in duration-500"
-                />
+              <div
+                className="relative w-full h-full cursor-pointer"
+                onClick={() => setHistoryOpen(true)}
+                title="Ver histórico de evolução"
+              >
+                <RarityEffect rarity={plant.dna.rarity} alwaysVisible={false}>
+                  <Image
+                    src={latestVersion.image_url}
+                    alt={plant.current_stage.name}
+                    fill
+                    draggable={false}
+                    className="drop-shadow-lg object-contain animate-in fade-in zoom-in duration-500"
+                  />
+                </RarityEffect>
               </div>
             ) : (
               <div className="w-16 h-16 bg-stone-800/20 rounded-full blur-md animate-pulse" />
@@ -402,6 +411,14 @@ function PotSlot({
               ))}
             </div>
           </div>
+
+          {plant && (
+            <PlantHistoryModal
+              plant={plant}
+              open={historyOpen}
+              onClose={() => setHistoryOpen(false)}
+            />
+          )}
         </>
       ) : (
         <div className="w-16 h-16 bg-stone-800/20 rounded-full blur-md animate-pulse" />
