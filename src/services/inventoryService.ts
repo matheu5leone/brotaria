@@ -34,6 +34,7 @@ export async function findFreeSlot(userId: string): Promise<number | null> {
 export async function addStackableItem(
   userId: string,
   itemType: 'seed' | 'wrapping_kit',
+  retried = false,
 ): Promise<void> {
   const stackable = await findStackableSlot(userId, itemType);
   if (stackable) {
@@ -54,7 +55,13 @@ export async function addStackableItem(
     item_type: itemType,
     quantity: 1,
   });
-  if (error) throw error;
+  if (error) {
+    // Unique constraint violation (concurrent request took the slot) — retry once
+    if (!retried && (error as { code?: string }).code === '23505') {
+      return addStackableItem(userId, itemType, true);
+    }
+    throw error;
+  }
 }
 
 // ── Inicialização ──────────────────────────────────────────────────────────
@@ -62,7 +69,7 @@ export async function addStackableItem(
 export async function initializeUser(userId: string, email: string) {
   console.log(`[Inventory] Checking/Initializing user ${userId}`);
 
-  const { data: profile, error: profileError } = await supabaseAdmin
+  const { error: profileError } = await supabaseAdmin
     .from('profiles')
     .upsert({ id: userId, email: email })
     .select()

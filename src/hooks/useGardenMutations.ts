@@ -67,6 +67,7 @@ export function usePlantMutation(userId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['garden', 'pots', userId] });
       qc.invalidateQueries({ queryKey: ['wallet', userId] });
+      qc.invalidateQueries({ queryKey: ['inventory', userId] });
     },
   });
 }

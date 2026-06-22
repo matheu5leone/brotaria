@@ -61,6 +61,13 @@ export async function POST(request: Request) {
       } catch (deliveryError: unknown) {
         // Refund em caso de falha na entrega
         await supabaseAdmin.rpc('add_coins', { p_user_id: userId, p_amount: product.cost_coins });
+        const errCode = (deliveryError as { code?: string }).code;
+        if (errCode === 'INVENTORY_FULL') {
+          return NextResponse.json(
+            { error: 'Inventário cheio. Libere um slot antes de comprar.', code: 'INVENTORY_FULL' },
+            { status: 400 },
+          );
+        }
         throw deliveryError;
       }
     }
