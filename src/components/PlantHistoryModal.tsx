@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import Image from 'next/image';
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { X } from 'lucide-react';
 import { PlantRow, PlantVersionHistoryRow, usePlantHistory } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
@@ -195,7 +196,7 @@ export function PlantHistoryModal({
               <RarityLabel rarity={activeRarity} />
             </div>
             <p className="text-white/50 text-xs">
-              {format(new Date(active.created_at), "dd 'de' MMMM 'de' yyyy")} · {biome}
+              {format(new Date(active.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })} · {biome}
             </p>
           </div>
         )}
