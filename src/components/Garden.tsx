@@ -231,7 +231,10 @@ export default function Garden() {
         open={coinModalPotId !== null}
         onClose={() => setCoinModalPotId(null)}
         potId={coinModalPotId ?? undefined}
-        onComplete={() => queryClient.invalidateQueries({ queryKey: ['garden', 'pots', user?.id] })}
+        onComplete={() => {
+          const uid = user?.id;
+          if (uid) queryClient.invalidateQueries({ queryKey: ['garden', 'pots', uid] });
+        }}
       />
     </div>
   );
@@ -295,7 +298,12 @@ function PotSlot({
     e.stopPropagation();
     if (!plant || deleteMutation.isPending) return;
     if (!window.confirm('Tem certeza que deseja remover esta planta? Esta ação não pode ser desfeita e você perderá o DNA único dela.')) return;
-    await deleteMutation.mutateAsync({ plantId: plant.id, potId: pot.id });
+    try {
+      await deleteMutation.mutateAsync({ plantId: plant.id, potId: pot.id });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao excluir planta.';
+      alert(msg);
+    }
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
