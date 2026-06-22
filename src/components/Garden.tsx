@@ -1,18 +1,23 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Pot } from '@/types';
-import { supabase } from '@/lib/supabase';
-import { useWallet } from '@/hooks/useWallet';
 import { Droplets, Plus, Shovel, Trash2, X } from 'lucide-react';
 import Loader from './Loader';
 import CoinPurchaseModal from './CoinPurchaseModal';
-import { PlantRow, PlantVersionRow } from '@/hooks/usePlantData';
+import { usePots, useShovelStatus } from '@/hooks/useGardenData';
+import { usePlant, usePlantVersion } from '@/hooks/usePlantData';
+import {
+  useDigMutation,
+  usePlantMutation,
+  useWaterMutation,
+  useDeleteMutation,
+} from '@/hooks/useGardenMutations';
+import { queryClient } from '@/lib/queryClient';
 
 const DIG_DURATION_MS = 60_000;
-const SHOVEL_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 type PotState = 'digging' | 'ready' | 'planted';
 
@@ -43,93 +48,32 @@ function formatCooldown(ms: number): string {
 
 export default function Garden() {
   const { user } = useAuth();
-  const { refresh: refreshWallet } = useWallet();
-  const [pots, setPots] = useState<Pot[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [coinModalPotId, setCoinModalPotId] = useState<string | null>(null);
 
-  // Shovel state
+  // ── Dados via React Query ─────────────────────────────────────────────
+  const { data: pots = [], isPending: potsLoading } = usePots(user?.id);
+  const { data: shovelStatus } = useShovelStatus(user?.id);
+  const shovelCooldownMs = shovelStatus?.cooldownRemainingMs ?? 0;
+  const shovelReady = shovelCooldownMs === 0;
+
+  // ── Mutations ────────────────────────────────────────────────────────
+  const digMutation = useDigMutation(user?.id ?? '');
+
+  // ── UI state (local — não pertence ao servidor) ───────────────────────
+  const [coinModalPotId, setCoinModalPotId] = useState<string | null>(null);
   const [shovelActive, setShovelActive] = useState(false);
-  const [shovelLastUsed, setShovelLastUsed] = useState<string | null>(null);
   const [isShoveling, setIsShoveling] = useState(false);
   const [shovelError, setShovelError] = useState<string | null>(null);
-
-  // Custom cursor position (pixels relative to garden container)
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
-
-  // Forces re-render every second so dig countdowns stay live
-  const [, setTick] = useState(0);
-
-  // Shovel cooldown computed as state so Date.now() stays out of the render path
-  const [shovelCooldownMs, setShovelCooldownMs] = useState(0);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // ── Declared before useEffects that reference them ──────────────────────
-
-  const fetchGarden = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    const [potsResult, profileResult] = await Promise.all([
-      supabase
-        .from('pots')
-        .select('*, plant_id')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: true }),
-      supabase
-        .from('profiles')
-        .select('shovel_last_used_at')
-        .eq('id', user.id)
-        .single(),
-    ]);
-
-    if (!potsResult.error && potsResult.data) setPots(potsResult.data);
-    if (!profileResult.error && profileResult.data) {
-      setShovelLastUsed(profileResult.data.shovel_last_used_at ?? null);
-    }
-    setLoading(false);
-  }, [user]);
-
-  const handleUpdate = useCallback(async () => {
-    await fetchGarden();
-    refreshWallet();
-  }, [fetchGarden, refreshWallet]);
-
-  // ── Effects ──────────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (user) fetchGarden();
-  }, [user, fetchGarden]);
-
-  // Tick every second only while there are active digs
-  const hasActiveDigs = pots.some(
-    (p) => !p.plant_id && p.digging_started_at && getPotState(p) === 'digging'
-  );
-  useEffect(() => {
-    if (!hasActiveDigs) return;
-    const id = setInterval(() => setTick((t) => t + 1), 1000);
-    return () => clearInterval(id);
-  }, [hasActiveDigs]);
-
-  // Update shovel cooldown every second (keeps Date.now() out of render path)
-  useEffect(() => {
-    const compute = () => {
-      if (!shovelLastUsed) { setShovelCooldownMs(0); return; }
-      const remaining = Math.max(
-        0,
-        SHOVEL_COOLDOWN_MS - (Date.now() - new Date(shovelLastUsed).getTime()),
-      );
-      setShovelCooldownMs(remaining);
-    };
-    compute();
-    if (!shovelLastUsed) return;
-    const id = setInterval(compute, 1000);
-    return () => clearInterval(id);
-  }, [shovelLastUsed]);
-
-  // ── Derived values ────────────────────────────────────────────────────────
-
-  const shovelReady = shovelCooldownMs === 0;
+  if (potsLoading) {
+    return (
+      <div className="p-8 text-center text-stone-600 font-bold">
+        Carregando seu jardim...
+      </div>
+    );
+  }
 
   // ── Event handlers ────────────────────────────────────────────────────────
 
@@ -158,22 +102,10 @@ export default function Garden() {
     setCursorPos(null);
 
     try {
-      const res = await fetch('/api/shovel/dig', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, posX, posY }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        await fetchGarden();
-      } else if (data.code === 'COOLDOWN') {
-        setShovelError('A pá ainda está recarregando.');
-        await fetchGarden();
-      } else {
-        setShovelError(data.error ?? 'Erro ao cavar.');
-      }
-    } catch {
-      setShovelError('Erro de conexão ao tentar cavar.');
+      await digMutation.mutateAsync({ posX, posY });
+    } catch (err: unknown) {
+      const e = err as { code?: string; message?: string };
+      setShovelError(e.code === 'COOLDOWN' ? 'A pá ainda está recarregando.' : (e.message ?? 'Erro ao cavar.'));
     } finally {
       setIsShoveling(false);
     }
@@ -187,14 +119,6 @@ export default function Garden() {
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
-
-  if (loading) {
-    return (
-      <div className="p-8 text-center text-stone-600 font-bold">
-        Carregando seu jardim...
-      </div>
-    );
-  }
 
   return (
     <div
@@ -225,7 +149,6 @@ export default function Garden() {
             <PotSlot
               pot={pot}
               state={state}
-              onUpdate={handleUpdate}
               onNeedSeed={setCoinModalPotId}
             />
           </div>
@@ -308,7 +231,7 @@ export default function Garden() {
         open={coinModalPotId !== null}
         onClose={() => setCoinModalPotId(null)}
         potId={coinModalPotId ?? undefined}
-        onComplete={handleUpdate}
+        onComplete={() => queryClient.invalidateQueries({ queryKey: ['garden', 'pots', user?.id] })}
       />
     </div>
   );
@@ -317,54 +240,21 @@ export default function Garden() {
 function PotSlot({
   pot,
   state,
-  onUpdate,
   onNeedSeed,
 }: {
   pot: Pot;
   state: PotState;
-  onUpdate: () => void;
   onNeedSeed: (potId: string) => void;
 }) {
   const { user } = useAuth();
-  const [plant, setPlant] = useState<PlantRow | null>(null);
-  const [latestVersion, setLatestVersion] = useState<PlantVersionRow | null>(null);
-  const [isActionLoading, setIsActionLoading] = useState(false);
+  const { data: plant } = usePlant(pot.plant_id);
+  const { data: latestVersion } = usePlantVersion(pot.plant_id);
+  const plantMutation = usePlantMutation(user?.id ?? '');
+  const waterMutation = useWaterMutation(user?.id ?? '');
+  const deleteMutation = useDeleteMutation(user?.id ?? '');
+
   const [isEvolving, setIsEvolving] = useState(false);
   const [msLeft, setMsLeft] = useState(0);
-
-  // ── Declared before useEffects that reference them ──────────────────────
-
-  const fetchPlant = useCallback(async (id: string) => {
-    const { data: plantData } = await supabase
-      .from('plants')
-      .select('*, current_stage:plant_stages(*)')
-      .eq('id', id)
-      .single();
-
-    if (plantData) {
-      setPlant(plantData as unknown as PlantRow);
-      const { data: versionData } = await supabase
-        .from('plant_versions')
-        .select('id, image_url')
-        .eq('plant_id', id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-      setLatestVersion((versionData as PlantVersionRow | null) ?? null);
-    }
-  }, []);
-
-  const resetPlant = useCallback(() => {
-    setPlant(null);
-    setLatestVersion(null);
-  }, []);
-
-  // ── Effects ──────────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (pot.plant_id) fetchPlant(pot.plant_id);
-    else resetPlant();
-  }, [pot.plant_id, fetchPlant, resetPlant]);
 
   useEffect(() => {
     if (state !== 'digging' || !pot.digging_started_at) return;
@@ -377,84 +267,35 @@ function PotSlot({
 
   // ── Action handlers ───────────────────────────────────────────────────────
 
-  const handlePlant = async (e: React.MouseEvent) => {
+  const handleWater = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!user) return;
-    setIsActionLoading(true);
+    if (!plant || waterMutation.isPending) return;
+    const willEvolve =
+      plant.current_stage_waters + 1 >= plant.current_stage.waters_required;
+    if (willEvolve) setIsEvolving(true);
     try {
-      const res = await fetch('/api/plants/plant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, potId: pot.id }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        onUpdate();
-      } else if (data.code === 'NO_SEEDS') {
-        onNeedSeed(pot.id);
-      }
-    } catch (err) {
-      console.error('Error planting:', err);
+      await waterMutation.mutateAsync({ plantId: plant.id });
     } finally {
-      setIsActionLoading(false);
+      setIsEvolving(false);
     }
   };
 
-  const handleWater = async (e: React.MouseEvent) => {
+  const handlePlant = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!plant || isActionLoading) return;
-
-    const willEvolve =
-      plant.current_stage_waters + 1 >= plant.current_stage.waters_required;
-
-    setIsActionLoading(true);
-    if (willEvolve) setIsEvolving(true);
+    if (!user) return;
     try {
-      const res = await fetch('/api/plants/water', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plantId: plant.id }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        onUpdate();
-        await fetchPlant(plant.id);
-      }
-    } catch (err) {
-      console.error('Error watering:', err);
-    } finally {
-      setIsActionLoading(false);
-      setIsEvolving(false);
+      await plantMutation.mutateAsync({ potId: pot.id });
+    } catch (err: unknown) {
+      const e = err as { code?: string };
+      if (e.code === 'NO_SEEDS') onNeedSeed(pot.id);
     }
   };
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!plant || isActionLoading) return;
-
-    const confirmed = window.confirm(
-      'Tem certeza que deseja remover esta planta? Esta ação não pode ser desfeita e você perderá o DNA único dela.'
-    );
-    if (!confirmed) return;
-
-    setIsActionLoading(true);
-    try {
-      const res = await fetch('/api/plants/delete', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plantId: plant.id, potId: pot.id }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        onUpdate();
-      } else {
-        alert(`Erro ao excluir: ${data.error}`);
-      }
-    } catch (err) {
-      console.error('Error deleting:', err);
-    } finally {
-      setIsActionLoading(false);
-    }
+    if (!plant || deleteMutation.isPending) return;
+    if (!window.confirm('Tem certeza que deseja remover esta planta? Esta ação não pode ser desfeita e você perderá o DNA único dela.')) return;
+    await deleteMutation.mutateAsync({ plantId: plant.id, potId: pot.id });
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -477,12 +318,12 @@ function PotSlot({
       <div className="relative w-full h-full flex items-center justify-center">
         <div className="w-full h-full rounded-full bg-stone-900/60 border-4 border-stone-700/50 flex items-center justify-center shadow-inner">
           <button
-            disabled={isActionLoading}
+            disabled={plantMutation.isPending}
             onClick={handlePlant}
             className="p-2 rounded-full text-stone-300 hover:text-white hover:bg-white/10 active:scale-95 transition-all"
             title="Plantar semente"
           >
-            <Plus className={`w-8 h-8 ${isActionLoading ? 'animate-spin' : ''}`} />
+            <Plus className={`w-8 h-8 ${plantMutation.isPending ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
@@ -524,7 +365,7 @@ function PotSlot({
             </p>
             <div className="flex gap-2">
               <button
-                disabled={isActionLoading || plant.hydration_status === 'waiting_water'}
+                disabled={waterMutation.isPending || plant.hydration_status === 'waiting_water'}
                 onClick={handleWater}
                 className={`p-2 rounded-full shadow-xl transition-all ${
                   plant.hydration_status === 'waiting_water'
@@ -533,11 +374,11 @@ function PotSlot({
                 } text-white`}
               >
                 <Droplets
-                  className={`w-5 h-5 ${isActionLoading && !isEvolving ? 'animate-spin' : ''}`}
+                  className={`w-5 h-5 ${waterMutation.isPending && !isEvolving ? 'animate-spin' : ''}`}
                 />
               </button>
               <button
-                disabled={isActionLoading}
+                disabled={deleteMutation.isPending}
                 onClick={handleDelete}
                 className="p-2 rounded-full shadow-xl transition-all bg-red-500 hover:bg-red-400 active:scale-95 text-white"
                 title="Remover planta"
