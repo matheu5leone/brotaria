@@ -31,7 +31,7 @@ async function waterPlant(plantId: string) {
     body: JSON.stringify({ plantId }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? 'Erro ao regar');
+  if (!res.ok) throw Object.assign(new Error(data.error ?? 'Erro ao regar'), { code: data.code });
   return data;
 }
 
@@ -42,7 +42,7 @@ async function deletePlant(plantId: string, potId: string) {
     body: JSON.stringify({ plantId, potId }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? 'Erro ao deletar');
+  if (!res.ok) throw Object.assign(new Error(data.error ?? 'Erro ao deletar'), { code: data.code });
   return data;
 }
 
@@ -74,7 +74,7 @@ export function usePlantMutation(userId: string) {
 export function useWaterMutation(userId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ plantId }: { plantId: string; potId: string }) => waterPlant(plantId),
+    mutationFn: ({ plantId }: { plantId: string }) => waterPlant(plantId),
     onSuccess: (_data, { plantId }) => {
       qc.invalidateQueries({ queryKey: ['plant', plantId] });
       qc.invalidateQueries({ queryKey: ['plant', plantId, 'version'] });
