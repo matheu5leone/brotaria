@@ -43,6 +43,13 @@ const SEED_PRODUCT: StoreProduct = {
   cost_coins: SEED_COST_COINS,
 };
 
+const WRAPPING_KIT_PRODUCT: StoreProduct = {
+  id: 'wrapping_kit',
+  name: '🎁 Kit de Embrulho',
+  description: 'Embrulha uma planta como presente misterioso. Ela fica no inventário sem revelar o que tem dentro.',
+  cost_coins: 20,
+};
+
 const SKIP_TIME_PRODUCT: StoreProduct = {
   id: 'skip_time',
   name: '⏩ Avançar Tempo',
@@ -52,6 +59,7 @@ const SKIP_TIME_PRODUCT: StoreProduct = {
 
 export const STORE_PRODUCTS: StoreProduct[] = [
   SEED_PRODUCT,
+  WRAPPING_KIT_PRODUCT,
   ...(process.env.NODE_ENV !== 'production' ? [SKIP_TIME_PRODUCT] : []),
 ];
 

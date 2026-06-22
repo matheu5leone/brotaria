@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { getStoreProduct } from '@/config/economy';
 import { processGrowth } from '@/services/growthService';
+import { addStackableItem } from '@/services/inventoryService';
 
 /**
  * Compra de um produto da loja usando moedas.
@@ -54,15 +55,13 @@ export async function POST(request: Request) {
     }
 
     // 2) Entrega o produto.
-    if (product.id === 'seed') {
-      const { error: seedError } = await supabaseAdmin
-        .from('seeds')
-        .insert({ user_id: userId });
-
-      // Falha ao entregar: refund das moedas para não cobrar sem entregar.
-      if (seedError) {
+    if (product.id === 'seed' || product.id === 'wrapping_kit') {
+      try {
+        await addStackableItem(userId, product.id as 'seed' | 'wrapping_kit');
+      } catch (deliveryError: unknown) {
+        // Refund em caso de falha na entrega
         await supabaseAdmin.rpc('add_coins', { p_user_id: userId, p_amount: product.cost_coins });
-        throw seedError;
+        throw deliveryError;
       }
     }
 
