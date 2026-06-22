@@ -1,0 +1,185 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+/* ---------- Raridade — variáveis de cor ---------- */
+:root {
+  --rarity-comum:          rgba(255, 255, 255, 0.85);
+  --rarity-incomum:        #06b6d4;
+  --rarity-raro:           #1e3a8a;
+  --rarity-epico:          #7c3aed;
+  --rarity-lendario:       #f97316;
+  --rarity-brotaria:       #4ade80;
+  --rarity-brotaria-dark:  #166534;
+  --rarity-brotaria-mid:   #16a34a;
+  --rarity-brotaria-light: #86efac;
+}
+
+/* ---------- Raridade — keyframes ---------- */
+
+@keyframes particle-float {
+  0%   { transform: translate(0, 0) scale(1); opacity: 0.9; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+}
+
+@keyframes rarity-pulse-glow {
+  0%, 100% { filter: var(--glow-min); }
+  50%       { filter: var(--glow-max); }
+}
+
+@keyframes lendario-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes brotaria-border {
+  0%   { outline-color: var(--rarity-brotaria-mid);   }
+  25%  { outline-color: var(--rarity-brotaria);       }
+  50%  { outline-color: var(--rarity-brotaria-dark);  }
+  75%  { outline-color: var(--rarity-brotaria-light); }
+  100% { outline-color: var(--rarity-brotaria-mid);   }
+}
+
+/* ---------- Raridade — classes de glow ---------- */
+
+.rarity-glow-comum {
+  --glow-min: drop-shadow(0 0 2px var(--rarity-comum));
+  --glow-max: drop-shadow(0 0 6px var(--rarity-comum));
+  animation: rarity-pulse-glow 2.5s ease-in-out infinite;
+}
+.rarity-glow-incomum {
+  --glow-min: drop-shadow(0 0 4px var(--rarity-incomum));
+  --glow-max: drop-shadow(0 0 10px var(--rarity-incomum));
+  animation: rarity-pulse-glow 2s ease-in-out infinite;
+}
+.rarity-glow-raro {
+  --glow-min: drop-shadow(0 0 5px var(--rarity-raro));
+  --glow-max: drop-shadow(0 0 14px var(--rarity-raro));
+  animation: rarity-pulse-glow 2s ease-in-out infinite;
+}
+.rarity-glow-epico {
+  --glow-min: drop-shadow(0 0 6px var(--rarity-epico));
+  --glow-max: drop-shadow(0 0 16px var(--rarity-epico));
+  animation: rarity-pulse-glow 1.8s ease-in-out infinite;
+}
+.rarity-glow-lendario {
+  --glow-min: drop-shadow(0 0 8px var(--rarity-lendario));
+  --glow-max: drop-shadow(0 0 20px var(--rarity-lendario));
+  animation: rarity-pulse-glow 1.5s ease-in-out infinite;
+}
+.rarity-border-brotaria {
+  outline: 3px solid var(--rarity-brotaria-mid);
+  border-radius: 8px;
+  animation: brotaria-border 2s linear infinite;
+  filter: drop-shadow(0 0 8px var(--rarity-brotaria-mid));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rarity-glow-comum, .rarity-glow-incomum, .rarity-glow-raro,
+  .rarity-glow-epico, .rarity-glow-lendario, .rarity-border-brotaria {
+    animation: none;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ---------- Brotaria Loader ---------- */
+
+.brota-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, #fafaf9 75%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: brota-fade-in 160ms ease-out;
+}
+
+.brota-loader {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brota-loader__logo {
+  object-fit: contain;
+  animation: brota-breathe 1.4s ease-in-out infinite;
+  filter: drop-shadow(0 6px 14px rgba(22, 101, 52, 0.18));
+}
+
+/* Modo "girando": a própria logo roda no eixo (usado no lugar da planta). */
+.brota-loader__logo--spin {
+  animation: brota-spin 1s linear infinite;
+}
+
+.brota-loader__ring {
+  position: absolute;
+  inset: -16%;
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  border-top-color: #16a34a;   /* green-600 */
+  border-right-color: #86efac; /* green-300 */
+  animation: brota-spin 0.9s linear infinite;
+}
+
+@keyframes brota-breathe {
+  0%, 100% { transform: scale(0.9); opacity: 0.75; }
+  50%      { transform: scale(1.06); opacity: 1; }
+}
+
+@keyframes brota-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes brota-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brota-loader__logo { animation-duration: 2.6s; }
+  .brota-loader__ring { animation-duration: 1.8s; }
+}
+
+/* ---------- Drag & drop: planta "sendo carregada" (balançando) ---------- */
+
+.brota-carry {
+  animation: brota-carry 0.45s ease-in-out infinite;
+  filter: drop-shadow(0 10px 12px rgba(22, 101, 52, 0.28));
+  will-change: transform;
+}
+
+@keyframes brota-carry {
+  0%   { transform: rotate(-5deg) scale(1.08); }
+  50%  { transform: rotate(5deg) scale(1.08); }
+  100% { transform: rotate(-5deg) scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brota-carry { animation: none; transform: scale(1.08); }
+}
