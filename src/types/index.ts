@@ -113,3 +113,16 @@ export interface Profile {
   coins: number;
   created_at: string;
 }
+
+export type InventoryItemType = 'seed' | 'wrapping_kit' | 'wrapped_plant' | 'plant';
+
+export interface InventoryItem {
+  id: string;
+  user_id: string;
+  slot_index: number;
+  item_type: InventoryItemType;
+  plant_id: string | null;
+  quantity: number;
+  label: string | null;
+  created_at: string;
+}
