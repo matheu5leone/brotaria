@@ -49,9 +49,9 @@ export function useShovelStatus(userId: string | undefined) {
     enabled: !!userId,
     // Cooldown muda com o tempo; revalidar a cada 60s (quando há cooldown ativo)
     staleTime: 60_000,
-    refetchInterval: (query) =>
-      query.state.data?.cooldownRemainingMs
-        ? Math.min(query.state.data.cooldownRemainingMs, 60_000)
-        : false,
+    refetchInterval: (query) => {
+      const ms = query.state.data?.cooldownRemainingMs;
+      return ms ? Math.max(5_000, Math.min(ms, 60_000)) : false;
+    },
   });
 }

@@ -15,7 +15,7 @@ import {
   useWaterMutation,
   useDeleteMutation,
 } from '@/hooks/useGardenMutations';
-import { queryClient } from '@/lib/queryClient';
+import { useQueryClient } from '@tanstack/react-query';
 
 const DIG_DURATION_MS = 60_000;
 
@@ -50,6 +50,7 @@ export default function Garden() {
   const { user } = useAuth();
 
   // ── Dados via React Query ─────────────────────────────────────────────
+  const qc = useQueryClient();
   const { data: pots = [], isPending: potsLoading } = usePots(user?.id);
   const { data: shovelStatus } = useShovelStatus(user?.id);
   const shovelCooldownMs = shovelStatus?.cooldownRemainingMs ?? 0;
@@ -61,7 +62,6 @@ export default function Garden() {
   // ── UI state (local — não pertence ao servidor) ───────────────────────
   const [coinModalPotId, setCoinModalPotId] = useState<string | null>(null);
   const [shovelActive, setShovelActive] = useState(false);
-  const [isShoveling, setIsShoveling] = useState(false);
   const [shovelError, setShovelError] = useState<string | null>(null);
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
 
@@ -87,7 +87,7 @@ export default function Garden() {
   const handleGardenMouseLeave = () => setCursorPos(null);
 
   const handleGardenClick = async (e: React.MouseEvent) => {
-    if (!shovelActive || isShoveling || !user) return;
+    if (!shovelActive || digMutation.isPending || !user) return;
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
 
@@ -96,7 +96,6 @@ export default function Garden() {
     const posX = Math.min(94, Math.max(6, rawX));
     const posY = Math.min(92, Math.max(8, rawY));
 
-    setIsShoveling(true);
     setShovelError(null);
     setShovelActive(false);
     setCursorPos(null);
@@ -106,8 +105,6 @@ export default function Garden() {
     } catch (err: unknown) {
       const e = err as { code?: string; message?: string };
       setShovelError(e.code === 'COOLDOWN' ? 'A pá ainda está recarregando.' : (e.message ?? 'Erro ao cavar.'));
-    } finally {
-      setIsShoveling(false);
     }
   };
 
@@ -198,14 +195,14 @@ export default function Garden() {
 
         <button
           onClick={toggleShovel}
-          disabled={!shovelReady || isShoveling}
+          disabled={!shovelReady || digMutation.isPending}
           title={
             shovelReady
               ? 'Usar pá para cavar'
               : `Recarregando: ${formatCooldown(shovelCooldownMs)}`
           }
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold shadow-lg transition-all text-sm ${
-            isShoveling
+            digMutation.isPending
               ? 'bg-stone-400 text-white cursor-wait'
               : shovelActive
               ? 'bg-amber-600 text-white hover:bg-amber-500 active:scale-95'
@@ -214,9 +211,9 @@ export default function Garden() {
               : 'bg-stone-200 text-stone-400 cursor-not-allowed'
           }`}
         >
-          <Shovel className={`w-4 h-4 ${isShoveling ? 'animate-spin' : ''}`} />
+          <Shovel className={`w-4 h-4 ${digMutation.isPending ? 'animate-spin' : ''}`} />
           <span>
-            {isShoveling
+            {digMutation.isPending
               ? 'Cavando...'
               : shovelActive
               ? 'Cancelar'
@@ -233,7 +230,7 @@ export default function Garden() {
         potId={coinModalPotId ?? undefined}
         onComplete={() => {
           const uid = user?.id;
-          if (uid) queryClient.invalidateQueries({ queryKey: ['garden', 'pots', uid] });
+          if (uid) qc.invalidateQueries({ queryKey: ['garden', 'pots', uid] });
         }}
       />
     </div>
@@ -272,7 +269,7 @@ function PotSlot({
 
   const handleWater = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!plant || waterMutation.isPending) return;
+    if (!user || !plant || waterMutation.isPending) return;
     const willEvolve =
       plant.current_stage_waters + 1 >= plant.current_stage.waters_required;
     if (willEvolve) setIsEvolving(true);
@@ -296,7 +293,7 @@ function PotSlot({
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!plant || deleteMutation.isPending) return;
+    if (!user || !plant || deleteMutation.isPending) return;
     if (!window.confirm('Tem certeza que deseja remover esta planta? Esta ação não pode ser desfeita e você perderá o DNA único dela.')) return;
     try {
       await deleteMutation.mutateAsync({ plantId: plant.id, potId: pot.id });

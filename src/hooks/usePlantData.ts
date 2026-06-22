@@ -24,13 +24,15 @@ async function fetchPlant(plantId: string): Promise<PlantRow> {
 }
 
 async function fetchPlantVersion(plantId: string): Promise<PlantVersionRow | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('plant_versions')
     .select('id, image_url')
     .eq('plant_id', plantId)
     .order('created_at', { ascending: false })
     .limit(1)
     .single();
+  // PGRST116 = no rows found — valid for plants that haven't evolved yet
+  if (error && error.code !== 'PGRST116') throw error;
   return (data as PlantVersionRow | null) ?? null;
 }
 

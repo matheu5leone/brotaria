@@ -23,10 +23,12 @@ interface WalletContextType {
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 async function loadWallet(userId: string): Promise<{ coins: number; seedCount: number }> {
-  const [{ data: profile }, { count }] = await Promise.all([
+  const [{ data: profile, error: profileErr }, { count, error: countErr }] = await Promise.all([
     supabase.from('profiles').select('coins').eq('id', userId).single(),
     supabase.from('seeds').select('*', { count: 'exact', head: true }).eq('user_id', userId),
   ]);
+  if (profileErr) throw profileErr;
+  if (countErr) throw countErr;
   return { coins: profile?.coins ?? 0, seedCount: count ?? 0 };
 }
 

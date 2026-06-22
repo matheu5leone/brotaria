@@ -87,8 +87,10 @@ export function useDeleteMutation(userId: string) {
   return useMutation({
     mutationFn: ({ plantId, potId }: { plantId: string; potId: string }) =>
       deletePlant(plantId, potId),
-    onSuccess: () => {
+    onSuccess: (_data, { plantId }) => {
       qc.invalidateQueries({ queryKey: ['garden', 'pots', userId] });
+      qc.removeQueries({ queryKey: ['plant', plantId] });
+      qc.removeQueries({ queryKey: ['plant', plantId, 'version'] });
     },
   });
 }
