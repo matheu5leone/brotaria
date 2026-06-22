@@ -18,6 +18,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { RarityEffect } from '@/components/RarityEffect';
 import { PlantHistoryModal } from '@/components/PlantHistoryModal';
+import { InventoryPanel } from '@/components/InventoryPanel';
 
 const DIG_DURATION_MS = 60_000;
 
@@ -66,6 +67,7 @@ export default function Garden() {
   const [shovelActive, setShovelActive] = useState(false);
   const [shovelError, setShovelError] = useState<string | null>(null);
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
+  const [wrappingMode, setWrappingMode] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -174,6 +176,12 @@ export default function Garden() {
           }}
         />
       )}
+
+      {/* Inventory Panel */}
+      <InventoryPanel
+        userId={user?.id}
+        onWrapMode={() => setWrappingMode(true)}
+      />
 
       {/* Shovel toolbar */}
       <div
