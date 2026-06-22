@@ -4,10 +4,11 @@ import { useState, useCallback } from 'react';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { X } from 'lucide-react';
+import { X, Coins } from 'lucide-react';
 import { PlantRow, PlantVersionHistoryRow, usePlantHistory } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
 import { Rarity } from '@/types';
+import { calcPlantScore } from '@/lib/scoring';
 
 // Transforma delta de posição em transform 3D
 function cardStyle(delta: number): React.CSSProperties {
@@ -198,6 +199,12 @@ export function PlantHistoryModal({
             <p className="text-white/50 text-xs">
               {format(new Date(active.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })} · {biome}
             </p>
+            {active.dna_snapshot && active.stage && (
+              <div className="flex items-center gap-1.5 text-amber-400 font-black text-sm mt-1">
+                <Coins className="w-3.5 h-3.5" />
+                {calcPlantScore(active.dna_snapshot, active.stage.order_index).toLocaleString('pt-BR')} moedas
+              </div>
+            )}
           </div>
         )}
       </div>

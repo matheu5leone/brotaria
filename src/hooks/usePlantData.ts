@@ -20,7 +20,7 @@ export type PlantVersionHistoryRow = {
   image_url: string | null;
   created_at: string;
   dna_snapshot: PlantDNA;
-  stage: { name: string; code: string } | null;
+  stage: { name: string; code: string; order_index: number } | null;
 };
 
 async function fetchPlant(plantId: string): Promise<PlantRow> {
@@ -49,7 +49,7 @@ async function fetchPlantVersion(plantId: string): Promise<PlantVersionRow | nul
 async function fetchPlantHistory(plantId: string): Promise<PlantVersionHistoryRow[]> {
   const { data, error } = await supabase
     .from('plant_versions')
-    .select('id, image_url, created_at, dna_snapshot, stage:plant_stages(name, code)')
+    .select('id, image_url, created_at, dna_snapshot, stage:plant_stages(name, code, order_index)')
     .eq('plant_id', plantId)
     .order('created_at', { ascending: true });
   if (error) throw error;
