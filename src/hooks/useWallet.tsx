@@ -23,13 +23,19 @@ interface WalletContextType {
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 async function loadWallet(userId: string): Promise<{ coins: number; seedCount: number }> {
-  const [{ data: profile, error: profileErr }, { count, error: countErr }] = await Promise.all([
-    supabase.from('profiles').select('coins').eq('id', userId).single(),
-    supabase.from('seeds').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-  ]);
+  const [{ data: profile, error: profileErr }, { data: seedSlots, error: slotsErr }] =
+    await Promise.all([
+      supabase.from('profiles').select('coins').eq('id', userId).single(),
+      supabase
+        .from('inventory_items')
+        .select('quantity')
+        .eq('user_id', userId)
+        .eq('item_type', 'seed'),
+    ]);
   if (profileErr) throw profileErr;
-  if (countErr) throw countErr;
-  return { coins: profile?.coins ?? 0, seedCount: count ?? 0 };
+  if (slotsErr) throw slotsErr;
+  const seedCount = (seedSlots ?? []).reduce((sum, s) => sum + s.quantity, 0);
+  return { coins: profile?.coins ?? 0, seedCount };
 }
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
