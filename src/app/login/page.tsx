@@ -66,7 +66,12 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Senha</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider">Senha</label>
+              <NavLink href="/esqueci-senha" className="text-xs text-green-600 hover:underline font-medium">
+                Esqueceu a senha?
+              </NavLink>
+            </div>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
               <input
