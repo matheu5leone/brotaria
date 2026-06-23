@@ -6,23 +6,48 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 /**
- * Fix para @supabase/supabase-js@2.107.0 + Next.js 16 Turbopack em Chrome Mobile.
+ * Fix para @supabase/supabase-js@2.107.0 + Next.js 16 Turbopack em Chrome Mobile Android.
  *
  * Raiz do problema:
- *   1. Turbopack injeta um polyfill de `process` no browser com `process.version`
+ *   1. Turbopack injeta polyfill de `process` no browser com `process.version`
  *      contendo caracteres fora do range ISO-8859-1 em Chrome Android.
- *   2. supabase-js lê `process.version` para construir o header
- *      'X-Client-Info: supabase-js/2.107.0; runtime=web; runtime-version=<version>'
- *   3. O PostgRestClient chama `new Headers({ 'X-Client-Info': valor_ruim })`
- *      que lança em Chrome Mobile ANTES que qualquer fetch wrapper possa interceptar.
+ *   2. @supabase/postgrest-js usa esse valor em 'X-Client-Info' e chama
+ *      `new Headers({ 'X-Client-Info': valor_ruim })` internamente,
+ *      ANTES de chamar o fetch wrapper (safeFetch não consegue interceptar).
+ *   3. Chrome Mobile lança TypeError em `new Headers()` com valor não-ASCII.
  *
- * Solução em camadas:
- *   1. Sanitizar `process.version` antes que supabase-js o leia.
- *   2. safeFetch para cobrir qualquer header ruim restante em GoTrueClient.
- *   3. global.headers para sobrescrever X-Client-Info limpo no merge do createClient.
+ * Solução: patch no construtor global `Headers` para sanitizar na origem do throw.
+ * Isso cobre qualquer library que chame `new Headers({ key: badValue })`.
  */
 
-// Camada 1: sanitizar process.version no polyfill do browser
+// Camada 1: Patch do construtor global Headers — sanitiza valores não-ASCII no ponto do throw
+if (typeof globalThis !== 'undefined' && typeof (globalThis as { Headers?: unknown }).Headers === 'function') {
+  const NativeHeaders = (globalThis as { Headers: typeof Headers }).Headers;
+
+  class SafeHeaders extends NativeHeaders {
+    constructor(init?: HeadersInit) {
+      // Sanitiza apenas plain objects; Arrays e instâncias Headers existentes ficam intactos
+      if (
+        init != null &&
+        typeof init === 'object' &&
+        !Array.isArray(init) &&
+        !(init instanceof NativeHeaders)
+      ) {
+        const sanitized: Record<string, string> = {};
+        for (const [k, v] of Object.entries(init as Record<string, string>)) {
+          sanitized[k] = typeof v === 'string' ? v.replace(/[^\x20-\x7E]/g, '') : (v as string);
+        }
+        super(sanitized);
+      } else {
+        super(init as HeadersInit);
+      }
+    }
+  }
+
+  (globalThis as { Headers: typeof Headers }).Headers = SafeHeaders as unknown as typeof Headers;
+}
+
+// Camada 2: Sanitizar process.version antes que supabase-js o leia
 if (typeof process !== 'undefined' && typeof process.version === 'string') {
   const cleanVersion = process.version.replace(/[^\x20-\x7E]/g, '');
   try {
@@ -32,14 +57,13 @@ if (typeof process !== 'undefined' && typeof process.version === 'string') {
       configurable: true,
     });
   } catch {
-    // Se não conseguir redefinir, força via atribuição direta
     (process as NodeJS.Process & { version: string }).version = cleanVersion;
   }
 }
 
 const CLEAN_CLIENT_INFO = 'supabase-js/2.107.0';
 
-// Camada 2: safeFetch para sanitizar qualquer header ruim que ainda escapar
+// Camada 3: safeFetch — fallback para headers passados como plain object a fetch
 const safeFetch: typeof fetch = (input, init) => {
   if (!init?.headers) return fetch(input, init);
 
@@ -59,7 +83,6 @@ const safeFetch: typeof fetch = (input, init) => {
     }
   }
 
-  // Camada 3: força X-Client-Info limpo em toda e qualquer chamada
   safe['X-Client-Info'] = CLEAN_CLIENT_INFO;
 
   return fetch(input, { ...init, headers: safe });
