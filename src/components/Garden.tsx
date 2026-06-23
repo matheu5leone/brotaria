@@ -56,7 +56,7 @@ export default function Garden() {
 
   // ── Dados via React Query ─────────────────────────────────────────────
   const qc = useQueryClient();
-  const { data: pots = [], isPending: potsLoading } = usePots(user?.id);
+  const { data: pots = [], isPending: potsLoading, error: potsError } = usePots(user?.id);
   const { data: shovelStatus } = useShovelStatus(user?.id);
   const shovelCooldownMs = shovelStatus?.cooldownRemainingMs ?? 0;
   const shovelReady = shovelCooldownMs === 0;
@@ -80,6 +80,18 @@ export default function Garden() {
     () => qc.invalidateQueries({ queryKey: ['garden', 'pots', user?.id] }),
     [qc, user?.id],
   );
+
+  if (potsError) {
+    return (
+      <div className="p-8 text-center text-xs break-all" style={{ color: '#ff6b6b', background: '#1a0a0a', fontFamily: 'monospace' }}>
+        <div style={{ fontWeight: 'bold', marginBottom: 8 }}>ERRO AO CARREGAR JARDIM:</div>
+        <div>{String(potsError)}</div>
+        {potsError instanceof Error && potsError.stack && (
+          <div style={{ marginTop: 8, opacity: 0.7 }}>{potsError.stack.slice(0, 400)}</div>
+        )}
+      </div>
+    );
+  }
 
   if (potsLoading) {
     return (
