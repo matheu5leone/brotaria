@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Package, Sprout, Gift, X, Info } from 'lucide-react';
 import { useInventory, useOpenGift, usePatchLabel } from '@/hooks/useInventory';
-import { usePlantVersion } from '@/hooks/usePlantData';
+import { usePlantVersion, usePlant } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
 import { InventoryItem, Rarity, PlantDNA } from '@/types';
 
@@ -26,6 +26,10 @@ function WrappedPlantSlot({
   const [editingLabel, setEditingLabel] = useState(false);
   const [labelValue, setLabelValue] = useState(item.label ?? '');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setLabelValue(item.label ?? '');
+  }, [item.label]);
 
   const handleLabelClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -81,16 +85,20 @@ function WrappedPlantSlot({
 
 function PlantSlot({ item }: { item: InventoryItem }) {
   const { data: version } = usePlantVersion(item.plant_id);
+  const { data: plant } = usePlant(item.plant_id);
+  const rarity: Rarity = (plant?.dna?.rarity as Rarity) ?? 'comum';
 
   return (
     <div className="relative flex flex-col items-center justify-center w-full h-full bg-stone-800/40 border border-stone-600/30 rounded-xl overflow-hidden">
-      {version?.image_url ? (
-        <div className="relative w-full h-full">
-          <Image src={version.image_url} alt="Planta" fill className="object-contain p-1" />
-        </div>
-      ) : (
-        <div className="w-6 h-6 rounded-full bg-stone-600/40 animate-pulse" />
-      )}
+      <RarityEffect rarity={rarity} alwaysVisible>
+        {version?.image_url ? (
+          <div className="relative w-full h-full">
+            <Image src={version.image_url} alt="Planta" fill className="object-contain p-1" />
+          </div>
+        ) : (
+          <div className="w-6 h-6 rounded-full bg-stone-600/40 animate-pulse" />
+        )}
+      </RarityEffect>
     </div>
   );
 }
@@ -104,7 +112,7 @@ function AnimatingSlot({ phase, rarity }: { phase: OpenPhase; rarity: Rarity }) 
         className="relative flex items-center justify-center w-full h-full bg-rose-950/40 border border-rose-700/40 rounded-xl overflow-hidden"
         style={{
           animation: phase === 'shaking'
-            ? 'gift-shake 0.8s ease-in-out'
+            ? 'gift-shake 0.8s ease-in-out forwards'
             : 'gift-explode 0.6s ease-out forwards',
         }}
       >
