@@ -2,11 +2,12 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { Package, Sprout, Gift, X, Info } from 'lucide-react';
+import { Sprout, Gift, X, Info } from 'lucide-react';
 import { useInventory, useOpenGift, usePatchLabel } from '@/hooks/useInventory';
 import { usePlantVersion, usePlant } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
 import { InventoryItem, Rarity, PlantDNA } from '@/types';
+import { HexButton } from '@/components/HexButton';
 
 // ── Tipos de animação ────────────────────────────────────────────────────────
 
@@ -269,24 +270,21 @@ export function InventoryPanel({
 
   return (
     <>
-      {/* Botão flutuante */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen((v) => !v);
-        }}
-        className={`absolute bottom-4 left-4 z-20 flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold shadow-lg transition-all text-sm active:scale-95 ${
-          open ? 'bg-stone-600 text-white' : 'bg-stone-800 text-white hover:bg-stone-700'
-        }`}
+      {/* Botão flutuante — hexágono de madeira */}
+      <div
+        className="absolute bottom-4 left-4 z-20"
+        onClick={(e) => e.stopPropagation()}
+        style={{ paddingBottom: '24px' }}
       >
-        <Package className="w-4 h-4" />
-        <span>Mochila</span>
-        {totalItems > 0 && (
-          <span className="bg-amber-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-            {totalItems}
-          </span>
-        )}
-      </button>
+        <HexButton
+          icon="🎒"
+          label="Mochila"
+          badge={totalItems > 0 ? totalItems : undefined}
+          active={open}
+          onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+          title="Abrir mochila"
+        />
+      </div>
 
       {/* Painel */}
       {open && (

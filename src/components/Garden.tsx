@@ -20,6 +20,7 @@ import { RarityEffect } from '@/components/RarityEffect';
 import { PlantHistoryModal } from '@/components/PlantHistoryModal';
 import { InventoryPanel } from '@/components/InventoryPanel';
 import { useWrapPlant } from '@/hooks/useInventory';
+import { HexButton } from '@/components/HexButton';
 
 const DIG_DURATION_MS = 60_000;
 
@@ -218,13 +219,21 @@ export default function Garden() {
         />
       )}
 
-      {/* Shovel toolbar */}
+      {/* Shovel toolbar — hexágono de madeira */}
       <div
-        className="absolute bottom-4 right-4 z-20 flex flex-col items-end gap-2"
+        className="absolute bottom-4 right-4 z-20 flex flex-col items-end gap-3"
         onClick={(e) => e.stopPropagation()}
       >
         {shovelError && (
-          <div className="flex items-center gap-2 text-xs bg-red-600 text-white px-3 py-2 rounded-lg shadow">
+          <div
+            className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg shadow"
+            style={{
+              background: 'rgba(139,40,40,0.9)',
+              color: '#fecaca',
+              border: '1px solid rgba(220,80,80,0.4)',
+              fontFamily: 'var(--font-body)',
+            }}
+          >
             <span>{shovelError}</span>
             <button onClick={() => setShovelError(null)}>
               <X className="w-3 h-3" />
@@ -233,40 +242,37 @@ export default function Garden() {
         )}
 
         {shovelActive && (
-          <div className="text-xs bg-stone-800/80 text-white px-3 py-1.5 rounded-lg backdrop-blur-sm">
+          <div
+            className="text-xs px-3 py-1.5 rounded-lg backdrop-blur-sm"
+            style={{
+              background: 'rgba(15,32,12,0.85)',
+              color: 'var(--color-text-light)',
+              border: '1px solid rgba(92,58,30,0.3)',
+              fontFamily: 'var(--font-caption)',
+              fontStyle: 'italic',
+            }}
+          >
             Clique no jardim para cavar
           </div>
         )}
 
-        <button
-          onClick={toggleShovel}
-          disabled={!shovelReady || digMutation.isPending}
-          title={
-            shovelReady
-              ? 'Usar pá para cavar'
-              : `Recarregando: ${formatCooldown(shovelCooldownMs)}`
+        <HexButton
+          icon={digMutation.isPending ? '⏳' : '⛏'}
+          label={
+            digMutation.isPending ? 'Cavando...'
+            : shovelActive ? 'Cancelar'
+            : shovelReady ? 'Pá'
+            : formatCooldown(shovelCooldownMs)
           }
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold shadow-lg transition-all text-sm ${
-            digMutation.isPending
-              ? 'bg-stone-400 text-white cursor-wait'
-              : shovelActive
-              ? 'bg-amber-600 text-white hover:bg-amber-500 active:scale-95'
-              : shovelReady
-              ? 'bg-stone-800 text-white hover:bg-stone-700 active:scale-95'
-              : 'bg-stone-200 text-stone-400 cursor-not-allowed'
-          }`}
-        >
-          <Shovel className={`w-4 h-4 ${digMutation.isPending ? 'animate-spin' : ''}`} />
-          <span>
-            {digMutation.isPending
-              ? 'Cavando...'
-              : shovelActive
-              ? 'Cancelar'
-              : shovelReady
-              ? 'Pá'
-              : formatCooldown(shovelCooldownMs)}
-          </span>
-        </button>
+          badge={!shovelReady ? formatCooldown(shovelCooldownMs) : undefined}
+          disabled={!shovelReady || digMutation.isPending}
+          active={shovelActive}
+          onClick={toggleShovel}
+          title={
+            shovelReady ? 'Usar pá para cavar'
+            : `Recarregando: ${formatCooldown(shovelCooldownMs)}`
+          }
+        />
       </div>
 
       {/* Toolbar de seleção de embrulho */}
