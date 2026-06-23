@@ -18,6 +18,36 @@
   --rarity-brotaria-light: #86efac;
 }
 
+/* ---------- Design System — tokens do Herbário Vitoriano ---------- */
+:root {
+  /* Jardim */
+  --color-garden-deep:   #0f200c;
+  --color-garden-mid:    #1a3318;
+  --color-garden-light:  #162a12;
+
+  /* Pergaminho (sidebar / painéis) */
+  --color-parch-light:   #f2e8d5;
+  --color-parch-mid:     #ede0c4;
+  --color-parch-dark:    #dbc89a;
+
+  /* Madeira / Cobre / Ouro */
+  --color-wood-light:    #8b6346;
+  --color-wood-mid:      #5c3a1e;
+  --color-wood-dark:     #3d1c02;
+  --color-gold:          #c9a227;
+
+  /* Texto */
+  --color-text-dark:     #3d1c02;
+  --color-text-mid:      #5c3a1e;
+  --color-text-muted:    #9a7a4a;
+  --color-text-light:    #e8d5a0;
+
+  /* Fontes */
+  --font-display:        var(--font-cinzel), 'Georgia', serif;
+  --font-body:           var(--font-crimson), 'Georgia', serif;
+  --font-caption:        var(--font-fell), 'Georgia', serif;
+}
+
 /* ---------- Raridade — keyframes ---------- */
 
 @keyframes particle-float {
