@@ -1,10 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import NavLink from '@/components/NavLink';
-import { Flower, Mail, Lock, Loader2 } from 'lucide-react';
+import { FallingLeaves } from '@/components/FallingLeaves';
+import { Mail, Lock, Loader2 } from 'lucide-react';
+
+const inputClass =
+  'w-full pl-10 pr-4 py-3 rounded-xl outline-none transition-all text-sm';
+const inputStyle = {
+  background: 'rgba(255,255,255,0.45)',
+  border: '1.5px solid rgba(139,99,70,0.35)',
+  color: 'var(--color-text-dark)',
+};
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -18,13 +28,10 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError(error.message);
+      setError('E-mail ou senha incorretos. Tente novamente.');
       setLoading(false);
     } else {
       router.push('/');
@@ -33,31 +40,93 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-stone-200 p-8">
+    <div
+      className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center p-6"
+      style={{
+        background:
+          'linear-gradient(160deg, var(--color-garden-mid) 0%, var(--color-garden-deep) 40%, var(--color-garden-light) 70%, var(--color-garden-deep) 100%)',
+      }}
+    >
+      <FallingLeaves />
+
+      {/* Vinheta */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0"
+        style={{ boxShadow: 'inset 0 0 120px rgba(0,0,0,0.5)' }}
+      />
+
+      {/* Card */}
+      <div
+        className="relative z-10 w-full max-w-md rounded-2xl p-8 shadow-2xl"
+        style={{
+          background:
+            'linear-gradient(180deg, var(--color-parch-light) 0%, var(--color-parch-dark) 100%)',
+          border: '1.5px solid var(--color-wood-light)',
+          boxShadow:
+            '0 24px 64px rgba(0,0,0,0.5), inset 0 1px 1px rgba(242,232,213,0.9)',
+        }}
+      >
+        {/* Acento dourado no topo */}
+        <div
+          className="absolute top-0 left-6 right-6 h-px"
+          style={{
+            background:
+              'linear-gradient(90deg, transparent, var(--color-gold), transparent)',
+          }}
+        />
+
+        {/* Logo + título */}
         <div className="flex flex-col items-center mb-8">
-          <div className="bg-green-100 p-3 rounded-xl mb-4">
-            <Flower className="w-10 h-10 text-green-600" />
-          </div>
-          <h1 className="text-2xl font-black text-stone-800">Bem-vindo de volta</h1>
-          <p className="text-stone-500 text-sm">Entre para cuidar do seu jardim</p>
+          <Image
+            src="/imgs/brotaria.png"
+            alt="Brotaria"
+            width={56}
+            height={56}
+            className="mb-4 drop-shadow-lg"
+            preload
+          />
+          <h1
+            className="text-2xl font-black tracking-wide mb-1"
+            style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
+          >
+            Brotaria
+          </h1>
+          <p
+            className="text-sm text-center"
+            style={{ fontFamily: 'var(--font-caption)', fontStyle: 'italic', color: 'var(--color-text-muted)' }}
+          >
+            Entre para cuidar do seu jardim
+          </p>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm mb-6">
+          <div
+            className="px-4 py-3 rounded-lg text-sm mb-5"
+            style={{ background: 'rgba(139,40,40,0.12)', border: '1px solid rgba(139,40,40,0.25)', color: '#8b2828' }}
+          >
             {error}
           </div>
         )}
 
         <form onSubmit={handleLogin} className="space-y-5">
+          {/* E-mail */}
           <div>
-            <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">E-mail</label>
+            <label
+              className="block text-[10px] font-black uppercase tracking-widest mb-1.5"
+              style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-muted)' }}
+            >
+              E-mail
+            </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+              <Mail
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+                style={{ color: 'var(--color-wood-light)' }}
+              />
               <input
                 type="email"
                 required
-                className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                className={inputClass}
+                style={inputStyle}
                 placeholder="seu@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -65,19 +134,33 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {/* Senha */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider">Senha</label>
-              <NavLink href="/esqueci-senha" className="text-xs text-green-600 hover:underline font-medium">
+            <div className="flex items-center justify-between mb-1.5">
+              <label
+                className="block text-[10px] font-black uppercase tracking-widest"
+                style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-muted)' }}
+              >
+                Senha
+              </label>
+              <NavLink
+                href="/esqueci-senha"
+                className="text-[10px] font-medium hover:underline"
+                style={{ fontFamily: 'var(--font-body)', color: 'var(--color-wood-mid)' }}
+              >
                 Esqueceu a senha?
               </NavLink>
             </div>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+              <Lock
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+                style={{ color: 'var(--color-wood-light)' }}
+              />
               <input
                 type="password"
                 required
-                className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                className={inputClass}
+                style={inputStyle}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -88,15 +171,31 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+            className="w-full py-3.5 rounded-xl font-bold text-base transition-all flex items-center justify-center gap-2 mt-2"
+            style={{
+              fontFamily: 'var(--font-display)',
+              background: loading
+                ? 'var(--color-wood-mid)'
+                : 'linear-gradient(135deg, #2a5a1e, #1e4014)',
+              color: 'var(--color-parch-light)',
+              border: '1px solid rgba(201,162,39,0.3)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+            }}
           >
-            {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Entrar'}
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : '✦ Entrar no Jardim'}
           </button>
         </form>
 
-        <p className="mt-8 text-center text-stone-500 text-sm">
+        <p
+          className="mt-7 text-center text-sm"
+          style={{ fontFamily: 'var(--font-body)', color: 'var(--color-text-muted)' }}
+        >
           Não tem uma conta?{' '}
-          <NavLink href="/signup" className="text-green-600 font-bold hover:underline">
+          <NavLink
+            href="/signup"
+            className="font-bold hover:underline"
+            style={{ color: 'var(--color-wood-mid)' }}
+          >
             Criar meu Jardim
           </NavLink>
         </p>

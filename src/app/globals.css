@@ -141,6 +141,39 @@
   .plant-outline { filter: none; }
 }
 
+/* ---------- Auth — folhas caindo ---------- */
+
+@keyframes leaf-fall-a {
+  0%   { transform: translateY(-60px) rotate(0deg)   translateX(0px);   opacity: 0; }
+  8%   { opacity: 0.85; }
+  35%  { transform: translateY(32vh)  rotate(130deg) translateX(28px);  }
+  65%  { transform: translateY(66vh)  rotate(250deg) translateX(-18px); }
+  92%  { opacity: 0.5; }
+  100% { transform: translateY(108vh) rotate(360deg) translateX(12px);  opacity: 0; }
+}
+
+@keyframes leaf-fall-b {
+  0%   { transform: translateY(-60px) rotate(30deg)  translateX(0px);   opacity: 0; }
+  8%   { opacity: 0.9; }
+  35%  { transform: translateY(30vh)  rotate(160deg) translateX(-32px); }
+  65%  { transform: translateY(68vh)  rotate(280deg) translateX(22px);  }
+  92%  { opacity: 0.4; }
+  100% { transform: translateY(110vh) rotate(400deg) translateX(-8px);  opacity: 0; }
+}
+
+@keyframes leaf-fall-c {
+  0%   { transform: translateY(-60px) rotate(-15deg) translateX(0px);   opacity: 0; }
+  8%   { opacity: 0.75; }
+  40%  { transform: translateY(35vh)  rotate(100deg) translateX(18px);  }
+  70%  { transform: translateY(70vh)  rotate(220deg) translateX(-24px); }
+  92%  { opacity: 0.35; }
+  100% { transform: translateY(108vh) rotate(320deg) translateX(6px);   opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .falling-leaf { display: none !important; }
+}
+
 /* ---------- Jardim — animação de botões de ação ---------- */
 
 @keyframes btn-emerge {

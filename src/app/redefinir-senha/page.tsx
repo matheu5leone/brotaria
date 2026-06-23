@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import NavLink from '@/components/NavLink';
+import { FallingLeaves } from '@/components/FallingLeaves';
 import { Flower, Lock, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 
 export default function RedefinirSenhaPage() {
@@ -52,9 +53,11 @@ export default function RedefinirSenhaPage() {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center p-6">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-stone-200 p-8 text-center">
-          <CheckCircle className="w-14 h-14 text-green-500 mx-auto mb-4" />
+      <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center p-6" style={{ background: 'linear-gradient(160deg, var(--color-garden-mid) 0%, var(--color-garden-deep) 40%, var(--color-garden-light) 70%, var(--color-garden-deep) 100%)' }}>
+      <FallingLeaves />
+      <div className="pointer-events-none absolute inset-0 z-0" style={{ boxShadow: 'inset 0 0 120px rgba(0,0,0,0.5)' }} />
+        <div className="relative z-10 w-full max-w-md rounded-2xl shadow-2xl p-8 text-center" style={{ background: 'linear-gradient(180deg, var(--color-parch-light) 0%, var(--color-parch-dark) 100%)', border: '1.5px solid var(--color-wood-light)' }}>
+          <CheckCircle className="w-14 h-14 mx-auto mb-4" style={{ color: 'var(--color-wood-mid)' }} />
           <h1 className="text-2xl font-black text-stone-800 mb-2">Senha redefinida!</h1>
           <p className="text-stone-500 text-sm">
             Você será redirecionado ao login em instantes...
@@ -69,9 +72,11 @@ export default function RedefinirSenhaPage() {
 
   if (!ready) {
     return (
-      <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center p-6">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-stone-200 p-8 text-center">
-          <Loader2 className="w-10 h-10 text-green-500 mx-auto mb-4 animate-spin" />
+      <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center p-6" style={{ background: 'linear-gradient(160deg, var(--color-garden-mid) 0%, var(--color-garden-deep) 40%, var(--color-garden-light) 70%, var(--color-garden-deep) 100%)' }}>
+      <FallingLeaves />
+      <div className="pointer-events-none absolute inset-0 z-0" style={{ boxShadow: 'inset 0 0 120px rgba(0,0,0,0.5)' }} />
+        <div className="relative z-10 w-full max-w-md rounded-2xl shadow-2xl p-8 text-center" style={{ background: 'linear-gradient(180deg, var(--color-parch-light) 0%, var(--color-parch-dark) 100%)', border: '1.5px solid var(--color-wood-light)' }}>
+          <Loader2 className="w-10 h-10 mx-auto mb-4 animate-spin" style={{ color: 'var(--color-wood-mid)' }} />
           <p className="text-stone-500 text-sm">Validando link de recuperação...</p>
           <p className="text-stone-400 text-xs mt-3">
             Se esta tela persistir,{' '}
@@ -86,11 +91,13 @@ export default function RedefinirSenhaPage() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-stone-200 p-8">
+    <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center p-6" style={{ background: 'linear-gradient(160deg, var(--color-garden-mid) 0%, var(--color-garden-deep) 40%, var(--color-garden-light) 70%, var(--color-garden-deep) 100%)' }}>
+      <FallingLeaves />
+      <div className="pointer-events-none absolute inset-0 z-0" style={{ boxShadow: 'inset 0 0 120px rgba(0,0,0,0.5)' }} />
+      <div className="relative z-10 w-full max-w-md rounded-2xl shadow-2xl p-8" style={{ background: 'linear-gradient(180deg, var(--color-parch-light) 0%, var(--color-parch-dark) 100%)', border: '1.5px solid var(--color-wood-light)' }}>
         <div className="flex flex-col items-center mb-8">
-          <div className="bg-green-100 p-3 rounded-xl mb-4">
-            <Flower className="w-10 h-10 text-green-600" />
+          <div className="p-3 rounded-xl mb-4" style={{ background: 'rgba(92,58,30,0.1)' }}>
+            <Flower className="w-10 h-10" style={{ color: 'var(--color-wood-mid)' }} />
           </div>
           <h1 className="text-2xl font-black text-stone-800">Nova senha</h1>
           <p className="text-stone-500 text-sm">Escolha uma senha forte para sua conta</p>
