@@ -23,7 +23,7 @@ export default function EsqueciSenhaPage() {
 
     setLoading(false);
     if (error) {
-      setError('Não foi possível enviar o e-mail. Verifique o endereço e tente novamente.');
+      setError(error.message);
     } else {
       setSent(true);
     }
