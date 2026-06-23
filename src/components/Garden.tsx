@@ -128,9 +128,17 @@ export default function Garden() {
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full bg-green-300 overflow-hidden select-none ${
+      className={`relative w-full h-full overflow-hidden select-none ${
         shovelActive ? 'cursor-none' : ''
       }`}
+      style={{
+        background: `
+          radial-gradient(ellipse at 20% 10%, rgba(30,60,20,0.8) 0%, transparent 50%),
+          radial-gradient(ellipse at 80% 90%, rgba(20,50,10,0.8) 0%, transparent 50%),
+          linear-gradient(160deg, var(--color-garden-mid) 0%, var(--color-garden-deep) 40%, var(--color-garden-light) 60%, var(--color-garden-deep) 100%)
+        `,
+        boxShadow: 'inset 0 0 60px rgba(0,0,0,0.4)',
+      }}
       onMouseMove={handleGardenMouseMove}
       onMouseLeave={handleGardenMouseLeave}
       onClick={handleGardenClick}
@@ -175,7 +183,15 @@ export default function Garden() {
 
       {pots.length === 0 && !shovelActive && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <p className="text-stone-600 font-bold text-lg bg-white/60 px-4 py-2 rounded-xl">
+          <p
+            className="font-bold text-lg px-4 py-2 rounded-xl backdrop-blur-sm"
+            style={{
+              fontFamily: 'var(--font-display)',
+              color: 'var(--color-text-light)',
+              background: 'rgba(15,32,12,0.7)',
+              border: '1px solid rgba(92,58,30,0.3)',
+            }}
+          >
             Use a pá para cavar seu primeiro buraco!
           </p>
         </div>
@@ -366,11 +382,23 @@ function PotSlot({
   if (state === 'digging') {
     return (
       <div className="relative w-full h-full flex items-center justify-center">
-        <div className="w-full h-full rounded-full bg-amber-900/50 border-4 border-amber-800/40 flex flex-col items-center justify-center animate-pulse shadow-inner">
-          <Shovel className="w-5 h-5 text-amber-200 mb-1" />
-          <span className="text-amber-100 font-mono text-sm font-bold leading-none">
-            {formatSecondsLeft(msLeft)}
-          </span>
+        {/* Canteiro oval — cavando */}
+        <div
+          className="relative flex items-center justify-center animate-pulse"
+          style={{
+            width: '82%', height: '58%',
+            borderRadius: '50px / 36px',
+            background: 'radial-gradient(ellipse at 38% 30%, #3d2a18, #1a0f05)',
+            border: '2.5px solid var(--color-wood-mid)',
+            boxShadow: 'inset 0 4px 16px rgba(0,0,0,0.8), 0 3px 8px rgba(0,0,0,0.4)',
+          }}
+        >
+          <div className="flex flex-col items-center gap-0.5">
+            <Shovel className="w-4 h-4" style={{ color: 'var(--color-parch-dark)', opacity: 0.8 }} />
+            <span className="font-mono text-xs font-bold leading-none" style={{ color: 'var(--color-parch-light)' }}>
+              {formatSecondsLeft(msLeft)}
+            </span>
+          </div>
         </div>
       </div>
     );
@@ -379,14 +407,35 @@ function PotSlot({
   if (state === 'ready') {
     return (
       <div className="relative w-full h-full flex items-center justify-center">
-        <div className="w-full h-full rounded-full bg-stone-900/60 border-4 border-stone-700/50 flex items-center justify-center shadow-inner">
+        {/* Canteiro oval — pronto para plantar */}
+        <div
+          className="relative flex items-center justify-center"
+          style={{
+            width: '82%', height: '58%',
+            borderRadius: '50px / 36px',
+            background: 'radial-gradient(ellipse at 38% 30%, #2d1c10, #0f0905)',
+            border: '2.5px solid var(--color-wood-mid)',
+            boxShadow: 'inset 0 6px 20px rgba(0,0,0,0.95), inset 0 -2px 6px rgba(80,50,20,0.2), 0 3px 8px rgba(0,0,0,0.4)',
+          }}
+        >
+          {/* Anel ornamental interno */}
+          <div className="absolute pointer-events-none" style={{
+            inset: '-7px', borderRadius: '57px / 43px',
+            border: '2px solid var(--color-wood-light)', opacity: 0.5,
+          }} />
+          {/* Anel tracejado externo */}
+          <div className="absolute pointer-events-none" style={{
+            inset: '-11px', borderRadius: '61px / 47px',
+            border: '1.5px dashed rgba(92,58,30,0.3)',
+          }} />
           <button
             disabled={plantMutation.isPending}
             onClick={handlePlant}
-            className="p-2 rounded-full text-stone-300 hover:text-white hover:bg-white/10 active:scale-95 transition-all"
+            className="p-2 rounded-full transition-all active:scale-95"
+            style={{ color: 'rgba(139,99,70,0.7)' }}
             title="Plantar semente"
           >
-            <Plus className={`w-8 h-8 ${plantMutation.isPending ? 'animate-spin' : ''}`} />
+            <Plus className={`w-7 h-7 ${plantMutation.isPending ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
@@ -395,10 +444,22 @@ function PotSlot({
 
   // state === 'planted'
   return (
-    <div className="relative group w-full h-full flex flex-col items-center justify-end pb-4 transition-transform select-none">
+    <div className="relative group w-full h-full flex flex-col items-center justify-end select-none">
       {plant ? (
         <>
-          <div className="relative w-full h-full flex items-center justify-center">
+          {/* Canteiro oval de base (terra visível embaixo da planta) */}
+          <div
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 pointer-events-none"
+            style={{
+              width: '78%', height: '32%',
+              borderRadius: '50px / 36px',
+              background: 'radial-gradient(ellipse at 40% 40%, #2d1c10, #100806)',
+              border: '2.5px solid var(--color-wood-mid)',
+              boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.9), 0 2px 6px rgba(0,0,0,0.5)',
+              zIndex: 0,
+            }}
+          />
+          <div className="relative w-full h-full flex items-center justify-center" style={{ zIndex: 1 }}>
             {isEvolving ? (
               <Loader variant="inline" spin size={56} />
             ) : latestVersion?.image_url ? (
