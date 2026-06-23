@@ -4,7 +4,14 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import NavLink from '@/components/NavLink';
 import { FallingLeaves } from '@/components/FallingLeaves';
-import { Flower, Mail, Loader2, CheckCircle } from 'lucide-react';
+import { Mail, Loader2, CheckCircle } from 'lucide-react';
+
+const inputClass = 'w-full pl-10 pr-4 py-3 rounded-xl outline-none transition-all text-sm';
+const inputStyle = {
+  background: 'rgba(255,255,255,0.45)',
+  border: '1.5px solid rgba(139,99,70,0.35)',
+  color: 'var(--color-text-dark)',
+};
 
 export default function EsqueciSenhaPage() {
   const [email, setEmail] = useState('');
@@ -23,7 +30,7 @@ export default function EsqueciSenhaPage() {
 
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError('Não foi possível enviar o e-mail. Verifique o endereço e tente novamente.');
     } else {
       setSent(true);
     }
@@ -33,64 +40,106 @@ export default function EsqueciSenhaPage() {
     <div
       className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center p-6"
       style={{
-        background: 'linear-gradient(160deg, var(--color-garden-mid) 0%, var(--color-garden-deep) 40%, var(--color-garden-light) 70%, var(--color-garden-deep) 100%)',
+        background:
+          'linear-gradient(160deg, var(--color-garden-mid) 0%, var(--color-garden-deep) 40%, var(--color-garden-light) 70%, var(--color-garden-deep) 100%)',
       }}
     >
       <FallingLeaves />
-      <div className="pointer-events-none absolute inset-0 z-0" style={{ boxShadow: 'inset 0 0 120px rgba(0,0,0,0.5)' }} />
+
+      <div
+        className="pointer-events-none absolute inset-0 z-0"
+        style={{ boxShadow: 'inset 0 0 120px rgba(0,0,0,0.5)' }}
+      />
+
       <div
         className="relative z-10 w-full max-w-md rounded-2xl p-8 shadow-2xl"
         style={{
-          background: 'linear-gradient(180deg, var(--color-parch-light) 0%, var(--color-parch-dark) 100%)',
+          background:
+            'linear-gradient(180deg, var(--color-parch-light) 0%, var(--color-parch-dark) 100%)',
           border: '1.5px solid var(--color-wood-light)',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.5), inset 0 1px 1px rgba(242,232,213,0.9)',
         }}
       >
-        <div className="flex flex-col items-center mb-8">
-          <div className="bg-green-100 p-3 rounded-xl mb-4">
-            <Flower className="w-10 h-10" style={{ color: 'var(--color-wood-mid)' }} />
-          </div>
-          <h1 className="text-2xl font-black" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}>Recuperar senha</h1>
-          <p className="text-sm text-center" style={{ fontFamily: 'var(--font-caption)', fontStyle: 'italic', color: 'var(--color-text-muted)' }}>
-            Informe seu e-mail e enviaremos um link para redefinir sua senha
-          </p>
-        </div>
+        {/* Acento dourado no topo */}
+        <div
+          className="absolute top-0 left-6 right-6 h-px"
+          style={{
+            background: 'linear-gradient(90deg, transparent, var(--color-gold), transparent)',
+          }}
+        />
 
         {sent ? (
-          <div className="flex flex-col items-center gap-4 py-4">
-            <CheckCircle className="w-14 h-14 text-green-500" />
-            <p className="text-stone-700 font-bold text-center">
+          <div className="flex flex-col items-center gap-4 py-4 text-center">
+            <CheckCircle className="w-14 h-14" style={{ color: 'var(--color-wood-mid)' }} />
+            <h2
+              className="text-xl font-black"
+              style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
+            >
               E-mail enviado!
-            </p>
-            <p className="text-stone-500 text-sm text-center">
+            </h2>
+            <p
+              className="text-sm"
+              style={{ fontFamily: 'var(--font-caption)', fontStyle: 'italic', color: 'var(--color-text-muted)' }}
+            >
               Verifique sua caixa de entrada (e a pasta de spam) para o link de redefinição.
             </p>
             <NavLink
               href="/login"
-              className="mt-2 text-green-600 font-bold hover:underline text-sm"
+              className="mt-2 text-sm font-bold hover:underline"
+              style={{ color: 'var(--color-wood-mid)', fontFamily: 'var(--font-display)' }}
             >
               ← Voltar ao login
             </NavLink>
           </div>
         ) : (
           <>
+            {/* Título */}
+            <div className="flex flex-col items-center mb-8">
+              <h1
+                className="text-2xl font-black tracking-wide mb-1"
+                style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
+              >
+                Recuperar senha
+              </h1>
+              <p
+                className="text-sm text-center"
+                style={{ fontFamily: 'var(--font-caption)', fontStyle: 'italic', color: 'var(--color-text-muted)' }}
+              >
+                Informe seu e-mail para receber o link de redefinição
+              </p>
+            </div>
+
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm mb-6">
+              <div
+                className="px-4 py-3 rounded-lg text-sm mb-5"
+                style={{
+                  background: 'rgba(139,40,40,0.12)',
+                  border: '1px solid rgba(139,40,40,0.25)',
+                  color: '#8b2828',
+                }}
+              >
                 {error}
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">
+                <label
+                  className="block text-[10px] font-black uppercase tracking-widest mb-1.5"
+                  style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-muted)' }}
+                >
                   E-mail cadastrado
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+                  <Mail
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+                    style={{ color: 'var(--color-wood-light)' }}
+                  />
                   <input
                     type="email"
                     required
-                    className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                    className={inputClass}
+                    style={inputStyle}
                     placeholder="seu@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -101,14 +150,30 @@ export default function EsqueciSenhaPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-xl font-bold text-base transition-all flex items-center justify-center gap-2 mt-2"
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  background: loading
+                    ? 'var(--color-wood-mid)'
+                    : 'linear-gradient(135deg, #2a5a1e, #1e4014)',
+                  color: 'var(--color-parch-light)',
+                  border: '1px solid rgba(201,162,39,0.3)',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                }}
               >
-                {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Enviar link de recuperação'}
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : '✦ Enviar link de recuperação'}
               </button>
             </form>
 
-            <p className="mt-6 text-center text-stone-500 text-sm">
-              <NavLink href="/login" className="text-green-600 font-bold hover:underline">
+            <p
+              className="mt-7 text-center text-sm"
+              style={{ fontFamily: 'var(--font-body)', color: 'var(--color-text-muted)' }}
+            >
+              <NavLink
+                href="/login"
+                className="font-bold hover:underline"
+                style={{ color: 'var(--color-wood-mid)' }}
+              >
                 ← Voltar ao login
               </NavLink>
             </p>
