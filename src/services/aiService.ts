@@ -21,7 +21,8 @@ const CONFIG = {
   // 3 = DALL-E 3
   // 4 = Ideogram v3
   // 5 = Flux 2 Klein (Fast/Cheap)
-  SELECTED_IMAGE: 5,
+  // 6 = Recraft V4.1 Utility ← padrão atual (transparent PNG nativo, estilo ilustração)
+  SELECTED_IMAGE: 6,
 };
 
 const LLM_OPTIONS: Record<number, string> = {
@@ -35,7 +36,8 @@ const IMAGE_OPTIONS: Record<number, string> = {
   2: 'black-forest-labs/flux-1-pro',
   3: 'openai/dall-e-3',
   4: 'ideogram-ai/ideogram-v3',
-  5: 'black-forest-labs/flux.2-klein-4b'
+  5: 'black-forest-labs/flux.2-klein-4b',
+  6: 'recraft/recraft-v4.1-utility',
 };
 
 // Carregamento de Prompts Externos

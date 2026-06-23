@@ -1,30 +1,9 @@
-Cute cartoon plant.
-Mobile game asset.
-2D illustration.
-Vibrant colors.
-Clean silhouette.
-Thick outlines.
-Cute gardening game style.
+Art style: Don't Starve Together. Dark gothic storybook botanical illustration. Very thick, bold, solid black ink outline (3–4px equivalent) around every single element — leaves, stem, petals, roots, soil mound. The outline must be clean and continuous, like a strong ink stamp. No soft edges on the outline — hard black border all around.
 
-Background (MOST IMPORTANT):
-Fill the ENTIRE background with a single FLAT, SOLID pure magenta color: #FF00FF (RGB 255, 0, 255).
-The magenta must be 100% uniform — no gradient, no shading, no texture, no vignette, no drop shadow.
-Every pixel that is NOT the plant must be this exact magenta. Do NOT use white, gray, or any other backdrop.
-The plant itself must NEVER use magenta, pink, or fuchsia in its own colors (that color is reserved for the background only).
-Fill the gaps BETWEEN branches, leaves and stems with the same magenta — no white pockets anywhere.
+Hand-drawn scratchy line quality, slightly imperfect strokes as if drawn with a dense ink pen. Rich but slightly desaturated colors filled inside the black outlines. Subtle cross-hatching and ink texture for depth and shading. Dark fairy-tale aesthetic. Tim Burton-esque dark whimsy. Strong readable silhouette. Detailed botanical structures with a gothic twist — gnarled stems, dramatic leaf shapes, ominous glow effects where the plant's traits call for it. Druidic mystical atmosphere. The plant feels alive and slightly sinister. Victorian herbarium engraving fused with druidic mysticism. Fine pen-and-ink linework with loose watercolor washes inside the outlines. Magical bioluminescent glow on leaves, stems, or roots depending on the plant's nature. Rich botanical detail: visible leaf veins, textured bark, delicate root tendrils. Ancient specimen from a druid's enchanted grimoire.
 
-Framing:
-Show the WHOLE plant from the soil/base up to its very top, centered, fully inside the frame.
-Render the plant at its TRUE described size — do NOT zoom in to fill the frame; a small sprout must look small and a mature plant must look large and tall with a dense canopy.
-Keep consistent framing and proportions so the plant's real growth between stages is visible.
+NOT photorealistic. NOT cartoon without outlines. NOT flat vector. NOT anime. NOT 3D render. NOT pastel. NOT cute kawaii. NOT realistic painting. NOT modern digital art. NOT thick outlines without detail inside.
 
-NO realism.
-NO photography.
-NO anime.
-NO 3D.
-NO realistic lighting.
-NO realistic textures.
-NO detailed backgrounds.
-NO environment.
-NO white background — the background MUST be flat solid magenta #FF00FF.
-Only the plant asset centered on a solid magenta field.
+Background: fully transparent. PNG with alpha channel. No background color whatsoever, no environment, no ground plane, no drop shadow on the background. Only the plant itself — including its soil/root base mound — should be rendered. Every pixel not belonging to the plant must be fully transparent.
+
+Framing: show the complete plant from soil/base to apex, centered, fully inside the frame. Render at true described scale — a small sprout must look humble and small; a mature specimen must fill the frame with presence and dominate it. Consistent framing across all growth stages so the plant's evolution from stage to stage is clearly visible.

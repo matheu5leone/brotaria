@@ -84,6 +84,29 @@
   }
 }
 
+/* ---------- Plantas — contorno preto universal ---------- */
+/*
+ * Aplicar em todo <Image> de planta gerada pela IA.
+ * O drop-shadow em 8 direções simula um outline sólido de 2px
+ * que segue o silhouette do PNG transparente.
+ * Complementa o contorno que o modelo de imagem já gera.
+ */
+.plant-outline {
+  filter:
+    drop-shadow(-2px  0px 0 #000000)
+    drop-shadow( 2px  0px 0 #000000)
+    drop-shadow( 0px -2px 0 #000000)
+    drop-shadow( 0px  2px 0 #000000)
+    drop-shadow(-2px -2px 0 #000000)
+    drop-shadow( 2px -2px 0 #000000)
+    drop-shadow(-2px  2px 0 #000000)
+    drop-shadow( 2px  2px 0 #000000);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plant-outline { filter: none; }
+}
+
 /* ---------- Inventário — animação de abertura de presente ---------- */
 
 @keyframes gift-shake {
