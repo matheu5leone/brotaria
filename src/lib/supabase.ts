@@ -1,29 +1,51 @@
+'use client';
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 /**
- * Workaround para @supabase/supabase-js@2.107.0 + Next.js 16 Turbopack:
+ * Fix para @supabase/supabase-js@2.107.0 + Next.js 16 Turbopack em Chrome Mobile.
  *
- * O cliente auto-gera 'X-Client-Info' com caracteres não-ASCII no campo
- * runtime-version (process.version polyfill do Turbopack), causando:
- * "Failed to read the 'headers' property: String contains non ISO-8859-1 code point"
+ * Raiz do problema:
+ *   1. Turbopack injeta um polyfill de `process` no browser com `process.version`
+ *      contendo caracteres fora do range ISO-8859-1 em Chrome Android.
+ *   2. supabase-js lê `process.version` para construir o header
+ *      'X-Client-Info: supabase-js/2.107.0; runtime=web; runtime-version=<version>'
+ *   3. O PostgRestClient chama `new Headers({ 'X-Client-Info': valor_ruim })`
+ *      que lança em Chrome Mobile ANTES que qualquer fetch wrapper possa interceptar.
  *
- * Solução dupla:
- * 1. global.headers: fornece X-Client-Info limpo para tentar sobrescrever o ruim
- * 2. safeFetch: intercepta TODA chamada fetch() e sanitiza os headers antes
- *    de chegar ao browser, lidando com os 3 formatos possíveis de HeadersInit
+ * Solução em camadas:
+ *   1. Sanitizar `process.version` antes que supabase-js o leia.
+ *   2. safeFetch para cobrir qualquer header ruim restante em GoTrueClient.
+ *   3. global.headers para sobrescrever X-Client-Info limpo no merge do createClient.
  */
+
+// Camada 1: sanitizar process.version no polyfill do browser
+if (typeof process !== 'undefined' && typeof process.version === 'string') {
+  const cleanVersion = process.version.replace(/[^\x20-\x7E]/g, '');
+  try {
+    Object.defineProperty(process, 'version', {
+      value: cleanVersion,
+      writable: true,
+      configurable: true,
+    });
+  } catch {
+    // Se não conseguir redefinir, força via atribuição direta
+    (process as NodeJS.Process & { version: string }).version = cleanVersion;
+  }
+}
+
 const CLEAN_CLIENT_INFO = 'supabase-js/2.107.0';
 
+// Camada 2: safeFetch para sanitizar qualquer header ruim que ainda escapar
 const safeFetch: typeof fetch = (input, init) => {
   if (!init?.headers) return fetch(input, init);
 
   const safe: Record<string, string> = {};
 
   if (init.headers instanceof Headers) {
-    // PostgREST client passa Headers instance
     init.headers.forEach((value, key) => {
       safe[key] = value.replace(/[^\x20-\x7E]/g, '');
     });
@@ -32,13 +54,12 @@ const safeFetch: typeof fetch = (input, init) => {
       safe[key] = typeof value === 'string' ? value.replace(/[^\x20-\x7E]/g, '') : value;
     }
   } else {
-    // GoTrueClient passa objeto simples — é aqui que estava falhando
     for (const [key, value] of Object.entries(init.headers as Record<string, string>)) {
       safe[key] = typeof value === 'string' ? value.replace(/[^\x20-\x7E]/g, '') : value;
     }
   }
 
-  // Garante que X-Client-Info sempre fica com valor ASCII puro
+  // Camada 3: força X-Client-Info limpo em toda e qualquer chamada
   safe['X-Client-Info'] = CLEAN_CLIENT_INFO;
 
   return fetch(input, { ...init, headers: safe });
