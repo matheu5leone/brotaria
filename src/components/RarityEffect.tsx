@@ -51,11 +51,12 @@ export function RarityEffect({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Lendario: conic-gradient giratório atrás da imagem */}
+      {/* Lendario: conic-gradient giratório — sempre atrás (z-index negativo) */}
       {rarity === 'lendario' && (
         <div
-          className="absolute inset-0 -z-10 rounded-full"
+          className="absolute inset-0 rounded-full"
           style={{
+            zIndex: 0,
             opacity: active ? 0.6 : 0,
             transition: 'opacity 0.3s ease',
             background: `conic-gradient(var(--rarity-lendario), transparent 60%, var(--rarity-lendario))`,
@@ -64,15 +65,10 @@ export function RarityEffect({
         />
       )}
 
-      {/* Imagem com classe de glow */}
-      <div className={`w-full h-full transition-all duration-300 ${glowClass}`}>
-        {children}
-      </div>
-
-      {/* Partículas */}
+      {/* Partículas — atrás do PNG (zIndex: 0, antes do children no DOM) */}
       <div
         className="pointer-events-none absolute inset-0"
-        style={{ opacity: active ? 1 : 0, transition: 'opacity 0.3s ease' }}
+        style={{ opacity: active ? 1 : 0, transition: 'opacity 0.3s ease', zIndex: 0 }}
       >
         {particles.map((style, i) => (
           <span
@@ -87,6 +83,14 @@ export function RarityEffect({
             }}
           />
         ))}
+      </div>
+
+      {/* Imagem da planta — na frente das partículas (zIndex: 1) */}
+      <div
+        className={`w-full h-full transition-all duration-300 ${glowClass}`}
+        style={{ position: 'relative', zIndex: 1 }}
+      >
+        {children}
       </div>
     </div>
   );
