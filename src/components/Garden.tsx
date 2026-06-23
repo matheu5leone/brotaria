@@ -19,6 +19,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { RarityEffect } from '@/components/RarityEffect';
 import { PlantHistoryModal } from '@/components/PlantHistoryModal';
 import { InventoryPanel } from '@/components/InventoryPanel';
+import { useWrapPlant } from '@/hooks/useInventory';
 
 const DIG_DURATION_MS = 60_000;
 
@@ -68,6 +69,9 @@ export default function Garden() {
   const [shovelError, setShovelError] = useState<string | null>(null);
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
   const [wrappingMode, setWrappingMode] = useState(false);
+
+  const wrapPlantMutation = useWrapPlant(user?.id ?? '');
+  const [wrapError, setWrapError] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -151,6 +155,18 @@ export default function Garden() {
               pot={pot}
               state={state}
               onNeedSeed={setCoinModalPotId}
+              wrappingMode={wrappingMode}
+              onWrap={async (plantId: string) => {
+                if (!confirm('Embrulhar esta planta? 1 kit de embrulho será consumido.')) return;
+                try {
+                  await wrapPlantMutation.mutateAsync({ plantId });
+                  setWrappingMode(false);
+                } catch (err: unknown) {
+                  const e = err as { code?: string; message?: string };
+                  setWrapError(e.message ?? 'Erro ao embrulhar');
+                  setWrappingMode(false);
+                }
+              }}
             />
           </div>
         );
@@ -234,6 +250,30 @@ export default function Garden() {
         </button>
       </div>
 
+      {/* Toolbar de seleção de embrulho */}
+      {wrappingMode && (
+        <div
+          className="absolute bottom-4 left-4 z-20 flex flex-col items-start gap-2"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="text-xs bg-rose-900/80 text-rose-200 px-3 py-1.5 rounded-lg backdrop-blur-sm">
+            Clique numa planta para embrulhar
+          </div>
+          <button
+            onClick={() => { setWrappingMode(false); setWrapError(null); }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold shadow-lg bg-stone-800 text-white hover:bg-stone-700 active:scale-95 transition-all text-sm"
+          >
+            <X className="w-4 h-4" />
+            Cancelar
+          </button>
+          {wrapError && (
+            <div className="text-xs bg-red-700 text-white px-3 py-1.5 rounded-lg">
+              {wrapError}
+            </div>
+          )}
+        </div>
+      )}
+
       <CoinPurchaseModal
         open={coinModalPotId !== null}
         onClose={() => setCoinModalPotId(null)}
@@ -251,10 +291,14 @@ function PotSlot({
   pot,
   state,
   onNeedSeed,
+  wrappingMode = false,
+  onWrap,
 }: {
   pot: Pot;
   state: PotState;
   onNeedSeed: (potId: string) => void;
+  wrappingMode?: boolean;
+  onWrap?: (plantId: string) => void;
 }) {
   const { user } = useAuth();
   const { data: plant } = usePlant(pot.plant_id);
@@ -381,7 +425,19 @@ function PotSlot({
             )}
           </div>
 
-          <div className="absolute inset-0 flex flex-col items-center justify-center transition-opacity bg-black/20 rounded-full p-2 opacity-0 group-hover:opacity-100">
+          {/* Overlay de seleção de embrulho */}
+          {wrappingMode && plant && (
+            <div
+              className="absolute inset-0 flex items-center justify-center bg-rose-900/50 rounded-full cursor-pointer ring-2 ring-rose-400 transition-all hover:bg-rose-800/60"
+              onClick={(e) => { e.stopPropagation(); onWrap?.(plant.id); }}
+            >
+              <span className="text-2xl">🎁</span>
+            </div>
+          )}
+
+          <div className={`absolute inset-0 flex flex-col items-center justify-center transition-opacity bg-black/20 rounded-full p-2 ${
+            wrappingMode ? 'hidden' : 'opacity-0 group-hover:opacity-100'
+          }`}>
             <p className="text-[10px] font-bold text-white uppercase tracking-tighter mb-1 bg-stone-900/50 px-2 rounded-full">
               {plant.current_stage.name}
             </p>
