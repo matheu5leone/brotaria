@@ -84,6 +84,42 @@
   }
 }
 
+/* ---------- Inventário — animação de abertura de presente ---------- */
+
+@keyframes gift-shake {
+  0%   { transform: rotate(0deg); }
+  15%  { transform: rotate(-8deg); }
+  30%  { transform: rotate(8deg); }
+  45%  { transform: rotate(-12deg); }
+  60%  { transform: rotate(12deg); }
+  75%  { transform: rotate(-8deg); }
+  90%  { transform: rotate(8deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes gift-explode {
+  0%   { transform: scale(1);   opacity: 1; }
+  60%  { transform: scale(1.5); opacity: 0.6; }
+  100% { transform: scale(0);   opacity: 0; }
+}
+
+@keyframes gift-flash {
+  0%, 100% { background: transparent; }
+  50%       { background: rgba(255, 255, 255, 0.35); }
+}
+
+@keyframes gift-reveal {
+  0%   { transform: scale(0.3) rotate(-5deg); opacity: 0; }
+  60%  { transform: scale(1.1) rotate(2deg);  opacity: 1; }
+  100% { transform: scale(1)   rotate(0deg);  opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gift-shaking, .gift-exploding, .gift-revealing {
+    animation: none !important;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
