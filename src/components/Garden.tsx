@@ -82,13 +82,20 @@ export default function Garden() {
   );
 
   if (potsError) {
+    const errMsg = potsError instanceof Error
+      ? potsError.message
+      : (potsError as { message?: string })?.message ?? '(sem message)';
+    const errCode = (potsError as { code?: string })?.code ?? '';
+    const errDetails = (potsError as { details?: string })?.details ?? '';
+    const errHint = (potsError as { hint?: string })?.hint ?? '';
     return (
-      <div className="p-8 text-center text-xs break-all" style={{ color: '#ff6b6b', background: '#1a0a0a', fontFamily: 'monospace' }}>
-        <div style={{ fontWeight: 'bold', marginBottom: 8 }}>ERRO AO CARREGAR JARDIM:</div>
-        <div>{String(potsError)}</div>
-        {potsError instanceof Error && potsError.stack && (
-          <div style={{ marginTop: 8, opacity: 0.7 }}>{potsError.stack.slice(0, 400)}</div>
-        )}
+      <div className="p-4 text-xs break-all" style={{ color: '#ff6b6b', background: '#1a0a0a', fontFamily: 'monospace' }}>
+        <div style={{ fontWeight: 'bold', marginBottom: 6 }}>ERRO AO CARREGAR JARDIM</div>
+        <div>msg: {errMsg}</div>
+        {errCode && <div>code: {errCode}</div>}
+        {errDetails && <div>details: {errDetails}</div>}
+        {errHint && <div>hint: {errHint}</div>}
+        <div style={{ marginTop: 6, opacity: 0.6 }}>raw: {JSON.stringify(potsError).slice(0, 300)}</div>
       </div>
     );
   }
