@@ -8,36 +8,25 @@ import Inventory from '@/components/Inventory';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import {
-  LogOut,
-  LayoutDashboard,
-  Store,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  Coins,
-  Trophy,
+  LogOut, LayoutDashboard, Store, Settings,
+  ChevronLeft, ChevronRight, Coins, Trophy,
 } from 'lucide-react';
 
-/**
- * Shell de navegação compartilhado entre as páginas autenticadas (Home, Loja…).
- * Auto-contido: estado de colapso, chip de moedas, inventário e bloco do usuário.
- */
 export default function Sidebar() {
   const { user, signOut } = useAuth();
   const { coins } = useWallet();
   const pathname = usePathname();
-
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const navItemClass = (href: string) => {
     const isActive = pathname === href;
-    const base = 'flex items-center rounded-lg transition-all';
+    const base = 'flex items-center rounded-lg transition-all border-l-2';
     const layout = isSidebarCollapsed
-      ? 'justify-center p-2.5 w-10 h-10 mx-auto'
+      ? 'justify-center p-2.5 w-10 h-10 mx-auto border-l-0'
       : 'gap-3 px-3 py-2';
     const state = isActive
-      ? 'bg-green-50 text-green-700 font-bold'
-      : 'text-stone-500 hover:bg-stone-50 hover:text-stone-900 font-medium';
+      ? 'border-l-[var(--color-wood-mid)] bg-[rgba(92,58,30,0.1)] text-[var(--color-text-dark)] font-bold'
+      : 'border-l-transparent text-[var(--color-text-mid)] hover:bg-[rgba(92,58,30,0.07)] hover:text-[var(--color-text-dark)] font-medium';
     return `${base} ${layout} ${state}`;
   };
 
@@ -45,26 +34,42 @@ export default function Sidebar() {
     <aside
       className={`${
         isSidebarCollapsed ? 'w-20' : 'w-64'
-      } bg-white border-r border-stone-200 flex flex-col sticky top-0 h-screen z-20 shadow-sm transition-all duration-300 ease-in-out relative`}
+      } border-r-[3px] flex flex-col sticky top-0 h-screen z-20 shadow-sm transition-all duration-300 ease-in-out relative overflow-hidden`}
+      style={{
+        background: `linear-gradient(180deg, var(--color-parch-mid) 0%, var(--color-parch-dark) 100%)`,
+        borderRightColor: 'var(--color-wood-mid)',
+        backgroundImage: `linear-gradient(180deg, var(--color-parch-mid) 0%, var(--color-parch-dark) 100%), repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(92,58,30,0.03) 20px, rgba(92,58,30,0.03) 21px)`,
+        backgroundBlendMode: 'normal',
+      }}
     >
+      {/* Borda direita dourada */}
+      <div
+        className="absolute right-0 top-0 bottom-0 w-[3px] pointer-events-none"
+        style={{
+          background: `linear-gradient(180deg, var(--color-gold), var(--color-wood-mid) 30%, var(--color-gold) 50%, var(--color-wood-dark) 70%, var(--color-gold))`,
+        }}
+      />
+
       {/* Toggle Button */}
       <button
         onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        className="absolute top-6 -right-3 w-6 h-6 bg-white border border-stone-200 rounded-full flex items-center justify-center shadow-md cursor-pointer hover:bg-stone-50 hover:scale-110 active:scale-95 transition-all z-30 group"
+        className="absolute top-6 -right-3 w-6 h-6 rounded-full flex items-center justify-center shadow-md cursor-pointer hover:scale-110 active:scale-95 transition-all z-30"
+        style={{
+          background: 'var(--color-parch-mid)',
+          border: `1px solid var(--color-wood-light)`,
+        }}
         title={isSidebarCollapsed ? 'Expandir menu' : 'Recolher menu'}
       >
-        {isSidebarCollapsed ? (
-          <ChevronRight className="w-3.5 h-3.5 text-stone-500 group-hover:text-stone-800 transition-colors" />
-        ) : (
-          <ChevronLeft className="w-3.5 h-3.5 text-stone-500 group-hover:text-stone-800 transition-colors" />
-        )}
+        {isSidebarCollapsed
+          ? <ChevronRight className="w-3.5 h-3.5" style={{ color: 'var(--color-text-mid)' }} />
+          : <ChevronLeft  className="w-3.5 h-3.5" style={{ color: 'var(--color-text-mid)' }} />
+        }
       </button>
 
       {/* Logo / Wordmark */}
       <div
-        className={`px-5 border-b border-stone-100 flex items-center h-20 ${
-          isSidebarCollapsed ? 'justify-center' : 'gap-2.5'
-        }`}
+        className={`px-5 flex items-center h-20 ${isSidebarCollapsed ? 'justify-center' : 'gap-2.5'}`}
+        style={{ borderBottom: `1px solid rgba(92,58,30,0.25)` }}
       >
         <NavLink href="/" className="flex items-center gap-2.5" title="Brotaria">
           <Image
@@ -76,7 +81,12 @@ export default function Sidebar() {
             priority
           />
           {!isSidebarCollapsed && (
-            <span className="text-xl font-black text-stone-800 tracking-tight">Brotaria</span>
+            <span
+              className="text-xl font-black tracking-tight"
+              style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
+            >
+              Brotaria
+            </span>
           )}
         </NavLink>
       </div>
@@ -87,44 +97,63 @@ export default function Sidebar() {
         <NavLink
           href="/loja"
           title={`Moedas: ${coins}`}
-          className={`flex items-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700 transition-all hover:bg-amber-100 ${
+          className={`flex items-center rounded-xl transition-all ${
             isSidebarCollapsed ? 'justify-center p-2.5 w-12 h-12 mx-auto' : 'gap-2 px-3 py-2'
           }`}
+          style={{
+            background: 'rgba(201,162,39,0.1)',
+            border: '1px solid rgba(201,162,39,0.4)',
+          }}
         >
-          <Coins className="w-5 h-5 min-w-[20px]" />
+          <Coins className="w-5 h-5 min-w-[20px]" style={{ color: 'var(--color-gold)' }} />
           {!isSidebarCollapsed && (
-            <span className="font-black text-base">
-              {coins} <span className="text-xs font-bold text-amber-500">moedas</span>
+            <span
+              className="font-black text-base"
+              style={{ fontFamily: 'var(--font-display)', color: 'var(--color-wood-dark)' }}
+            >
+              {coins}{' '}
+              <span className="text-xs font-bold" style={{ color: 'var(--color-gold)' }}>
+                moedas
+              </span>
             </span>
           )}
         </NavLink>
 
         <div className="space-y-1">
           {!isSidebarCollapsed && (
-            <p className="px-3 text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">
+            <p
+              className="px-3 text-[10px] font-bold uppercase tracking-widest mb-2"
+              style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-muted)' }}
+            >
               Principal
             </p>
           )}
 
           <NavLink href="/" title="Meu Jardim" className={navItemClass('/')}>
             <LayoutDashboard className="w-5 h-5 min-w-[20px]" />
-            {!isSidebarCollapsed && <span>Meu Jardim</span>}
+            {!isSidebarCollapsed && <span style={{ fontFamily: 'var(--font-body)' }}>Meu Jardim</span>}
           </NavLink>
 
           <NavLink href="/loja" title="Loja" className={navItemClass('/loja')}>
             <Store className="w-5 h-5 min-w-[20px]" />
-            {!isSidebarCollapsed && <span>Loja</span>}
+            {!isSidebarCollapsed && <span style={{ fontFamily: 'var(--font-body)' }}>Loja</span>}
           </NavLink>
 
           <NavLink href="/ranking" title="Ranking" className={navItemClass('/ranking')}>
             <Trophy className="w-5 h-5 min-w-[20px]" />
-            {!isSidebarCollapsed && <span>Ranking</span>}
+            {!isSidebarCollapsed && <span style={{ fontFamily: 'var(--font-body)' }}>Ranking</span>}
           </NavLink>
         </div>
 
-        <div className="pt-4 border-t border-stone-100">
+        <div
+          className="pt-4"
+          style={{ borderTop: `1px solid rgba(92,58,30,0.2)` }}
+        >
           {!isSidebarCollapsed && (
-            <p className="px-3 text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4">
+            <p
+              className="px-3 text-[10px] font-bold uppercase tracking-widest mb-4"
+              style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-muted)' }}
+            >
               Inventário
             </p>
           )}
@@ -134,43 +163,69 @@ export default function Sidebar() {
         </div>
       </nav>
 
-      {/* User / Profile Section (Bottom) */}
-      <div className="p-4 border-t border-stone-100 bg-stone-50/50">
+      {/* User / Profile */}
+      <div
+        className="p-4"
+        style={{
+          borderTop: `1px solid rgba(92,58,30,0.2)`,
+          background: 'rgba(92,58,30,0.04)',
+        }}
+      >
         {user ? (
           <div className="flex flex-col gap-3">
             <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-2 py-1'}`}>
               <div
-                className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold border border-green-200 flex-shrink-0 cursor-help"
+                className="w-10 h-10 rounded-full flex items-center justify-center font-bold border flex-shrink-0 cursor-help"
+                style={{
+                  background: 'linear-gradient(135deg, #2a4a1e, #1a2f10)',
+                  borderColor: 'var(--color-wood-light)',
+                  fontFamily: 'var(--font-display)',
+                  color: 'var(--color-wood-light)',
+                  fontSize: 14,
+                }}
                 title={user.email || ''}
               >
                 {user.email?.[0].toUpperCase()}
               </div>
               {!isSidebarCollapsed && (
                 <div className="flex-1 overflow-hidden">
-                  <p className="text-sm font-bold text-stone-800 truncate">{user.email?.split('@')[0]}</p>
-                  <p className="text-[10px] text-stone-400 truncate">{user.email}</p>
+                  <p
+                    className="text-sm font-bold truncate"
+                    style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
+                  >
+                    {user.email?.split('@')[0]}
+                  </p>
+                  <p className="text-[10px] truncate" style={{ color: 'var(--color-text-muted)' }}>
+                    {user.email}
+                  </p>
                 </div>
               )}
             </div>
 
             <div className={`flex ${isSidebarCollapsed ? 'flex-col items-center gap-2' : 'gap-1'}`}>
               <button
-                className={`flex items-center justify-center p-2 rounded-lg text-stone-500 hover:bg-stone-200 transition-colors ${
+                className={`flex items-center justify-center p-2 rounded-lg transition-colors ${
                   isSidebarCollapsed ? 'w-10 h-10' : 'flex-1'
                 }`}
+                style={{ color: 'var(--color-text-muted)' }}
                 title="Configurações"
               >
                 <Settings className="w-4 h-4" />
               </button>
               <button
                 onClick={signOut}
-                className={`flex items-center justify-center rounded-lg text-red-500 hover:bg-red-50 transition-colors font-bold ${
+                className={`flex items-center justify-center rounded-lg font-bold transition-colors ${
                   isSidebarCollapsed ? 'w-10 h-10 p-2' : 'flex-1 p-2 gap-2'
                 }`}
+                style={{ color: '#8b4040' }}
                 title="Sair"
               >
                 <LogOut className="w-4 h-4" />
-                {!isSidebarCollapsed && <span className="text-xs">Sair</span>}
+                {!isSidebarCollapsed && (
+                  <span className="text-xs" style={{ fontFamily: 'var(--font-body)' }}>
+                    Sair
+                  </span>
+                )}
               </button>
             </div>
           </div>
