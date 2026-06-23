@@ -42,6 +42,14 @@ if (typeof globalThis !== 'undefined' && typeof (globalThis as { Headers?: unkno
         super(init as HeadersInit);
       }
     }
+
+    set(name: string, value: string): void {
+      super.set(name, typeof value === 'string' ? value.replace(/[^\x20-\x7E]/g, '') : value);
+    }
+
+    append(name: string, value: string): void {
+      super.append(name, typeof value === 'string' ? value.replace(/[^\x20-\x7E]/g, '') : value);
+    }
   }
 
   (globalThis as { Headers: typeof Headers }).Headers = SafeHeaders as unknown as typeof Headers;
