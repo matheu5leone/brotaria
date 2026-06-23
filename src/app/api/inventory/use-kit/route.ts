@@ -68,7 +68,11 @@ export async function POST(request: Request) {
       })
       .select()
       .single();
-    if (insertError) throw insertError;
+    if (insertError) {
+      // Compensate: put the plant back in its pot to avoid orphaning it
+      await supabaseAdmin.from('pots').update({ plant_id: plantId }).eq('id', potId);
+      throw insertError;
+    }
 
     if (kitSlot.quantity > 1) {
       await supabaseAdmin

@@ -26,6 +26,7 @@ function WrappedPlantSlot({
   const [editingLabel, setEditingLabel] = useState(false);
   const [labelValue, setLabelValue] = useState(item.label ?? '');
   const inputRef = useRef<HTMLInputElement>(null);
+  const escapeRef = useRef(false);
 
   useEffect(() => {
     setLabelValue(item.label ?? '');
@@ -71,8 +72,18 @@ function WrappedPlantSlot({
             value={labelValue}
             maxLength={100}
             onChange={(e) => setLabelValue(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleLabelSave(); if (e.key === 'Escape') setEditingLabel(false); }}
-            onBlur={handleLabelSave}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { escapeRef.current = false; handleLabelSave(); }
+              if (e.key === 'Escape') {
+                escapeRef.current = true;
+                setLabelValue(item.label ?? '');
+                setEditingLabel(false);
+              }
+            }}
+            onBlur={() => {
+              if (!escapeRef.current) handleLabelSave();
+              escapeRef.current = false;
+            }}
             placeholder="Etiqueta..."
           />
         </div>
@@ -209,6 +220,11 @@ export function InventoryPanel({
   const hasKits = items.some((i) => i.item_type === 'wrapping_kit');
   const totalItems = items.length;
 
+  const prefersReducedMotion =
+    typeof window !== 'undefined'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false;
+
   const handleOpenGift = async (item: InventoryItem) => {
     if (!confirm('Abrir o presente? A surpresa será revelada!')) return;
 
@@ -220,6 +236,18 @@ export function InventoryPanel({
       rarity = (dna?.rarity as Rarity) ?? 'comum';
     } catch {
       return; // API falhou, não animar
+    }
+
+    // If user prefers reduced motion, skip animation entirely
+    if (prefersReducedMotion) {
+      setAnimRarity(rarity);
+      setAnimatingSlot(item.slot_index);
+      setAnimPhase('revealing');
+      setTimeout(() => {
+        setAnimPhase('idle');
+        setAnimatingSlot(null);
+      }, 600);
+      return;
     }
 
     setAnimRarity(rarity);
