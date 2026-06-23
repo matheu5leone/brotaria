@@ -518,46 +518,59 @@ function PotSlot({
             </div>
           )}
 
-          <div className={`absolute inset-0 flex flex-col items-center justify-center transition-opacity bg-black/20 rounded-full p-2 ${
-            wrappingMode ? 'hidden' : 'opacity-0 group-hover:opacity-100'
-          }`}>
-            <p className="text-[10px] font-bold text-white uppercase tracking-tighter mb-1 bg-stone-900/50 px-2 rounded-full">
-              {plant.current_stage.name}
-            </p>
-            <div className="flex gap-2">
-              <button
-                disabled={waterMutation.isPending || plant.hydration_status === 'waiting_water'}
-                onClick={handleWater}
-                className={`p-2 rounded-full shadow-xl transition-all ${
-                  plant.hydration_status === 'waiting_water'
-                    ? 'bg-amber-500'
-                    : 'bg-blue-500 hover:bg-blue-400 active:scale-95'
-                } text-white`}
-              >
-                <Droplets
-                  className={`w-5 h-5 ${waterMutation.isPending && !isEvolving ? 'animate-spin' : ''}`}
-                />
-              </button>
-              <button
-                disabled={deleteMutation.isPending}
-                onClick={handleDelete}
-                className="p-2 rounded-full shadow-xl transition-all bg-red-500 hover:bg-red-400 active:scale-95 text-white"
-                title="Remover planta"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
+          {/* Overlay de ações — sem círculo, botões animam a partir do centro */}
+          {!wrappingMode && (
+            <div className="absolute inset-0 pointer-events-none">
+              {/* Nome do estágio — aparece no topo com fade */}
+              <div className="absolute top-2 left-0 right-0 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <p
+                  className="text-[10px] font-bold text-white uppercase tracking-tighter px-2 py-0.5 rounded-full"
+                  style={{ background: 'rgba(15,32,12,0.75)' }}
+                >
+                  {plant.current_stage.name}
+                </p>
+              </div>
+
+              {/* Botões de ação — emergem do centro da planta para baixo */}
+              <div className="absolute bottom-3 left-0 right-0 flex flex-col items-center gap-1.5 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto">
+                <div className="flex gap-2">
+                  <button
+                    disabled={waterMutation.isPending || plant.hydration_status === 'waiting_water'}
+                    onClick={handleWater}
+                    className={`action-btn-animated p-2 rounded-full shadow-xl transition-colors ${
+                      plant.hydration_status === 'waiting_water'
+                        ? 'bg-amber-500'
+                        : 'bg-blue-500 hover:bg-blue-400 active:scale-95'
+                    } text-white`}
+                  >
+                    <Droplets
+                      className={`w-5 h-5 ${waterMutation.isPending && !isEvolving ? 'animate-spin' : ''}`}
+                    />
+                  </button>
+                  <button
+                    disabled={deleteMutation.isPending}
+                    onClick={handleDelete}
+                    className="action-btn-animated p-2 rounded-full shadow-xl transition-colors bg-red-500 hover:bg-red-400 active:scale-95 text-white"
+                    title="Remover planta"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Pontos de progresso de rega */}
+                <div className="flex gap-1">
+                  {Array.from({ length: plant.current_stage.waters_required }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        i < plant.current_stage_waters ? 'bg-blue-400' : 'bg-white/30'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className="mt-2 flex gap-1">
-              {Array.from({ length: plant.current_stage.waters_required }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    i < plant.current_stage_waters ? 'bg-blue-400' : 'bg-white/30'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
+          )}
 
           {plant && (
             <PlantHistoryModal
