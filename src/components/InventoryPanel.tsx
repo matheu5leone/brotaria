@@ -105,7 +105,7 @@ function PlantSlot({ item }: { item: InventoryItem }) {
       <RarityEffect rarity={rarity} alwaysVisible>
         {version?.image_url ? (
           <div className="relative w-full h-full">
-            <Image src={version.image_url} alt="Planta" fill className="plant-outline object-contain p-1" />
+            <Image src={version.image_url} alt="Planta" fill className="object-contain p-1" />
           </div>
         ) : (
           <div className="w-6 h-6 rounded-full bg-stone-600/40 animate-pulse" />

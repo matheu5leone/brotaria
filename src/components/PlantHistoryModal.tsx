@@ -71,7 +71,7 @@ function HistoryCard({
               src={version.image_url}
               alt={version.stage?.name ?? 'Fase'}
               fill
-              className="plant-outline object-contain p-3"
+              className="object-contain p-3"
             />
           </div>
         </RarityEffect>

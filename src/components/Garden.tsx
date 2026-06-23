@@ -465,11 +465,12 @@ function PotSlot({
     <div className="relative group w-full h-full flex flex-col items-center justify-end select-none">
       {plant ? (
         <>
-          {/* Canteiro oval de base (terra visível embaixo da planta) */}
+          {/* Canteiro oval de base */}
           <div
-            className="absolute bottom-0 left-1/2 -translate-x-1/2 pointer-events-none"
+            className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
             style={{
-              width: '78%', height: '32%',
+              bottom: '8%',
+              width: '82%', height: '58%',
               borderRadius: '50px / 36px',
               background: 'radial-gradient(ellipse at 40% 40%, #2d1c10, #100806)',
               border: '2.5px solid var(--color-wood-mid)',
@@ -492,7 +493,7 @@ function PotSlot({
                     alt={plant.current_stage.name}
                     fill
                     draggable={false}
-                    className="plant-outline object-contain animate-in fade-in zoom-in duration-500"
+                    className="object-contain animate-in fade-in zoom-in duration-500"
                   />
                 </RarityEffect>
               </div>
