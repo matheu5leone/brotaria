@@ -177,6 +177,7 @@ export default function Garden() {
                   setWrappingMode(false);
                 }
               }}
+              onDigComplete={() => qc.invalidateQueries({ queryKey: ['garden', 'pots', user?.id] })}
             />
           </div>
         );
@@ -319,12 +320,14 @@ function PotSlot({
   onNeedSeed,
   wrappingMode = false,
   onWrap,
+  onDigComplete,
 }: {
   pot: Pot;
   state: PotState;
   onNeedSeed: (potId: string) => void;
   wrappingMode?: boolean;
   onWrap?: (plantId: string) => void;
+  onDigComplete?: () => void;
 }) {
   const { user } = useAuth();
   const { data: plant } = usePlant(pot.plant_id);
@@ -340,11 +343,19 @@ function PotSlot({
   useEffect(() => {
     if (state !== 'digging' || !pot.digging_started_at) return;
     const deadline = new Date(pot.digging_started_at).getTime() + DIG_DURATION_MS;
-    const update = () => setMsLeft(Math.max(0, deadline - Date.now()));
+    let notified = false;
+    const update = () => {
+      const remaining = deadline - Date.now();
+      setMsLeft(Math.max(0, remaining));
+      if (remaining <= 0 && !notified) {
+        notified = true;
+        onDigComplete?.();
+      }
+    };
     update();
     const id = setInterval(update, 250);
     return () => clearInterval(id);
-  }, [state, pot.digging_started_at]);
+  }, [state, pot.digging_started_at, onDigComplete]);
 
   // ── Action handlers ───────────────────────────────────────────────────────
 

@@ -34,7 +34,7 @@ export default function Sidebar() {
     <aside
       className={`${
         isSidebarCollapsed ? 'w-20' : 'w-64'
-      } border-r-[3px] flex flex-col sticky top-0 h-screen z-20 shadow-sm transition-all duration-300 ease-in-out relative overflow-hidden`}
+      } border-r-[3px] flex flex-col sticky top-0 h-screen z-20 shadow-sm transition-all duration-300 ease-in-out relative`}
       style={{
         background: `linear-gradient(180deg, var(--color-parch-mid) 0%, var(--color-parch-dark) 100%)`,
         borderRightColor: 'var(--color-wood-mid)',
