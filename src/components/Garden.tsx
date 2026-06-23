@@ -160,6 +160,7 @@ export default function Garden() {
                 if (!confirm('Embrulhar esta planta? 1 kit de embrulho será consumido.')) return;
                 try {
                   await wrapPlantMutation.mutateAsync({ plantId });
+                  setWrapError(null);
                   setWrappingMode(false);
                 } catch (err: unknown) {
                   const e = err as { code?: string; message?: string };
@@ -194,10 +195,12 @@ export default function Garden() {
       )}
 
       {/* Inventory Panel */}
-      <InventoryPanel
-        userId={user?.id}
-        onWrapMode={() => setWrappingMode(true)}
-      />
+      {!wrappingMode && (
+        <InventoryPanel
+          userId={user?.id}
+          onWrapMode={() => setWrappingMode(true)}
+        />
+      )}
 
       {/* Shovel toolbar */}
       <div
