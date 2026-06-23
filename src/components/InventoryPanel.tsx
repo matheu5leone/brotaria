@@ -1,19 +1,162 @@
 'use client';
 
-import { useState } from 'react';
-import { Package, Sprout, Gift, X } from 'lucide-react';
-import { useInventory } from '@/hooks/useInventory';
-import { InventoryItem } from '@/types';
+import { useState, useRef } from 'react';
+import Image from 'next/image';
+import { Package, Sprout, Gift, X, Info } from 'lucide-react';
+import { useInventory, useOpenGift, usePatchLabel } from '@/hooks/useInventory';
+import { usePlantVersion } from '@/hooks/usePlantData';
+import { RarityEffect } from '@/components/RarityEffect';
+import { InventoryItem, Rarity, PlantDNA } from '@/types';
 
-function SlotContent({ item }: { item: InventoryItem | undefined }) {
-  if (!item) {
+// ── Tipos de animação ────────────────────────────────────────────────────────
+
+type OpenPhase = 'idle' | 'shaking' | 'exploding' | 'revealing';
+
+// ── Slot: Planta embrulhada ───────────────────────────────────────────────────
+
+function WrappedPlantSlot({
+  item,
+  onOpen,
+  onLabelSave,
+}: {
+  item: InventoryItem;
+  onOpen: () => void;
+  onLabelSave: (label: string) => void;
+}) {
+  const [editingLabel, setEditingLabel] = useState(false);
+  const [labelValue, setLabelValue] = useState(item.label ?? '');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleLabelClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingLabel(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  const handleLabelSave = () => {
+    setEditingLabel(false);
+    onLabelSave(labelValue);
+  };
+
+  return (
+    <div
+      className="relative flex flex-col items-center justify-center gap-0.5 w-full h-full bg-rose-950/40 border border-rose-700/40 rounded-xl cursor-pointer hover:bg-rose-900/40 transition-colors group"
+      onClick={onOpen}
+    >
+      <span className="text-2xl select-none">🎁</span>
+      <span className="text-rose-300 text-[8px] font-bold">Abrir</span>
+
+      {/* Ícone de info com label */}
+      <button
+        className="absolute top-0.5 right-0.5 text-rose-400/60 hover:text-rose-300 transition-colors"
+        onClick={handleLabelClick}
+        title={item.label || 'Sem etiqueta — clique para editar'}
+      >
+        <Info className="w-3 h-3" />
+      </button>
+
+      {/* Editor de label inline */}
+      {editingLabel && (
+        <div
+          className="absolute inset-0 bg-stone-900/95 rounded-xl flex flex-col items-center justify-center p-1 gap-1 z-10"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <input
+            ref={inputRef}
+            className="w-full text-[9px] bg-stone-700 text-white rounded px-1 py-0.5 outline-none text-center"
+            value={labelValue}
+            maxLength={100}
+            onChange={(e) => setLabelValue(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleLabelSave(); if (e.key === 'Escape') setEditingLabel(false); }}
+            onBlur={handleLabelSave}
+            placeholder="Etiqueta..."
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Slot: Planta revelada ─────────────────────────────────────────────────────
+
+function PlantSlot({ item }: { item: InventoryItem }) {
+  const { data: version } = usePlantVersion(item.plant_id);
+
+  return (
+    <div className="relative flex flex-col items-center justify-center w-full h-full bg-stone-800/40 border border-stone-600/30 rounded-xl overflow-hidden">
+      {version?.image_url ? (
+        <div className="relative w-full h-full">
+          <Image src={version.image_url} alt="Planta" fill className="object-contain p-1" />
+        </div>
+      ) : (
+        <div className="w-6 h-6 rounded-full bg-stone-600/40 animate-pulse" />
+      )}
+    </div>
+  );
+}
+
+// ── Slot animado (abertura) ───────────────────────────────────────────────────
+
+function AnimatingSlot({ phase, rarity }: { phase: OpenPhase; rarity: Rarity }) {
+  if (phase === 'shaking' || phase === 'exploding') {
     return (
-      <div className="w-full h-full border-2 border-dashed border-stone-600/30 rounded-xl" />
+      <div
+        className="relative flex items-center justify-center w-full h-full bg-rose-950/40 border border-rose-700/40 rounded-xl overflow-hidden"
+        style={{
+          animation: phase === 'shaking'
+            ? 'gift-shake 0.8s ease-in-out'
+            : 'gift-explode 0.6s ease-out forwards',
+        }}
+      >
+        {phase === 'exploding' && (
+          <div className="absolute inset-0 rounded-xl" style={{ animation: 'gift-flash 0.3s ease-in-out' }} />
+        )}
+        <span className="text-2xl">🎁</span>
+      </div>
     );
   }
+  if (phase === 'revealing') {
+    return (
+      <div
+        className="relative flex items-center justify-center w-full h-full bg-stone-800/40 border rounded-xl overflow-hidden"
+        style={{
+          borderColor: `var(--rarity-${rarity})`,
+          animation: 'gift-reveal 0.6s ease-out forwards',
+        }}
+      >
+        <RarityEffect rarity={rarity} alwaysVisible>
+          <div className="relative w-full h-full flex items-center justify-center">
+            <span className="text-2xl">🌱</span>
+          </div>
+        </RarityEffect>
+      </div>
+    );
+  }
+  return null;
+}
+
+// ── SlotContent principal ─────────────────────────────────────────────────────
+
+function SlotContent({
+  item,
+  animPhase,
+  animRarity,
+  onOpenGift,
+  onLabelSave,
+}: {
+  item: InventoryItem | undefined;
+  animPhase: OpenPhase;
+  animRarity: Rarity;
+  onOpenGift: () => void;
+  onLabelSave: (label: string) => void;
+}) {
+  if (animPhase !== 'idle') return <AnimatingSlot phase={animPhase} rarity={animRarity} />;
+
+  if (!item) return <div className="w-full h-full border-2 border-dashed border-stone-600/30 rounded-xl" />;
+
   if (item.item_type === 'seed') {
     return (
-      <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full bg-green-900/30 border border-green-700/30 rounded-xl cursor-default">
+      <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full bg-green-900/30 border border-green-700/30 rounded-xl">
         <Sprout className="w-5 h-5 text-green-400" />
         <span className="text-green-300 text-[9px] font-bold">×{item.quantity}</span>
       </div>
@@ -21,17 +164,22 @@ function SlotContent({ item }: { item: InventoryItem | undefined }) {
   }
   if (item.item_type === 'wrapping_kit') {
     return (
-      <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full bg-rose-900/30 border border-rose-700/30 rounded-xl cursor-default">
+      <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full bg-rose-900/30 border border-rose-700/30 rounded-xl">
         <Gift className="w-5 h-5 text-rose-400" />
         <span className="text-rose-300 text-[9px] font-bold">×{item.quantity}</span>
       </div>
     );
   }
-  // wrapped_plant and plant handled in Plano B
-  return (
-    <div className="w-full h-full bg-stone-700/30 border border-stone-600/30 rounded-xl" />
-  );
+  if (item.item_type === 'wrapped_plant') {
+    return <WrappedPlantSlot item={item} onOpen={onOpenGift} onLabelSave={onLabelSave} />;
+  }
+  if (item.item_type === 'plant') {
+    return <PlantSlot item={item} />;
+  }
+  return null;
 }
+
+// ── Painel principal ──────────────────────────────────────────────────────────
 
 export function InventoryPanel({
   userId,
@@ -41,14 +189,47 @@ export function InventoryPanel({
   onWrapMode: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [animatingSlot, setAnimatingSlot] = useState<number | null>(null);
+  const [animPhase, setAnimPhase] = useState<OpenPhase>('idle');
+  const [animRarity, setAnimRarity] = useState<Rarity>('comum');
+
   const { data: items = [] } = useInventory(userId);
+  const openGiftMutation = useOpenGift(userId ?? '');
+  const patchLabelMutation = usePatchLabel(userId ?? '');
 
-  const slots = Array.from({ length: 10 }, (_, i) =>
-    items.find((item) => item.slot_index === i),
-  );
-
+  const slots = Array.from({ length: 10 }, (_, i) => items.find((it) => it.slot_index === i));
   const hasKits = items.some((i) => i.item_type === 'wrapping_kit');
   const totalItems = items.length;
+
+  const handleOpenGift = async (item: InventoryItem) => {
+    if (!confirm('Abrir o presente? A surpresa será revelada!')) return;
+
+    // Chama API imediatamente (DB update rápido)
+    let rarity: Rarity = 'comum';
+    try {
+      const result = await openGiftMutation.mutateAsync({ itemId: item.id });
+      const dna = result.dna as PlantDNA | undefined;
+      rarity = (dna?.rarity as Rarity) ?? 'comum';
+    } catch {
+      return; // API falhou, não animar
+    }
+
+    setAnimRarity(rarity);
+    setAnimatingSlot(item.slot_index);
+
+    // Sequência de animação: shaking → exploding → revealing → idle
+    setAnimPhase('shaking');
+    setTimeout(() => setAnimPhase('exploding'), 800);
+    setTimeout(() => setAnimPhase('revealing'), 1400);
+    setTimeout(() => {
+      setAnimPhase('idle');
+      setAnimatingSlot(null);
+    }, 2000);
+  };
+
+  const handleLabelSave = (item: InventoryItem, label: string) => {
+    patchLabelMutation.mutate({ itemId: item.id, label });
+  };
 
   return (
     <>
@@ -59,9 +240,7 @@ export function InventoryPanel({
           setOpen((v) => !v);
         }}
         className={`absolute bottom-4 left-4 z-20 flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold shadow-lg transition-all text-sm active:scale-95 ${
-          open
-            ? 'bg-stone-600 text-white'
-            : 'bg-stone-800 text-white hover:bg-stone-700'
+          open ? 'bg-stone-600 text-white' : 'bg-stone-800 text-white hover:bg-stone-700'
         }`}
       >
         <Package className="w-4 h-4" />
@@ -81,10 +260,7 @@ export function InventoryPanel({
         >
           <div className="flex items-center justify-between mb-3">
             <span className="font-black text-white text-sm">🎒 Mochila</span>
-            <button
-              onClick={() => setOpen(false)}
-              className="text-stone-400 hover:text-white transition-colors"
-            >
+            <button onClick={() => setOpen(false)} className="text-stone-400 hover:text-white transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -93,7 +269,13 @@ export function InventoryPanel({
           <div className="grid grid-cols-5 gap-2">
             {slots.map((item, i) => (
               <div key={i} className="aspect-square">
-                <SlotContent item={item} />
+                <SlotContent
+                  item={item}
+                  animPhase={animatingSlot === i ? animPhase : 'idle'}
+                  animRarity={animRarity}
+                  onOpenGift={() => item && handleOpenGift(item)}
+                  onLabelSave={(label) => item && handleLabelSave(item, label)}
+                />
               </div>
             ))}
           </div>
@@ -101,10 +283,7 @@ export function InventoryPanel({
           {/* Botão embrulhar */}
           {hasKits && (
             <button
-              onClick={() => {
-                setOpen(false);
-                onWrapMode();
-              }}
+              onClick={() => { setOpen(false); onWrapMode(); }}
               className="mt-3 w-full py-2 bg-rose-700 hover:bg-rose-600 text-white text-sm font-bold rounded-xl transition-all active:scale-95"
             >
               🎁 Embrulhar planta
@@ -112,9 +291,7 @@ export function InventoryPanel({
           )}
 
           {items.length === 0 && (
-            <p className="text-stone-500 text-xs text-center mt-2">
-              Inventário vazio
-            </p>
+            <p className="text-stone-500 text-xs text-center mt-2">Inventário vazio</p>
           )}
         </div>
       )}
