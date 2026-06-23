@@ -306,9 +306,16 @@ async function generatePlantImage(description: string, model: string = IMAGE_OPT
 
   // Geração pura text-to-image: sem imagem de referência, para permitir saltos
   // grandes de tamanho entre estágios. A identidade vem do DNA na descrição.
-  const payload: any = {
+  //
+  // background: "transparent" + output_format: "png" — parâmetros OpenRouter
+  // para modelos que suportam alpha channel nativo (ex: recraft-v4.1-utility).
+  // O removeWhiteBackgroundIfNeeded detecta alpha real via sharp.stats().isOpaque
+  // e pula o chroma key automaticamente quando o modelo já entregou PNG transparente.
+  const payload: Record<string, unknown> = {
     model,
     modalities: ["image"],
+    background: "transparent",
+    output_format: "png",
     messages: [
       {
         role: "user",
