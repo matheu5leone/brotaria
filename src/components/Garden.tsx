@@ -480,7 +480,7 @@ function PotSlot({
                     alt={plant.current_stage.name}
                     fill
                     draggable={false}
-                    className="drop-shadow-lg object-contain animate-in fade-in zoom-in duration-500"
+                    className="plant-outline object-contain animate-in fade-in zoom-in duration-500"
                   />
                 </RarityEffect>
               </div>
