@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Pot } from '@/types';
@@ -75,6 +75,11 @@ export default function Garden() {
   const [wrapError, setWrapError] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleDigComplete = useCallback(
+    () => qc.invalidateQueries({ queryKey: ['garden', 'pots', user?.id] }),
+    [qc, user?.id],
+  );
 
   if (potsLoading) {
     return (
@@ -177,7 +182,7 @@ export default function Garden() {
                   setWrappingMode(false);
                 }
               }}
-              onDigComplete={() => qc.invalidateQueries({ queryKey: ['garden', 'pots', user?.id] })}
+              onDigComplete={handleDigComplete}
             />
           </div>
         );
@@ -340,15 +345,19 @@ function PotSlot({
   const [msLeft, setMsLeft] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
 
+  const notifiedRef = useRef(false);
+  useEffect(() => {
+    notifiedRef.current = false;
+  }, [pot.digging_started_at]);
+
   useEffect(() => {
     if (state !== 'digging' || !pot.digging_started_at) return;
     const deadline = new Date(pot.digging_started_at).getTime() + DIG_DURATION_MS;
-    let notified = false;
     const update = () => {
       const remaining = deadline - Date.now();
       setMsLeft(Math.max(0, remaining));
-      if (remaining <= 0 && !notified) {
-        notified = true;
+      if (remaining <= 0 && !notifiedRef.current) {
+        notifiedRef.current = true;
         onDigComplete?.();
       }
     };

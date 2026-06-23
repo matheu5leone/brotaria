@@ -56,7 +56,7 @@ export function RarityEffect({
         <div
           className="absolute inset-0 rounded-full"
           style={{
-            zIndex: 0,
+            zIndex: -1,
             opacity: active ? 0.6 : 0,
             transition: 'opacity 0.3s ease',
             background: `conic-gradient(var(--rarity-lendario), transparent 60%, var(--rarity-lendario))`,

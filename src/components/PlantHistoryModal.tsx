@@ -24,12 +24,15 @@ function cardTransform(delta: number): React.CSSProperties {
   const rotateY = delta > 0 ? c.ry : -c.ry;
 
   return {
-    // Sem perspective() aqui — fica no container pai
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginTop: -96,   // half of card height 192
+    marginLeft: -96,  // half of card width 192
     transform: `translateZ(${c.z}px) rotateY(${rotateY}deg) scale(${c.scale})`,
     opacity: c.opacity,
     transition: 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s ease',
     zIndex: 3 - abs,
-    position: 'absolute',
     flexShrink: 0,
   };
 }

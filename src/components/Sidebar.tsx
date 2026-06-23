@@ -78,7 +78,7 @@ export default function Sidebar() {
             width={36}
             height={36}
             className="w-9 h-9 object-contain hover:scale-110 transition-transform"
-            priority
+            preload
           />
           {!isSidebarCollapsed && (
             <span
