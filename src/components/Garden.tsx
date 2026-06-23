@@ -222,6 +222,7 @@ export default function Garden() {
       {/* Shovel toolbar — hexágono de madeira */}
       <div
         className="absolute bottom-4 right-4 z-20 flex flex-col items-end gap-3"
+        style={{ paddingBottom: '24px' }}
         onClick={(e) => e.stopPropagation()}
       >
         {shovelError && (

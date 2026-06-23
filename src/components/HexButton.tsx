@@ -1,9 +1,9 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { useState, useCallback } from 'react';
 
 interface HexButtonProps {
-  icon: ReactNode;
+  icon: React.ReactNode;
   label: string;
   badge?: string | number;
   disabled?: boolean;
@@ -15,24 +15,38 @@ interface HexButtonProps {
 export function HexButton({
   icon, label, badge, disabled = false, active = false, onClick, title,
 }: HexButtonProps) {
+  const [hovered, setHovered] = useState(false);
+
+  const scale = disabled ? 'scale(1)' : active && hovered ? 'scale(1.1)' : active ? 'scale(1.05)' : hovered ? 'scale(1.07)' : 'scale(1)';
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (disabled) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick?.(e as unknown as React.MouseEvent);
+    }
+  }, [disabled, onClick]);
+
   return (
     <div
-      className="relative select-none transition-all duration-150"
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      aria-label={title ?? label}
+      aria-disabled={disabled}
+      className="relative select-none"
       style={{
         width: 62, height: 62,
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.55 : 1,
         filter: disabled ? 'grayscale(0.3)' : undefined,
-        transform: active ? 'scale(1.05)' : undefined,
+        transform: scale,
+        transition: 'transform 0.15s ease',
       }}
       onClick={disabled ? undefined : onClick}
+      onMouseEnter={() => { if (!disabled) setHovered(true); }}
+      onMouseLeave={() => setHovered(false)}
+      onKeyDown={handleKeyDown}
       title={title}
-      onMouseEnter={(e) => {
-        if (!disabled) (e.currentTarget as HTMLDivElement).style.transform = active ? 'scale(1.05)' : 'scale(1.07)';
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLDivElement).style.transform = active ? 'scale(1.05)' : 'scale(1)';
-      }}
     >
       {/* SVG hexágono de madeira — gradientes definidos globalmente em layout.tsx */}
       <svg
@@ -70,13 +84,13 @@ export function HexButton({
           stroke="rgba(180,120,60,0.5)"
           strokeWidth="1.5"
         />
-        {/* Folhas nos 6 vértices */}
-        <text x="32" y="5"    textAnchor="middle" fontSize="8" fill="#4a8a3a" opacity="0.9">🍃</text>
-        <text x="56.5" y="20" textAnchor="middle" fontSize="7" fill="#3a7a2a" opacity="0.85" transform="rotate(60,56.5,19)">🍃</text>
-        <text x="56.5" y="48" textAnchor="middle" fontSize="7" fill="#4a8a3a" opacity="0.85" transform="rotate(120,56.5,48)">🍃</text>
-        <text x="32" y="63"   textAnchor="middle" fontSize="8" fill="#3a7a2a" opacity="0.9"  transform="rotate(180,32,62)">🍃</text>
-        <text x="7.5" y="48"  textAnchor="middle" fontSize="7" fill="#4a8a3a" opacity="0.85" transform="rotate(-120,7.5,48)">🍃</text>
-        <text x="7.5" y="20"  textAnchor="middle" fontSize="7" fill="#3a7a2a" opacity="0.85" transform="rotate(-60,7.5,19)">🍃</text>
+        {/* Ornamentos nos vértices — losangos verdes (aceita fill, cross-browser) */}
+        <polygon points="32,1 34,4 32,7 30,4"   fill="#4a8a3a" opacity="0.85" />
+        <polygon points="55,15 58,17 55,20 52,17" fill="#3a7a2a" opacity="0.8" />
+        <polygon points="55,44 58,46 55,49 52,46" fill="#4a8a3a" opacity="0.8" />
+        <polygon points="32,57 34,60 32,63 30,60" fill="#3a7a2a" opacity="0.85" />
+        <polygon points="9,44 12,46 9,49 6,46"   fill="#4a8a3a" opacity="0.8" />
+        <polygon points="9,15 12,17 9,20 6,17"   fill="#3a7a2a" opacity="0.8" />
         {/* Anel tracejado interno */}
         <polygon
           points="32,11 50,21.5 50,42.5 32,53 14,42.5 14,21.5"
@@ -109,8 +123,8 @@ export function HexButton({
         <div
           className="absolute top-[-4px] right-[-6px] z-[3] w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold"
           style={{
-            background: '#3a7a2a',
-            color: '#d4f0b0',
+            background: 'var(--color-badge-bg, #3a7a2a)',
+            color: 'var(--color-badge-text, #d4f0b0)',
             border: '1.5px solid var(--color-garden-deep)',
             fontFamily: 'var(--font-display)',
           }}

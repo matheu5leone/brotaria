@@ -204,7 +204,7 @@ export default function Sidebar() {
 
             <div className={`flex ${isSidebarCollapsed ? 'flex-col items-center gap-2' : 'gap-1'}`}>
               <button
-                className={`flex items-center justify-center p-2 rounded-lg transition-colors ${
+                className={`flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[rgba(92,58,30,0.07)] ${
                   isSidebarCollapsed ? 'w-10 h-10' : 'flex-1'
                 }`}
                 style={{ color: 'var(--color-text-muted)' }}
@@ -214,7 +214,7 @@ export default function Sidebar() {
               </button>
               <button
                 onClick={signOut}
-                className={`flex items-center justify-center rounded-lg font-bold transition-colors ${
+                className={`flex items-center justify-center rounded-lg font-bold transition-colors hover:bg-[rgba(139,64,64,0.1)] ${
                   isSidebarCollapsed ? 'w-10 h-10 p-2' : 'flex-1 p-2 gap-2'
                 }`}
                 style={{ color: '#8b4040' }}

@@ -42,6 +42,10 @@
   --color-text-muted:    #9a7a4a;
   --color-text-light:    #e8d5a0;
 
+  /* Badge */
+  --color-badge-bg:      #3a7a2a;
+  --color-badge-text:    #d4f0b0;
+
   /* Fontes */
   --font-display:        var(--font-cinzel), 'Georgia', serif;
   --font-body:           var(--font-crimson), 'Georgia', serif;
