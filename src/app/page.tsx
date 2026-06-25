@@ -2,8 +2,7 @@
 
 import { useAuth } from '@/hooks/useAuth';
 import Garden from '@/components/Garden';
-import Sidebar from '@/components/Sidebar';
-import { BottomNav } from '@/components/BottomNav';
+import { AppShell } from '@/components/AppShell';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Image from 'next/image';
@@ -13,9 +12,7 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push('/login');
-    }
+    if (!isLoading && !user) router.push('/login');
   }, [user, isLoading, router]);
 
   if (isLoading) {
@@ -30,29 +27,8 @@ export default function Home() {
   }
 
   return (
-    /*
-     * Mobile  (< md): flex-col — garden cresce, BottomNav fica embaixo
-     * Desktop (≥ md): flex-row — Sidebar à esquerda, garden ocupa o resto
-     * h-[100dvh] usa a altura dinâmica da viewport (desconta barra do browser)
-     */
-    <div
-      className="flex flex-col md:flex-row overflow-hidden"
-      style={{ height: '100dvh', background: 'var(--color-garden-deep)' }}
-    >
-      {/* Sidebar — somente desktop */}
-      <div className="hidden md:flex flex-shrink-0">
-        <Sidebar />
-      </div>
-
-      {/* Garden — flex-1 preenche o espaço disponível */}
-      <main className="flex-1 min-h-0 overflow-hidden">
-        {user ? <Garden /> : null}
-      </main>
-
-      {/* Bottom nav — somente mobile */}
-      <div className="flex-shrink-0 md:hidden">
-        <BottomNav />
-      </div>
-    </div>
+    <AppShell scrollable={false}>
+      {user ? <Garden /> : null}
+    </AppShell>
   );
 }

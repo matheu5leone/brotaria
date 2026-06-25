@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { Trophy, Coins } from 'lucide-react';
+import { AppShell } from '@/components/AppShell';
 import { useRanking, RankingEntry } from '@/hooks/useRanking';
 import { RarityEffect } from '@/components/RarityEffect';
 import { PlantHistoryModal } from '@/components/PlantHistoryModal';
@@ -86,20 +86,8 @@ export default function RankingPage() {
   const [selectedEntry, setSelectedEntry] = useState<RankingEntry | null>(null);
 
   return (
-    <div className="min-h-screen bg-stone-950 text-white">
-      {/* Header */}
-      <header className="border-b border-white/10 px-6 py-4 flex items-center justify-between max-w-2xl mx-auto">
-        <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <Image src="/imgs/brotaria.png" alt="Brotaria" width={32} height={32} />
-          <span className="font-black text-lg">Brotaria</span>
-        </Link>
-        <Link href="/" className="text-white/50 hover:text-white text-sm transition-colors">
-          ← Jardim
-        </Link>
-      </header>
-
-      {/* Content */}
-      <main className="max-w-2xl mx-auto px-6 py-10">
+    <AppShell>
+      <div className="max-w-2xl mx-auto px-6 py-8 text-white">
         <div className="flex items-center gap-3 mb-8">
           <Trophy className="w-8 h-8 text-amber-400" />
           <div>
@@ -127,9 +115,8 @@ export default function RankingPage() {
             ))}
           </div>
         )}
-      </main>
+      </div>
 
-      {/* Modal */}
       {selectedEntry && (
         <PlantHistoryModal
           key={selectedEntry.plant_id}
@@ -138,6 +125,6 @@ export default function RankingPage() {
           onClose={() => setSelectedEntry(null)}
         />
       )}
-    </div>
+    </AppShell>
   );
 }

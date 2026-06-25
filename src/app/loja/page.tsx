@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import Sidebar from '@/components/Sidebar';
+import { AppShell } from '@/components/AppShell';
 import CoinPurchaseModal from '@/components/CoinPurchaseModal';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
@@ -57,10 +57,10 @@ export default function LojaPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-stone-100">
+      <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--color-garden-deep)' }}>
         <div className="animate-pulse flex flex-col items-center gap-4">
           <Image src="/imgs/brotaria.png" alt="Logo" width={60} height={60} className="opacity-50" />
-          <div className="text-stone-400 font-medium">Carregando Brotaria...</div>
+          <div className="font-medium" style={{ color: 'var(--color-text-muted)' }}>Carregando Brotaria...</div>
         </div>
       </div>
     );
@@ -69,10 +69,8 @@ export default function LojaPage() {
   if (!user) return null;
 
   return (
-    <div className="flex min-h-screen bg-stone-50 text-stone-900 overflow-hidden">
-      <Sidebar />
-
-      <main className="flex-1 h-screen overflow-y-auto p-8">
+    <AppShell>
+      <div className="p-6 md:p-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
@@ -150,9 +148,9 @@ export default function LojaPage() {
             })}
           </div>
         </div>
-      </main>
+      </div>
 
       <CoinPurchaseModal open={modalOpen} onClose={() => setModalOpen(false)} />
-    </div>
+    </AppShell>
   );
 }
