@@ -215,15 +215,8 @@ export default function Garden() {
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full overflow-hidden select-none ${shovelActive ? 'cursor-none' : ''}`}
-      style={{
-        background: `
-          radial-gradient(ellipse at 20% 10%, rgba(30,60,20,0.8) 0%, transparent 50%),
-          radial-gradient(ellipse at 80% 90%, rgba(20,50,10,0.8) 0%, transparent 50%),
-          linear-gradient(160deg, var(--color-garden-mid) 0%, var(--color-garden-deep) 40%, var(--color-garden-light) 60%, var(--color-garden-deep) 100%)
-        `,
-        boxShadow: 'inset 0 0 60px rgba(0,0,0,0.4)',
-      }}
+      className={`garden-bg relative w-full h-full overflow-hidden select-none ${shovelActive ? 'cursor-none' : ''}`}
+      style={{ boxShadow: 'inset 0 0 80px rgba(0,0,0,0.35)' }}
       onMouseMove={handleGardenMouseMove}
       onMouseLeave={handleGardenMouseLeave}
       onClick={handleGardenClick}
