@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseServer';
+import { getAuthUser } from '@/lib/getAuthUser';
 
 export async function PATCH(request: Request) {
   try {
-    const { userId, itemId, label } = await request.json();
-    if (!userId || !itemId) {
-      return NextResponse.json({ error: 'Missing userId or itemId' }, { status: 400 });
+    const user = await getAuthUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { itemId, label } = await request.json();
+    const userId = user.id;
+    if (!itemId) {
+      return NextResponse.json({ error: 'Missing itemId' }, { status: 400 });
     }
     const trimmed = typeof label === 'string' ? label.trim().slice(0, 100) : null;
     const { error } = await supabaseAdmin

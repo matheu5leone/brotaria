@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import { COIN_PACKAGES, SEED_COST_COINS } from '@/config/economy';
 import { Coins, X, Loader2, Sprout, Sparkles } from 'lucide-react';
+import { authFetch } from '@/lib/authFetch';
 
 interface CoinPurchaseModalProps {
   open: boolean;
@@ -41,10 +42,10 @@ export default function CoinPurchaseModal({
     setBusyPackage(packageId);
     setError(null);
     try {
-      const res = await fetch('/api/coins/purchase', {
+      const res = await authFetch('/api/coins/purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, packageId }),
+        body: JSON.stringify({ packageId }),
       });
       const data = await res.json();
       if (data.success) {
@@ -65,10 +66,10 @@ export default function CoinPurchaseModal({
     setError(null);
     try {
       // 1) Compra a semente com moedas.
-      const buyRes = await fetch('/api/store/buy', {
+      const buyRes = await authFetch('/api/store/buy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, productId: 'seed' }),
+        body: JSON.stringify({ productId: 'seed' }),
       });
       const buyData = await buyRes.json();
       if (!buyData.success) {
@@ -79,10 +80,10 @@ export default function CoinPurchaseModal({
 
       // 2) Se veio de um vaso, planta nele imediatamente.
       if (potId) {
-        const plantRes = await fetch('/api/plants/plant', {
+        const plantRes = await authFetch('/api/plants/plant', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: user.id, potId }),
+          body: JSON.stringify({ potId }),
         });
         const plantData = await plantRes.json();
         if (!plantData.success) {

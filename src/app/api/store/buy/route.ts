@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseServer';
 import { getStoreProduct } from '@/config/economy';
 import { processGrowth } from '@/services/growthService';
 import { addStackableItem } from '@/services/inventoryService';
+import { getAuthUser } from '@/lib/getAuthUser';
 
 /**
  * Compra de um produto da loja usando moedas.
@@ -13,10 +14,14 @@ import { addStackableItem } from '@/services/inventoryService';
  */
 export async function POST(request: Request) {
   try {
-    const { userId, productId } = await request.json();
+    const user = await getAuthUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!userId || !productId) {
-      return NextResponse.json({ error: 'Missing userId or productId' }, { status: 400 });
+    const { productId } = await request.json();
+    const userId = user.id;
+
+    if (!productId) {
+      return NextResponse.json({ error: 'Missing productId' }, { status: 400 });
     }
 
     const product = getStoreProduct(productId);

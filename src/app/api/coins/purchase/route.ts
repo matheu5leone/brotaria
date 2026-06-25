@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { getCoinPackage } from '@/config/economy';
+import { getAuthUser } from '@/lib/getAuthUser';
 
 /**
  * Compra de um pacote de moedas.
@@ -11,10 +12,14 @@ import { getCoinPackage } from '@/config/economy';
  */
 export async function POST(request: Request) {
   try {
-    const { userId, packageId } = await request.json();
+    const user = await getAuthUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!userId || !packageId) {
-      return NextResponse.json({ error: 'Missing userId or packageId' }, { status: 400 });
+    const { packageId } = await request.json();
+    const userId = user.id;
+
+    if (!packageId) {
+      return NextResponse.json({ error: 'Missing packageId' }, { status: 400 });
     }
 
     const pkg = getCoinPackage(packageId);

@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import { STORE_PRODUCTS } from '@/config/economy';
 import { Coins, Sprout, Loader2, Plus } from 'lucide-react';
+import { authFetch } from '@/lib/authFetch';
 
 export default function LojaPage() {
   const { user, isLoading } = useAuth();
@@ -35,10 +36,10 @@ export default function LojaPage() {
 
     setBuyingId(productId);
     try {
-      const res = await fetch('/api/store/buy', {
+      const res = await authFetch('/api/store/buy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, productId }),
+        body: JSON.stringify({ productId }),
       });
       const data = await res.json();
       if (data.success) {

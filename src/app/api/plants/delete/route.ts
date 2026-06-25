@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseServer';
+import { getAuthUser } from '@/lib/getAuthUser';
 
 export async function DELETE(req: NextRequest) {
   try {
+    const user = await getAuthUser(req);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const { plantId, potId } = await req.json();
 
     if (!plantId || !potId) {

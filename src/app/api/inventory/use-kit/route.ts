@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { findFreeSlot } from '@/services/inventoryService';
+import { getAuthUser } from '@/lib/getAuthUser';
 
 export async function POST(request: Request) {
   try {
-    const { userId, plantId } = await request.json();
+    const user = await getAuthUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!userId || !plantId) {
-      return NextResponse.json({ error: 'Missing userId or plantId' }, { status: 400 });
+    const { plantId } = await request.json();
+    const userId = user.id;
+
+    if (!plantId) {
+      return NextResponse.json({ error: 'Missing plantId' }, { status: 400 });
     }
 
     // 1. Verifica que o usuário tem kit de embrulho

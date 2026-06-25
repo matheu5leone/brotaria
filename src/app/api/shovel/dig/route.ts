@@ -1,14 +1,19 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseServer';
+import { getAuthUser } from '@/lib/getAuthUser';
 
 const SHOVEL_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 1 day
 
 export async function POST(request: Request) {
   try {
-    const { userId, posX, posY } = await request.json();
+    const user = await getAuthUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!userId || posX == null || posY == null) {
-      return NextResponse.json({ error: 'Missing userId, posX, or posY' }, { status: 400 });
+    const { posX, posY } = await request.json();
+    const userId = user.id;
+
+    if (posX == null || posY == null) {
+      return NextResponse.json({ error: 'Missing posX or posY' }, { status: 400 });
     }
 
     if (posX < 0 || posX > 100 || posY < 0 || posY > 100) {

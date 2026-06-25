@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server';
 import { plantSeed } from '@/services/inventoryService';
+import { getAuthUser } from '@/lib/getAuthUser';
 
 export async function POST(request: Request) {
   try {
-    const { userId, potId } = await request.json();
-    
-    if (!userId || !potId) {
-      return NextResponse.json({ error: 'Missing userId or potId' }, { status: 400 });
+    const user = await getAuthUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { potId } = await request.json();
+    const userId = user.id;
+
+    if (!potId) {
+      return NextResponse.json({ error: 'Missing potId' }, { status: 400 });
     }
 
     const plant = await plantSeed(userId, potId);

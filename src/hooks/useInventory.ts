@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { InventoryItem, PlantDNA } from '@/types';
+import { authFetch } from '@/lib/authFetch';
 
-async function fetchInventory(userId: string): Promise<InventoryItem[]> {
-  const res = await fetch(`/api/inventory?userId=${encodeURIComponent(userId)}`);
+async function fetchInventory(): Promise<InventoryItem[]> {
+  const res = await authFetch('/api/inventory');
   if (!res.ok) throw new Error('Failed to fetch inventory');
   return res.json();
 }
@@ -10,7 +11,7 @@ async function fetchInventory(userId: string): Promise<InventoryItem[]> {
 export function useInventory(userId: string | undefined) {
   return useQuery({
     queryKey: ['inventory', userId],
-    queryFn: () => fetchInventory(userId!),
+    queryFn: () => fetchInventory(),
     enabled: !!userId,
     staleTime: 30_000,
   });
@@ -20,10 +21,10 @@ export function useWrapPlant(userId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ plantId }: { plantId: string }) => {
-      const res = await fetch('/api/inventory/use-kit', {
+      const res = await authFetch('/api/inventory/use-kit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, plantId }),
+        body: JSON.stringify({ plantId }),
       });
       const data = await res.json();
       if (!res.ok) throw Object.assign(new Error(data.error ?? 'Erro ao embrulhar'), { code: data.code });
@@ -40,10 +41,10 @@ export function useOpenGift(userId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ itemId }: { itemId: string }): Promise<{ dna: PlantDNA; stageOrder: number }> => {
-      const res = await fetch('/api/inventory/open-gift', {
+      const res = await authFetch('/api/inventory/open-gift', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, itemId }),
+        body: JSON.stringify({ itemId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Erro ao abrir presente');
@@ -59,10 +60,10 @@ export function usePatchLabel(userId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ itemId, label }: { itemId: string; label: string }) => {
-      const res = await fetch('/api/inventory/label', {
+      const res = await authFetch('/api/inventory/label', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, itemId, label }),
+        body: JSON.stringify({ itemId, label }),
       });
       if (!res.ok) throw new Error('Erro ao salvar etiqueta');
     },

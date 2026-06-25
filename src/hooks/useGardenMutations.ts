@@ -1,34 +1,35 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { authFetch } from '@/lib/authFetch';
 
 // ── helpers de fetch ──────────────────────────────────────────────────────
 
-async function digHole(userId: string, posX: number, posY: number) {
-  const res = await fetch('/api/shovel/dig', {
+async function digHole(posX: number, posY: number) {
+  const res = await authFetch('/api/shovel/dig', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, posX, posY }),
+    body: JSON.stringify({ posX, posY }),
   });
   const data = await res.json();
   if (!res.ok) throw Object.assign(new Error(data.error ?? 'Erro ao cavar'), { code: data.code });
   return data.pot;
 }
 
-async function plantSeed(userId: string, potId: string) {
-  const res = await fetch('/api/plants/plant', {
+async function plantSeed(potId: string) {
+  const res = await authFetch('/api/plants/plant', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, potId }),
+    body: JSON.stringify({ potId }),
   });
   const data = await res.json();
   if (!res.ok) throw Object.assign(new Error(data.error ?? 'Erro ao plantar'), { code: data.code });
   return data.plant;
 }
 
-async function waterPlant(userId: string, plantId: string) {
-  const res = await fetch('/api/plants/water', {
+async function waterPlant(plantId: string) {
+  const res = await authFetch('/api/plants/water', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ plantId, userId }),
+    body: JSON.stringify({ plantId }),
   });
   const data = await res.json();
   if (!res.ok) throw Object.assign(new Error(data.error ?? 'Erro ao regar'), { code: data.code });
@@ -36,7 +37,7 @@ async function waterPlant(userId: string, plantId: string) {
 }
 
 async function deletePlant(plantId: string, potId: string) {
-  const res = await fetch('/api/plants/delete', {
+  const res = await authFetch('/api/plants/delete', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ plantId, potId }),
@@ -52,7 +53,7 @@ export function useDigMutation(userId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ posX, posY }: { posX: number; posY: number }) =>
-      digHole(userId, posX, posY),
+      digHole(posX, posY),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['garden', 'pots', userId] });
       qc.invalidateQueries({ queryKey: ['garden', 'shovel', userId] });
@@ -63,7 +64,7 @@ export function useDigMutation(userId: string) {
 export function usePlantMutation(userId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ potId }: { potId: string }) => plantSeed(userId, potId),
+    mutationFn: ({ potId }: { potId: string }) => plantSeed(potId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['garden', 'pots', userId] });
       qc.invalidateQueries({ queryKey: ['wallet', userId] });
@@ -75,7 +76,7 @@ export function usePlantMutation(userId: string) {
 export function useWaterMutation(userId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ plantId }: { plantId: string }) => waterPlant(userId, plantId),
+    mutationFn: ({ plantId }: { plantId: string }) => waterPlant(plantId),
     onSuccess: (_data, { plantId }) => {
       qc.invalidateQueries({ queryKey: ['plant', plantId] });
       qc.invalidateQueries({ queryKey: ['plant', plantId, 'version'] });

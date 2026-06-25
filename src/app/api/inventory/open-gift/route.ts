@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { PlantDNA } from '@/types';
+import { getAuthUser } from '@/lib/getAuthUser';
 
 export async function POST(request: Request) {
   try {
-    const { userId, itemId } = await request.json();
+    const user = await getAuthUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!userId || !itemId) {
-      return NextResponse.json({ error: 'Missing userId or itemId' }, { status: 400 });
+    const { itemId } = await request.json();
+    const userId = user.id;
+
+    if (!itemId) {
+      return NextResponse.json({ error: 'Missing itemId' }, { status: 400 });
     }
 
     // 1. Busca o item wrapped_plant

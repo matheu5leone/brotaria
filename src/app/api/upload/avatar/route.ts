@@ -1,15 +1,19 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseServer';
+import { getAuthUser } from '@/lib/getAuthUser';
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 
 export async function POST(request: Request) {
   try {
+    const user = await getAuthUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const userId = user.id;
     const form = await request.formData();
-    const userId = form.get('userId') as string | null;
     const file = form.get('file') as File | null;
 
-    if (!userId || !file) return NextResponse.json({ error: 'Missing userId or file' }, { status: 400 });
+    if (!file) return NextResponse.json({ error: 'Missing file' }, { status: 400 });
     if (file.size > MAX_BYTES) return NextResponse.json({ error: 'Arquivo muito grande (máx 5 MB)' }, { status: 413 });
 
     const ext = file.name.split('.').pop() ?? 'jpg';

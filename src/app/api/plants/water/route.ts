@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server';
 import { waterPlant } from '@/services/growthService';
+import { getAuthUser } from '@/lib/getAuthUser';
 
 export async function POST(request: Request) {
   try {
-    const { plantId, userId } = await request.json();
+    const user = await getAuthUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!plantId || !userId) {
-      return NextResponse.json({ error: 'Missing plantId or userId' }, { status: 400 });
+    const { plantId } = await request.json();
+    const userId = user.id;
+
+    if (!plantId) {
+      return NextResponse.json({ error: 'Missing plantId' }, { status: 400 });
     }
 
     const result = await waterPlant(plantId, userId);

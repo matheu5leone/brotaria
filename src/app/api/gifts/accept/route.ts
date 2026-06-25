@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { findFreeSlot } from '@/services/inventoryService';
+import { getAuthUser } from '@/lib/getAuthUser';
 
 export async function POST(request: Request) {
   try {
-    const { userId, giftId } = await request.json();
-    if (!userId || !giftId) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+    const user = await getAuthUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { giftId } = await request.json();
+    const userId = user.id;
+    if (!giftId) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
 
     const { data: gift } = await supabaseAdmin
       .from('gifts')

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PlantDNA } from '@/types';
+import { authFetch } from '@/lib/authFetch';
 
 export type PendingGift = {
   id: string;
@@ -19,7 +20,7 @@ export function usePendingGifts(userId: string | undefined) {
   return useQuery<PendingGift[]>({
     queryKey: ['gifts', 'pending', userId],
     queryFn: async () => {
-      const res = await fetch(`/api/gifts/pending?userId=${userId}`);
+      const res = await authFetch('/api/gifts/pending');
       if (!res.ok) throw new Error('Failed to fetch gifts');
       return res.json();
     },
@@ -33,10 +34,10 @@ export function useUnwrap(userId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ itemId }: { itemId: string }) => {
-      const res = await fetch('/api/inventory/unwrap', {
+      const res = await authFetch('/api/inventory/unwrap', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, itemId }),
+        body: JSON.stringify({ itemId }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? 'Erro ao desfazer embrulho');
     },
@@ -48,10 +49,10 @@ export function useSendGift(userId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ itemId, recipientNickname, message }: { itemId: string; recipientNickname: string; message: string }) => {
-      const res = await fetch('/api/gifts/send', {
+      const res = await authFetch('/api/gifts/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, itemId, recipientNickname, message }),
+        body: JSON.stringify({ itemId, recipientNickname, message }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Erro ao enviar presente');
@@ -64,10 +65,10 @@ export function useAcceptGift(userId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ giftId }: { giftId: string }) => {
-      const res = await fetch('/api/gifts/accept', {
+      const res = await authFetch('/api/gifts/accept', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, giftId }),
+        body: JSON.stringify({ giftId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Erro ao aceitar presente');
@@ -84,10 +85,10 @@ export function useDeclineGift(userId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ giftId }: { giftId: string }) => {
-      const res = await fetch('/api/gifts/decline', {
+      const res = await authFetch('/api/gifts/decline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, giftId }),
+        body: JSON.stringify({ giftId }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? 'Erro ao recusar');
     },
