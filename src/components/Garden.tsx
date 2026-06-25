@@ -46,10 +46,29 @@ function formatCooldown(ms: number): string {
 }
 
 // Wrapper para buscar plant e abrir o modal de histórico
-function HistoryWrapper({ plantId, onClose }: { plantId: string; onClose: () => void }) {
+function HistoryWrapper({
+  plantId, onClose, onRegar, onRemover, isWaterPending, isDeletePending,
+}: {
+  plantId: string;
+  onClose: () => void;
+  onRegar: () => void;
+  onRemover: () => void;
+  isWaterPending: boolean;
+  isDeletePending: boolean;
+}) {
   const { data: plant } = usePlant(plantId);
   if (!plant) return null;
-  return <PlantHistoryModal plant={plant} open onClose={onClose} />;
+  return (
+    <PlantHistoryModal
+      plant={plant}
+      open
+      onClose={onClose}
+      onRegar={onRegar}
+      onRemover={onRemover}
+      isWaterPending={isWaterPending}
+      isDeletePending={isDeletePending}
+    />
+  );
 }
 
 export default function Garden() {
@@ -431,7 +450,14 @@ export default function Garden() {
 
       {/* ── History modal ────────────────────────────────────────────────── */}
       {historyPlantId && (
-        <HistoryWrapper plantId={historyPlantId} onClose={() => setHistoryPlantId(null)} />
+        <HistoryWrapper
+          plantId={historyPlantId}
+          onClose={() => setHistoryPlantId(null)}
+          onRegar={handleRegar}
+          onRemover={handleRemover}
+          isWaterPending={waterMutation.isPending}
+          isDeletePending={deleteMutation.isPending}
+        />
       )}
 
       {/* ── Coin purchase modal ──────────────────────────────────────────── */}

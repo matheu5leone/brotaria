@@ -151,7 +151,48 @@ Abre junto ao menu de ação; mostra informações completas da planta seleciona
 
 Cor: `rgba(201,162,39,0.9)` (ouro/dourado). Não interativas (`pointer-events-none`).
 
-### 4.7 Toolbar Flutuante (barra inferior do jardim)
+### 4.7 PlantHistoryModal — Card de Histórico de Evolução
+
+Modal de histórico/detalhe da planta. Usa **tema escuro do jardim** (não pergaminho) para permanecer imersivo no contexto do garden.
+
+**Diferença de estilo intencional:** O fundo dark-green do card contrasta com os painéis de parchment. É o único componente com tema escuro, justificado pela imersão no jardim.
+
+**Card:**
+- Fundo: `linear-gradient(160deg, #1c2d10, #0f1a08, #0a1205)`
+- Borda: `1.5px solid rgba(201,162,39,0.35)` + `inset 0 1px 0 rgba(201,162,39,0.12)`
+- Border-radius: `24px` (rounded-3xl)
+- Largura: `min(88vw, 360px)`
+
+**Estrutura interna:**
+- Badge de raridade: ícone lucide (mockado por raridade) + label colorido pela raridade
+- Botão X (fechar) — top right
+- Imagem da planta: `75%` da largura do card, aspect 1:1, `RarityEffect` ativo
+- Nome: `{stage.name} {level}` em `var(--font-display)`
+- Descrição gerada do DNA: `personality + biome` → texto curto em itálico
+- Chips meta: Tipo | Plantado em | Ambiente
+- Barra de progresso verde (100% para estágios históricos; live para estágio atual)
+- Status de rega (próxima rega / pode regar agora)
+- Recompensas: `level * 2 moedas` + `10 XP`
+- Botões: **Remover** (vermelho translúcido) + **Regar** (verde, desabilitado se não pode regar)
+
+**Navegação < >:**
+- Setas flutuantes fora do card, navegam pelos `plant_versions` do banco
+- Dots de paginação coloridos pela raridade da versão ativa
+- O último item é o estágio atual (com dados ao vivo)
+
+**Ícones de raridade (mockados — sem assets externos):**
+| Raridade | Ícone lucide | Cor |
+|----------|-------------|-----|
+| comum    | Leaf        | `#d1d5db` |
+| incomum  | Droplets    | `#22d3ee` |
+| raro     | Star        | `#60a5fa` |
+| epico    | Zap         | `#c084fc` |
+| lendario | Flame       | `#fb923c` |
+| brotaria | Sprout      | `#4ade80` |
+
+**Arquivo:** `src/components/PlantHistoryModal.tsx`
+
+### 4.8 Toolbar Flutuante (barra inferior do jardim)
 
 Fundo: `rgba(8,14,5,0.75)` com `backdrop-filter: blur(6px)`  
 Borda: `1px solid rgba(92,58,30,0.35)`  
