@@ -9,11 +9,12 @@ interface HexButtonProps {
   disabled?: boolean;
   active?: boolean;
   onClick?: (e: React.MouseEvent) => void;
+  onPointerDown?: (e: React.PointerEvent) => void;
   title?: string;
 }
 
 export function HexButton({
-  icon, label, badge, disabled = false, active = false, onClick, title,
+  icon, label, badge, disabled = false, active = false, onClick, onPointerDown, title,
 }: HexButtonProps) {
   const [hovered, setHovered] = useState(false);
 
@@ -43,6 +44,7 @@ export function HexButton({
         transition: 'transform 0.15s ease',
       }}
       onClick={disabled ? undefined : onClick}
+      onPointerDown={disabled ? undefined : onPointerDown}
       onMouseEnter={() => { if (!disabled) setHovered(true); }}
       onMouseLeave={() => setHovered(false)}
       onKeyDown={handleKeyDown}

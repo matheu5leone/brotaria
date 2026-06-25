@@ -92,17 +92,19 @@ export default function Garden() {
   const wrapMutation   = useWrapPlant(user?.id ?? '');
 
   // ── UI state ─────────────────────────────────────────────────────────────
-  const [selectedPotId, setSelectedPotId]       = useState<string | null>(null);
-  const [historyPlantId, setHistoryPlantId]     = useState<string | null>(null);
-  const [coinModalPotId, setCoinModalPotId]     = useState<string | null>(null);
-  const [shovelActive, setShovelActive]         = useState(false);
-  const [shovelError, setShovelError]           = useState<string | null>(null);
-  const [wateringActive, setWateringActive]     = useState(false);
-  const [wateringHovered, setWateringHovered]   = useState<string | null>(null);
-  const [wateringError, setWateringError]       = useState<string | null>(null);
-  const [cursorPos, setCursorPos]               = useState<{ x: number; y: number } | null>(null);
-  const [wrappingMode, setWrappingMode]         = useState(false);
-  const [wrapError, setWrapError]               = useState<string | null>(null);
+  const [selectedPotId, setSelectedPotId]           = useState<string | null>(null);
+  const [historyPlantId, setHistoryPlantId]         = useState<string | null>(null);
+  const [coinModalPotId, setCoinModalPotId]         = useState<string | null>(null);
+  const [shovelActive, setShovelActive]             = useState(false);
+  const [shovelError, setShovelError]               = useState<string | null>(null);
+  // Drag-and-drop do regador
+  const [wateringDrag, setWateringDrag]             = useState(false);
+  const [wateringDragPos, setWateringDragPos]       = useState<{ x: number; y: number } | null>(null);
+  const [wateringTargetPotId, setWateringTargetPotId] = useState<string | null>(null);
+  const [wateringError, setWateringError]           = useState<string | null>(null);
+  const [cursorPos, setCursorPos]                   = useState<{ x: number; y: number } | null>(null);
+  const [wrappingMode, setWrappingMode]             = useState(false);
+  const [wrapError, setWrapError]                   = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -138,16 +140,13 @@ export default function Garden() {
   // ── Handlers ─────────────────────────────────────────────────────────────
 
   const handleGardenMouseMove = (e: React.MouseEvent) => {
-    if (!shovelActive && !wateringActive) return;
+    if (!shovelActive) return;
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
     setCursorPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
-  const handleGardenMouseLeave = () => {
-    setCursorPos(null);
-    setWateringHovered(null);
-  };
+  const handleGardenMouseLeave = () => setCursorPos(null);
 
   const handleGardenClick = async (e: React.MouseEvent) => {
     if (selectedPotId) { setSelectedPotId(null); return; }
@@ -155,13 +154,12 @@ export default function Garden() {
     await digAt(e);
   };
 
-  // Rega: clique no pot em modo regador
-  const handleWaterPot = async (pot: Pot) => {
+  // Rega via drag: chamado pelo pointerup quando soltar sobre uma planta
+  const handleWaterPot = useCallback(async (pot: Pot) => {
     if (!pot.plant_id || !canWaterToday || waterMutation.isPending) return;
     setWateringError(null);
     try {
       await waterMutation.mutateAsync({ plantId: pot.plant_id });
-      // Mantém modo ativo para regar outras plantas
     } catch (err: unknown) {
       const e = err as { code?: string; message?: string };
       const msg =
@@ -170,25 +168,60 @@ export default function Garden() {
         (e.message ?? 'Erro ao regar.');
       setWateringError(msg);
     }
-  };
+  }, [canWaterToday, waterMutation]);
 
-  const toggleWatering = (e: React.MouseEvent) => {
+  // Encontra o pot pelo ponto na tela usando data-pot-id
+  const findPotAtPoint = useCallback((x: number, y: number): Pot | null => {
+    const elements = document.elementsFromPoint(x, y);
+    for (const el of elements) {
+      const id = (el as HTMLElement).dataset?.potId;
+      if (id) return pots.find(p => p.id === id) ?? null;
+    }
+    return null;
+  }, [pots]);
+
+  // Drag-and-drop do regador: inicia no pointerdown do botão
+  const handleWateringPointerDown = useCallback((e: React.PointerEvent) => {
+    if (!canWaterToday || waterMutation.isPending) return;
+    e.preventDefault();
     e.stopPropagation();
-    setWateringActive(v => !v);
+
+    setWateringDrag(true);
+    setWateringDragPos({ x: e.clientX, y: e.clientY });
+    setWateringTargetPotId(null);
     setWateringError(null);
-    setWateringHovered(null);
     setShovelActive(false);
-  };
+
+    let active = true;
+
+    const onMove = (ev: PointerEvent) => {
+      if (!active) return;
+      setWateringDragPos({ x: ev.clientX, y: ev.clientY });
+      const pot = findPotAtPoint(ev.clientX, ev.clientY);
+      setWateringTargetPotId(pot?.plant_id ? pot.id : null);
+    };
+
+    const onUp = (ev: PointerEvent) => {
+      active = false;
+      setWateringDrag(false);
+      setWateringDragPos(null);
+      setWateringTargetPotId(null);
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+
+      const pot = findPotAtPoint(ev.clientX, ev.clientY);
+      if (pot?.plant_id) handleWaterPot(pot);
+    };
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  }, [canWaterToday, waterMutation.isPending, findPotAtPoint, handleWaterPot]);
 
   const handlePotClick = (pot: Pot) => async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (wateringDrag) return; // drag cuida da rega
 
     if (shovelActive) { await digAt(e); return; }
-
-    if (wateringActive) {
-      await handleWaterPot(pot);
-      return;
-    }
 
     if (wrappingMode && pot.plant_id) {
       if (!confirm('Embrulhar esta planta? 1 kit de embrulho será consumido.')) return;
@@ -239,7 +272,6 @@ export default function Garden() {
     setShovelActive(v => !v);
     setShovelError(null);
     setSelectedPotId(null);
-    setWateringActive(false);
   };
 
   // ── Early returns ─────────────────────────────────────────────────────────
@@ -312,6 +344,7 @@ export default function Garden() {
         return (
           <div
             key={pot.id}
+            data-pot-id={pot.id}
             className="absolute"
             style={{
               width: '12%',
@@ -321,8 +354,6 @@ export default function Garden() {
               transform: 'translate(-50%, -50%)',
               zIndex: selectedPotId === pot.id ? 5 : 2,
             }}
-            onMouseEnter={() => wateringActive && setWateringHovered(pot.id)}
-            onMouseLeave={() => wateringActive && setWateringHovered(null)}
           >
             <HexPot
               pot={pot}
@@ -387,25 +418,25 @@ export default function Garden() {
         />
       )}
 
-      {/* ── Watering can cursor ──────────────────────────────────────────── */}
-      {wateringActive && cursorPos && (
+      {/* ── Watering cursor (fixed — segue o ponteiro em toda a tela) ──── */}
+      {wateringDrag && wateringDragPos && (
         <div
-          className="pointer-events-none absolute z-50 text-2xl select-none"
+          className="fixed pointer-events-none z-[9999] select-none"
           style={{
-            left: cursorPos.x - 16,
-            top: cursorPos.y - 28,
-            filter: 'drop-shadow(0 2px 4px rgba(59,130,246,0.6))',
-            fontSize: 28,
+            left: wateringDragPos.x - 18,
+            top: wateringDragPos.y - 32,
+            fontSize: 32,
+            filter: 'drop-shadow(0 2px 6px rgba(59,130,246,0.7))',
           }}
         >
           🪣
         </div>
       )}
 
-      {/* ── Watering hover glow on pots ─────────────────────────────────── */}
-      {wateringActive && wateringHovered && (() => {
-        const pot = pots.find(p => p.id === wateringHovered);
-        if (!pot?.plant_id) return null;
+      {/* ── Highlight no pot-alvo durante o drag ─────────────────────── */}
+      {wateringDrag && wateringTargetPotId && (() => {
+        const pot = pots.find(p => p.id === wateringTargetPotId);
+        if (!pot) return null;
         return (
           <div
             className="absolute pointer-events-none z-10"
@@ -415,9 +446,9 @@ export default function Garden() {
               width: '12%',
               aspectRatio: '1 / 1.65',
               transform: 'translate(-50%, -50%)',
-              background: 'rgba(59,130,246,0.2)',
+              background: 'rgba(59,130,246,0.25)',
               clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-              boxShadow: '0 0 20px rgba(59,130,246,0.4)',
+              filter: 'drop-shadow(0 0 8px rgba(59,130,246,0.8))',
             }}
           />
         );
@@ -466,33 +497,24 @@ export default function Garden() {
           </div>
         )}
 
-        {/* Hints de modo ativo */}
+        {/* Hint de modo ativo */}
         {shovelActive && (
           <div className="text-xs px-3 py-1.5 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: 'var(--color-text-light)', border: '1px solid rgba(92,58,30,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
             Clique no jardim para cavar
           </div>
         )}
-        {wateringActive && (
-          <div className="text-xs px-3 py-1.5 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: '#93c5fd', border: '1px solid rgba(59,130,246,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
-            Clique numa planta para regar · {watersRemaining}/10 restantes
-          </div>
-        )}
 
         {/* Botões lado a lado */}
         <div className="flex items-end gap-3">
-          {/* Regador */}
+          {/* Regador — drag-and-drop via onPointerDown */}
           <HexButton
             icon={waterMutation.isPending ? '⏳' : '🪣'}
-            label={
-              waterMutation.isPending ? 'Regando...'
-              : wateringActive ? 'Cancelar'
-              : `${watersRemaining}/10`
-            }
-            badge={!wateringActive ? watersRemaining : undefined}
+            label={waterMutation.isPending ? 'Regando...' : `${watersRemaining}/10`}
+            badge={watersRemaining}
             disabled={!canWaterToday || waterMutation.isPending}
-            active={wateringActive}
-            onClick={toggleWatering}
-            title={canWaterToday ? 'Ativar regador' : 'Limite diário atingido'}
+            active={wateringDrag}
+            onPointerDown={handleWateringPointerDown}
+            title={canWaterToday ? 'Arraste até uma planta para regar' : 'Limite diário atingido'}
           />
 
           {/* Pá */}
