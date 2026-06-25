@@ -118,9 +118,43 @@ export function HexPot({
               </div>
             )}
           </div>
-          {/* Hydration dot */}
+          {/* Balão de rega — estilo PvZ */}
           {plant?.hydration_status === 'waiting_water' && (
-            <div className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse z-10" />
+            <div
+              className="water-speech-bubble absolute pointer-events-none z-20 flex flex-col items-center"
+              style={{
+                top: '-38%',
+                left: '50%',
+                animation: 'water-bubble 2.2s ease-in-out infinite',
+                filter: 'drop-shadow(0 2px 5px rgba(59,130,246,0.5))',
+              }}
+            >
+              {/* Corpo do balão */}
+              <div
+                style={{
+                  background: 'rgba(239,246,255,0.97)',
+                  border: '1.5px solid rgba(96,165,250,0.75)',
+                  borderRadius: 8,
+                  padding: '3px 6px',
+                  fontSize: 14,
+                  lineHeight: 1,
+                  userSelect: 'none',
+                }}
+              >
+                💧
+              </div>
+              {/* Cauda apontando para baixo */}
+              <div
+                style={{
+                  width: 0,
+                  height: 0,
+                  borderLeft: '5px solid transparent',
+                  borderRight: '5px solid transparent',
+                  borderTop: '6px solid rgba(239,246,255,0.97)',
+                  marginTop: -1,
+                }}
+              />
+            </div>
           )}
         </div>
       )}
