@@ -24,11 +24,11 @@ async function plantSeed(userId: string, potId: string) {
   return data.plant;
 }
 
-async function waterPlant(plantId: string) {
+async function waterPlant(userId: string, plantId: string) {
   const res = await fetch('/api/plants/water', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ plantId }),
+    body: JSON.stringify({ plantId, userId }),
   });
   const data = await res.json();
   if (!res.ok) throw Object.assign(new Error(data.error ?? 'Erro ao regar'), { code: data.code });
@@ -75,11 +75,13 @@ export function usePlantMutation(userId: string) {
 export function useWaterMutation(userId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ plantId }: { plantId: string }) => waterPlant(plantId),
+    mutationFn: ({ plantId }: { plantId: string }) => waterPlant(userId, plantId),
     onSuccess: (_data, { plantId }) => {
       qc.invalidateQueries({ queryKey: ['plant', plantId] });
       qc.invalidateQueries({ queryKey: ['plant', plantId, 'version'] });
       qc.invalidateQueries({ queryKey: ['plant', plantId, 'history'] });
+      qc.invalidateQueries({ queryKey: ['garden', 'watering', userId] });
+      qc.invalidateQueries({ queryKey: ['garden', 'pots', userId] });
     },
   });
 }

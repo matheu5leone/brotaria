@@ -2,17 +2,19 @@ import { supabaseAdmin } from '@/lib/supabaseServer';
 import { mutateDNA } from '@/services/dnaService';
 import { generatePlantEvolution } from './aiService';
 
-/**
- * CONFIGURAÇÃO DE DESENVOLVIMENTO
- * AI_MODE = 'LLM'  -> Chama a OpenRouter e gasta tokens
- * AI_MODE = 'MOCK' -> Usa imagens estáticas e descrições fakes (rápido e grátis)
- */
 const MODO_IA = process.env.AI_MODE || 'MOCK';
+const DAILY_WATER_LIMIT = 10;
+
+/** Retorna a data atual no fuso de Brasília (UTC-3) como 'YYYY-MM-DD'. */
+function getBrasiliaDate(): string {
+  const now = new Date();
+  const brasilia = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  return brasilia.toISOString().split('T')[0];
+}
 
 export async function processGrowth() {
   console.log('[Scheduler] Starting growth processing...');
 
-  // 1. Mark overdue plants as 'waiting_water'
   const { error: waterError } = await supabaseAdmin
     .from('plants')
     .update({ hydration_status: 'waiting_water' })
@@ -22,44 +24,88 @@ export async function processGrowth() {
   if (waterError) console.error('[Scheduler] Error updating hydration:', waterError);
 }
 
-export async function waterPlant(plantId: string) {
-  console.log(`[Growth] Watering plant ${plantId}`);
+export async function waterPlant(plantId: string, userId: string) {
+  console.log(`[Growth] Watering plant ${plantId} for user ${userId}`);
 
-  // 1. Fetch plant and current stage
+  // 1. Verificar limite diário do usuário
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from('profiles')
+    .select('daily_waters_used, water_reset_date')
+    .eq('id', userId)
+    .single();
+
+  if (profileError || !profile) throw new Error('Profile not found');
+
+  const today = getBrasiliaDate();
+  const resetNeeded = !profile.water_reset_date || profile.water_reset_date !== today;
+  const watersUsed = resetNeeded ? 0 : (profile.daily_waters_used ?? 0);
+
+  if (watersUsed >= DAILY_WATER_LIMIT) {
+    const err = new Error('Limite diário de regas atingido. Volte amanhã!') as Error & { code: string };
+    err.code = 'DAILY_LIMIT_REACHED';
+    throw err;
+  }
+
+  // 2. Buscar planta e verificar se está pronta para rega
   const { data: plant, error: fetchError } = await supabaseAdmin
     .from('plants')
     .select('*, current_stage:plant_stages(*)')
     .eq('id', plantId)
+    .eq('user_id', userId)
     .single();
 
   if (fetchError || !plant) throw new Error('Plant not found');
 
-  const newWatersCount = plant.current_stage_waters + 1;
-  
-  if (newWatersCount >= plant.current_stage.waters_required) {
-    // Evolve!
-    return await evolvePlant(plantId);
-  } else {
-    // Just update water count and timer
-    const { error: updateError } = await supabaseAdmin
-      .from('plants')
-      .update({
-        current_stage_waters: newWatersCount,
-        hydration_status: 'hydrated',
-        last_watered_at: new Date().toISOString(),
-        next_water_needed_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
-      })
-      .eq('id', plantId);
+  // Verifica prontidão por timestamp (não depende do cron ter rodado)
+  const isReady =
+    plant.hydration_status === 'waiting_water' ||
+    new Date(plant.next_water_needed_at) < new Date();
 
-    if (updateError) throw updateError;
-    return { success: true, evolved: false };
+  if (!isReady) {
+    const err = new Error('Esta planta ainda não precisa de água.') as Error & { code: string };
+    err.code = 'NOT_READY';
+    throw err;
   }
+
+  // 3. Incrementar contador diário (reset se necessário)
+  await supabaseAdmin
+    .from('profiles')
+    .update({
+      daily_waters_used: watersUsed + 1,
+      water_reset_date: today,
+    })
+    .eq('id', userId);
+
+  // 4. Regar / evoluir
+  const newWatersCount = plant.current_stage_waters + 1;
+
+  if (newWatersCount >= plant.current_stage.waters_required) {
+    return await evolvePlant(plantId);
+  }
+
+  const { error: updateError } = await supabaseAdmin
+    .from('plants')
+    .update({
+      current_stage_waters: newWatersCount,
+      hydration_status: 'hydrated',
+      last_watered_at: new Date().toISOString(),
+      next_water_needed_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+    })
+    .eq('id', plantId);
+
+  if (updateError) throw updateError;
+
+  return {
+    success: true,
+    evolved: false,
+    watersUsed: watersUsed + 1,
+    watersRemaining: DAILY_WATER_LIMIT - (watersUsed + 1),
+  };
 }
 
 export async function evolvePlant(plantId: string) {
   console.log(`[Growth] Evolving plant ${plantId}`);
-  
-  // Fetch plant and current stage
+
   const { data: plant } = await supabaseAdmin
     .from('plants')
     .select('*, current_stage:plant_stages(*)')
@@ -68,7 +114,6 @@ export async function evolvePlant(plantId: string) {
 
   if (!plant) return;
 
-  // Find next stage
   const { data: nextStage } = await supabaseAdmin
     .from('plant_stages')
     .select('*')
@@ -80,10 +125,8 @@ export async function evolvePlant(plantId: string) {
     return { success: true, maxGrowth: true };
   }
 
-  // Check for mutation
   const newDNA = mutateDNA(plant.dna);
 
-  // Update plant
   const { error: updateError } = await supabaseAdmin
     .from('plants')
     .update({
@@ -92,7 +135,7 @@ export async function evolvePlant(plantId: string) {
       dna: newDNA,
       hydration_status: 'hydrated',
       last_watered_at: new Date().toISOString(),
-      next_water_needed_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
+      next_water_needed_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
     })
     .eq('id', plantId);
 
@@ -101,16 +144,11 @@ export async function evolvePlant(plantId: string) {
     return { success: false, error: updateError };
   }
 
-  // If nextStage.generate_image is true, trigger AI (or MOCK)
   if (nextStage.generate_image) {
     console.log(`[IA] Triggering evolution for stage ${nextStage.code} | MODO: ${MODO_IA}`);
-    
     try {
       let evolution;
-
       if (MODO_IA === 'LLM') {
-        // Busca a descrição anterior apenas para continuidade textual de identidade
-        // (a imagem anterior NÃO é mais usada como referência — saltos maiores).
         const { data: lastVersion } = await supabaseAdmin
           .from('plant_versions')
           .select('prompt_used')
@@ -119,33 +157,26 @@ export async function evolvePlant(plantId: string) {
           .limit(1)
           .single();
 
-        evolution = await generatePlantEvolution(
-          newDNA,
-          nextStage.code,
-          lastVersion?.prompt_used
-        );
+        evolution = await generatePlantEvolution(newDNA, nextStage.code, lastVersion?.prompt_used);
       } else {
-        // MODO MOCK: Simula resposta da IA instantaneamente com um avatar aleatório
         evolution = {
           visualDescription: `[MOCK] Planta do bioma ${newDNA.biome} evoluída para ${nextStage.name}.`,
           imageUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${plantId}-${nextStage.code}`,
-          modelUsed: 'MOCK-IMAGE-GENERATOR'
+          modelUsed: 'MOCK-IMAGE-GENERATOR',
         };
-        // Delay simulado
         await new Promise(resolve => setTimeout(resolve, 800));
       }
 
-      // Save to plant_versions
       await supabaseAdmin.from('plant_versions').insert({
         plant_id: plantId,
         image_url: evolution.imageUrl,
         prompt_used: evolution.visualDescription,
         dna_snapshot: newDNA,
         stage_id: nextStage.id,
-        model_used: evolution.modelUsed // Nova coluna adicionada aqui
+        model_used: evolution.modelUsed,
       });
-      
-      console.log(`[IA] Version saved for plant ${plantId} (MODO: ${MODO_IA})`);
+
+      console.log(`[IA] Version saved for plant ${plantId}`);
     } catch (error) {
       console.error(`[IA] Error in evolution for plant ${plantId}:`, error);
     }

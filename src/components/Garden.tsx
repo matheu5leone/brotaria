@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Pot } from '@/types';
 import { X } from 'lucide-react';
 import CoinPurchaseModal from './CoinPurchaseModal';
-import { usePots, useShovelStatus } from '@/hooks/useGardenData';
+import { usePots, useShovelStatus, useWateringStatus } from '@/hooks/useGardenData';
 import { usePlant } from '@/hooks/usePlantData';
 import {
   useDigMutation,
@@ -78,8 +78,11 @@ export default function Garden() {
   // ── Queries ─────────────────────────────────────────────────────────────
   const { data: pots = [], isPending: potsLoading, error: potsError } = usePots(user?.id);
   const { data: shovelStatus } = useShovelStatus(user?.id);
+  const { data: wateringStatus } = useWateringStatus(user?.id);
   const shovelCooldownMs = shovelStatus?.cooldownRemainingMs ?? 0;
   const shovelReady = shovelCooldownMs === 0;
+  const watersRemaining = wateringStatus?.watersRemaining ?? 10;
+  const canWaterToday = watersRemaining > 0;
 
   // ── Mutations ────────────────────────────────────────────────────────────
   const digMutation    = useDigMutation(user?.id ?? '');
@@ -89,14 +92,17 @@ export default function Garden() {
   const wrapMutation   = useWrapPlant(user?.id ?? '');
 
   // ── UI state ─────────────────────────────────────────────────────────────
-  const [selectedPotId, setSelectedPotId]   = useState<string | null>(null);
-  const [historyPlantId, setHistoryPlantId] = useState<string | null>(null);
-  const [coinModalPotId, setCoinModalPotId] = useState<string | null>(null);
-  const [shovelActive, setShovelActive]     = useState(false);
-  const [shovelError, setShovelError]       = useState<string | null>(null);
-  const [cursorPos, setCursorPos]           = useState<{ x: number; y: number } | null>(null);
-  const [wrappingMode, setWrappingMode]     = useState(false);
-  const [wrapError, setWrapError]           = useState<string | null>(null);
+  const [selectedPotId, setSelectedPotId]       = useState<string | null>(null);
+  const [historyPlantId, setHistoryPlantId]     = useState<string | null>(null);
+  const [coinModalPotId, setCoinModalPotId]     = useState<string | null>(null);
+  const [shovelActive, setShovelActive]         = useState(false);
+  const [shovelError, setShovelError]           = useState<string | null>(null);
+  const [wateringActive, setWateringActive]     = useState(false);
+  const [wateringHovered, setWateringHovered]   = useState<string | null>(null);
+  const [wateringError, setWateringError]       = useState<string | null>(null);
+  const [cursorPos, setCursorPos]               = useState<{ x: number; y: number } | null>(null);
+  const [wrappingMode, setWrappingMode]         = useState(false);
+  const [wrapError, setWrapError]               = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -132,25 +138,57 @@ export default function Garden() {
   // ── Handlers ─────────────────────────────────────────────────────────────
 
   const handleGardenMouseMove = (e: React.MouseEvent) => {
-    if (!shovelActive) return;
+    if (!shovelActive && !wateringActive) return;
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
     setCursorPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
-  const handleGardenMouseLeave = () => setCursorPos(null);
+  const handleGardenMouseLeave = () => {
+    setCursorPos(null);
+    setWateringHovered(null);
+  };
 
   const handleGardenClick = async (e: React.MouseEvent) => {
-    // Deselect on background click
     if (selectedPotId) { setSelectedPotId(null); return; }
     if (!shovelActive) return;
     await digAt(e);
+  };
+
+  // Rega: clique no pot em modo regador
+  const handleWaterPot = async (pot: Pot) => {
+    if (!pot.plant_id || !canWaterToday || waterMutation.isPending) return;
+    setWateringError(null);
+    try {
+      await waterMutation.mutateAsync({ plantId: pot.plant_id });
+      // Mantém modo ativo para regar outras plantas
+    } catch (err: unknown) {
+      const e = err as { code?: string; message?: string };
+      const msg =
+        e.code === 'DAILY_LIMIT_REACHED' ? 'Limite diário atingido! Volte amanhã.' :
+        e.code === 'NOT_READY' ? 'Esta planta ainda não precisa de água.' :
+        (e.message ?? 'Erro ao regar.');
+      setWateringError(msg);
+    }
+  };
+
+  const toggleWatering = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setWateringActive(v => !v);
+    setWateringError(null);
+    setWateringHovered(null);
+    setShovelActive(false);
   };
 
   const handlePotClick = (pot: Pot) => async (e: React.MouseEvent) => {
     e.stopPropagation();
 
     if (shovelActive) { await digAt(e); return; }
+
+    if (wateringActive) {
+      await handleWaterPot(pot);
+      return;
+    }
 
     if (wrappingMode && pot.plant_id) {
       if (!confirm('Embrulhar esta planta? 1 kit de embrulho será consumido.')) return;
@@ -201,6 +239,7 @@ export default function Garden() {
     setShovelActive(v => !v);
     setShovelError(null);
     setSelectedPotId(null);
+    setWateringActive(false);
   };
 
   // ── Early returns ─────────────────────────────────────────────────────────
@@ -282,6 +321,8 @@ export default function Garden() {
               transform: 'translate(-50%, -50%)',
               zIndex: selectedPotId === pot.id ? 5 : 2,
             }}
+            onMouseEnter={() => wateringActive && setWateringHovered(pot.id)}
+            onMouseLeave={() => wateringActive && setWateringHovered(null)}
           >
             <HexPot
               pot={pot}
@@ -346,6 +387,42 @@ export default function Garden() {
         />
       )}
 
+      {/* ── Watering can cursor ──────────────────────────────────────────── */}
+      {wateringActive && cursorPos && (
+        <div
+          className="pointer-events-none absolute z-50 text-2xl select-none"
+          style={{
+            left: cursorPos.x - 16,
+            top: cursorPos.y - 28,
+            filter: 'drop-shadow(0 2px 4px rgba(59,130,246,0.6))',
+            fontSize: 28,
+          }}
+        >
+          🪣
+        </div>
+      )}
+
+      {/* ── Watering hover glow on pots ─────────────────────────────────── */}
+      {wateringActive && wateringHovered && (() => {
+        const pot = pots.find(p => p.id === wateringHovered);
+        if (!pot?.plant_id) return null;
+        return (
+          <div
+            className="absolute pointer-events-none z-10"
+            style={{
+              left: `${pot.pos_x ?? 50}%`,
+              top: `${pot.pos_y ?? 50}%`,
+              width: '12%',
+              aspectRatio: '1 / 1.65',
+              transform: 'translate(-50%, -50%)',
+              background: 'rgba(59,130,246,0.2)',
+              clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+              boxShadow: '0 0 20px rgba(59,130,246,0.4)',
+            }}
+          />
+        );
+      })()}
+
       {/* ── Plant action menu (via SelectedPlantStatus para resolver canWater) */}
       {showActionMenu && selectedPlantId && selectedPot && (
         <SelectedPlantStatus
@@ -365,13 +442,14 @@ export default function Garden() {
         <InventoryPanel userId={user?.id} onWrapMode={() => setWrappingMode(true)} />
       )}
 
-      {/* ── Shovel toolbar ───────────────────────────────────────────────── */}
+      {/* ── Toolbar (regador + pá) ────────────────────────────────────────── */}
       <div
         className="absolute bottom-4 right-4 z-20 flex flex-col items-end gap-3"
         style={{ paddingBottom: '24px' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {shovelError && (
+        {/* Erros */}
+        {(shovelError || wateringError) && (
           <div
             className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg shadow"
             style={{
@@ -381,38 +459,58 @@ export default function Garden() {
               fontFamily: 'var(--font-body)',
             }}
           >
-            <span>{shovelError}</span>
-            <button onClick={() => setShovelError(null)}><X className="w-3 h-3" /></button>
+            <span>{shovelError ?? wateringError}</span>
+            <button onClick={() => { setShovelError(null); setWateringError(null); }}>
+              <X className="w-3 h-3" />
+            </button>
           </div>
         )}
+
+        {/* Hints de modo ativo */}
         {shovelActive && (
-          <div
-            className="text-xs px-3 py-1.5 rounded-lg backdrop-blur-sm"
-            style={{
-              background: 'rgba(15,32,12,0.85)',
-              color: 'var(--color-text-light)',
-              border: '1px solid rgba(92,58,30,0.3)',
-              fontFamily: 'var(--font-caption)',
-              fontStyle: 'italic',
-            }}
-          >
+          <div className="text-xs px-3 py-1.5 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: 'var(--color-text-light)', border: '1px solid rgba(92,58,30,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
             Clique no jardim para cavar
           </div>
         )}
-        <HexButton
-          icon={digMutation.isPending ? '⏳' : '⛏'}
-          label={
-            digMutation.isPending ? 'Cavando...'
-            : shovelActive ? 'Cancelar'
-            : shovelReady ? 'Pá'
-            : formatCooldown(shovelCooldownMs)
-          }
-          badge={!shovelReady ? formatCooldown(shovelCooldownMs) : undefined}
-          disabled={!shovelReady || digMutation.isPending}
-          active={shovelActive}
-          onClick={toggleShovel}
-          title={shovelReady ? 'Usar pá para cavar' : `Recarregando: ${formatCooldown(shovelCooldownMs)}`}
-        />
+        {wateringActive && (
+          <div className="text-xs px-3 py-1.5 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: '#93c5fd', border: '1px solid rgba(59,130,246,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
+            Clique numa planta para regar · {watersRemaining}/10 restantes
+          </div>
+        )}
+
+        {/* Botões lado a lado */}
+        <div className="flex items-end gap-3">
+          {/* Regador */}
+          <HexButton
+            icon={waterMutation.isPending ? '⏳' : '🪣'}
+            label={
+              waterMutation.isPending ? 'Regando...'
+              : wateringActive ? 'Cancelar'
+              : `${watersRemaining}/10`
+            }
+            badge={!wateringActive ? watersRemaining : undefined}
+            disabled={!canWaterToday || waterMutation.isPending}
+            active={wateringActive}
+            onClick={toggleWatering}
+            title={canWaterToday ? 'Ativar regador' : 'Limite diário atingido'}
+          />
+
+          {/* Pá */}
+          <HexButton
+            icon={digMutation.isPending ? '⏳' : '⛏'}
+            label={
+              digMutation.isPending ? 'Cavando...'
+              : shovelActive ? 'Cancelar'
+              : shovelReady ? 'Pá'
+              : formatCooldown(shovelCooldownMs)
+            }
+            badge={!shovelReady ? formatCooldown(shovelCooldownMs) : undefined}
+            disabled={!shovelReady || digMutation.isPending}
+            active={shovelActive}
+            onClick={toggleShovel}
+            title={shovelReady ? 'Usar pá para cavar' : `Recarregando: ${formatCooldown(shovelCooldownMs)}`}
+          />
+        </div>
       </div>
 
       {/* ── Wrap mode toolbar ────────────────────────────────────────────── */}

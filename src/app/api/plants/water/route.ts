@@ -3,17 +3,20 @@ import { waterPlant } from '@/services/growthService';
 
 export async function POST(request: Request) {
   try {
-    const { plantId } = await request.json();
-    
-    if (!plantId) {
-      return NextResponse.json({ error: 'Missing plantId' }, { status: 400 });
+    const { plantId, userId } = await request.json();
+
+    if (!plantId || !userId) {
+      return NextResponse.json({ error: 'Missing plantId or userId' }, { status: 400 });
     }
 
-    const result = await waterPlant(plantId);
-
+    const result = await waterPlant(plantId, userId);
     return NextResponse.json(result);
-  } catch (error: any) {
-    console.error('[Water API] Error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to water plant' }, { status: 500 });
+  } catch (error: unknown) {
+    const e = error as Error & { code?: string };
+    const status = e.code === 'DAILY_LIMIT_REACHED' ? 429 : e.code === 'NOT_READY' ? 422 : 500;
+    return NextResponse.json(
+      { error: e.message ?? 'Failed to water plant', code: e.code },
+      { status },
+    );
   }
 }
