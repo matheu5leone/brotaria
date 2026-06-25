@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Trophy, Coins } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { useRanking, RankingEntry } from '@/hooks/useRanking';
@@ -66,7 +67,17 @@ function RankingCard({ entry, onOpen }: { entry: RankingEntry; onOpen: () => voi
       {/* Infos */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-bold text-white truncate">{entry.owner_name}</span>
+          {entry.nickname ? (
+            <Link
+              href={`/jardim/${entry.nickname}`}
+              onClick={(e) => e.stopPropagation()}
+              className="font-bold text-amber-400 hover:text-amber-300 hover:underline truncate transition-colors"
+            >
+              @{entry.nickname}
+            </Link>
+          ) : (
+            <span className="font-bold text-white truncate">{entry.owner_name}</span>
+          )}
           <RarityBadge rarity={entry.rarity} />
         </div>
         <p className="text-white/50 text-sm mt-0.5">{entry.stage_name}</p>

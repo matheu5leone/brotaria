@@ -5,7 +5,6 @@ import { PlantDNA, Rarity } from '@/types';
 
 export async function GET() {
   try {
-    // 1. Busca todas as plantas com estágio
     const { data: plants, error: plantsError } = await supabaseAdmin
       .from('plants')
       .select('id, user_id, dna, current_stage:plant_stages(order_index, name, code)');
@@ -15,13 +14,12 @@ export async function GET() {
       return NextResponse.json([], { headers: { 'Cache-Control': 'public, max-age=60' } });
     }
 
-    // 2. Filtra plantas sem estágio e computa scores
     type PlantWithStage = typeof plants[number] & {
       current_stage: { order_index: number; name: string; code: string };
     };
 
     const scored = (plants as PlantWithStage[])
-      .filter((p) => p.current_stage != null)
+      .filter((p) => p.current_stage != null && p.current_stage.code !== 'enterrada')
       .map((p) => ({
         plant: p,
         score: calcPlantScore(p.dna as unknown as PlantDNA, p.current_stage.order_index),
@@ -36,7 +34,6 @@ export async function GET() {
     const top5Ids = scored.map((s) => s.plant.id);
     const top5UserIds = scored.map((s) => s.plant.user_id);
 
-    // 3. Busca última imagem de cada planta (paralelo)
     const versionResults = await Promise.all(
       top5Ids.map((id) =>
         supabaseAdmin
@@ -49,25 +46,30 @@ export async function GET() {
       ),
     );
 
-    // 4. Busca emails dos donos
+    // Busca nickname + email dos donos
     const { data: profiles, error: profilesError } = await supabaseAdmin
       .from('profiles')
-      .select('id, email')
+      .select('id, email, nickname')
       .in('id', top5UserIds);
 
     if (profilesError) console.error('[Ranking API] Profiles error:', profilesError);
 
-    const emailMap = new Map((profiles ?? []).map((p) => [p.id, p.email as string]));
+    const profileMap = new Map(
+      (profiles ?? []).map((p) => [p.id, { email: p.email as string, nickname: p.nickname as string | null }]),
+    );
 
-    // 5. Monta resposta
     const ranking = scored.map(({ plant, score }, i) => {
       const dna = plant.dna as unknown as PlantDNA;
-      const email = emailMap.get(plant.user_id) ?? '';
+      const prof = profileMap.get(plant.user_id);
+      const nickname = prof?.nickname ?? null;
+      const email = prof?.email ?? '';
       const image_url = versionResults[i].data?.image_url ?? null;
       return {
         rank: i + 1,
         plant_id: plant.id,
-        owner_name: (email.split('@')[0] || 'anônimo'),
+        user_id: plant.user_id,
+        owner_name: nickname ? `@${nickname}` : email.split('@')[0],
+        nickname,
         image_url,
         rarity: dna.rarity as Rarity,
         stage_name: plant.current_stage.name,

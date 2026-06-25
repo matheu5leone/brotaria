@@ -4,7 +4,9 @@ import { PlantDNA, Rarity } from '@/types';
 export type RankingEntry = {
   rank: number;
   plant_id: string;
+  user_id: string;
   owner_name: string;
+  nickname: string | null;
   image_url: string | null;
   rarity: Rarity;
   stage_name: string;
