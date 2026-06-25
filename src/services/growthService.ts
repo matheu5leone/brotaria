@@ -1,7 +1,8 @@
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { mutateDNA } from '@/services/dnaService';
 import { generatePlantEvolution } from './aiService';
-import { GAME, WATER_COOLDOWN_MS, calcEvolutionCoins } from '@/config/economy';
+import { GAME, WATER_COOLDOWN_MS } from '@/config/economy';
+import { calcPlantScore } from '@/lib/scoring';
 
 const MODO_IA = process.env.AI_MODE || 'MOCK';
 
@@ -144,11 +145,11 @@ export async function evolvePlant(plantId: string) {
     return { success: false, error: updateError };
   }
 
-  // Recompensa de moedas — valor definido centralmente em economy.ts
-  const rewardCoins = calcEvolutionCoins(nextStage.order_index);
-  if (rewardCoins > 0) {
-    await supabaseAdmin.rpc('add_coins', { p_user_id: plant.user_id, p_amount: rewardCoins });
-    console.log(`[Growth] Granted ${rewardCoins} coins to user ${plant.user_id} (stage ${nextStage.code})`);
+  // Recompensa em Herbo (🍃) — moeda orgânica baseada no score da planta
+  const herboReward = calcPlantScore(newDNA, nextStage.order_index);
+  if (herboReward > 0) {
+    await supabaseAdmin.rpc('add_herbo', { p_user_id: plant.user_id, p_amount: herboReward });
+    console.log(`[Growth] Granted ${herboReward} herbo to user ${plant.user_id} (stage ${nextStage.code})`);
   }
 
   if (nextStage.generate_image) {

@@ -14,7 +14,7 @@ import {
 
 export default function Sidebar() {
   const { user, signOut } = useAuth();
-  const { coins } = useWallet();
+  const { coins, herbo } = useWallet();
   const pathname = usePathname();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -100,24 +100,33 @@ export default function Sidebar() {
           className={`flex items-center rounded-xl transition-all ${
             isSidebarCollapsed ? 'justify-center p-2.5 w-12 h-12 mx-auto' : 'gap-2 px-3 py-2'
           }`}
-          style={{
-            background: 'rgba(201,162,39,0.1)',
-            border: '1px solid rgba(201,162,39,0.4)',
-          }}
+          style={{ background: 'rgba(201,162,39,0.1)', border: '1px solid rgba(201,162,39,0.4)' }}
         >
           <Coins className="w-5 h-5 min-w-[20px]" style={{ color: 'var(--color-gold)' }} />
           {!isSidebarCollapsed && (
-            <span
-              className="font-black text-base"
-              style={{ fontFamily: 'var(--font-display)', color: 'var(--color-wood-dark)' }}
-            >
+            <span className="font-black text-base" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-wood-dark)' }}>
               {coins}{' '}
-              <span className="text-xs font-bold" style={{ color: 'var(--color-gold)' }}>
-                moedas
-              </span>
+              <span className="text-xs font-bold" style={{ color: 'var(--color-gold)' }}>moedas</span>
             </span>
           )}
         </NavLink>
+
+        {/* Herbo chip */}
+        <div
+          className={`flex items-center rounded-xl ${
+            isSidebarCollapsed ? 'justify-center p-2.5 w-12 h-12 mx-auto' : 'gap-2 px-3 py-2'
+          }`}
+          style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)' }}
+          title={`Herbo: ${herbo}`}
+        >
+          <span className="text-lg min-w-[20px] text-center">🍃</span>
+          {!isSidebarCollapsed && (
+            <span className="font-black text-base" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-wood-dark)' }}>
+              {herbo}{' '}
+              <span className="text-xs font-bold" style={{ color: '#4ade80' }}>herbo</span>
+            </span>
+          )}
+        </div>
 
         <div className="space-y-1">
           {!isSidebarCollapsed && (

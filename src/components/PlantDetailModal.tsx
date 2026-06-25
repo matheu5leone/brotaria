@@ -4,7 +4,8 @@ import Image from 'next/image';
 import { X, Droplets, Trash2 } from 'lucide-react';
 import { usePlant, usePlantVersion } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
-import { calcEvolutionCoins, GAME } from '@/config/economy';
+import { GAME } from '@/config/economy';
+import { calcPlantScore } from '@/lib/scoring';
 
 const RARITY_LABELS: Record<string, string> = {
   comum: 'Comum', incomum: 'Incomum', raro: 'Raro',
@@ -55,6 +56,7 @@ export function PlantDetailModal({
   const biome = plant.dna.biome as string;
   const progressPct = Math.round((plant.current_stage_waters / stage.waters_required) * 100);
   const canWater = plant.hydration_status === 'waiting_water';
+  const herboReward = calcPlantScore(plant.dna, stage.order_index + 1);
 
   return (
     <>
@@ -219,7 +221,7 @@ export function PlantDetailModal({
                 fontFamily: 'var(--font-display)',
               }}
             >
-              🪙 {calcEvolutionCoins(stage.order_index + 1)} moedas
+              🍃 {herboReward} herbo
             </div>
             <div
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"

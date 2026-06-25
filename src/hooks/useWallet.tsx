@@ -5,16 +5,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 
-/**
- * Carteira do usuário: saldo de moedas + contagem de sementes, compartilhados
- * por toda a app (Sidebar, Inventário, Loja, modal de compra).
- *
- * Centralizar evita estado obsoleto: depois de comprar moedas/sementes em
- * qualquer lugar, basta chamar `refresh()` (ou `setCoins()` com o saldo novo
- * retornado pela API) para todos os pontos atualizarem juntos.
- */
 interface WalletContextType {
   coins: number;
+  herbo: number;
   seedCount: number;
   refresh: () => Promise<void>;
   setCoins: (coins: number) => void;
@@ -22,10 +15,10 @@ interface WalletContextType {
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
-async function loadWallet(userId: string): Promise<{ coins: number; seedCount: number }> {
+async function loadWallet(userId: string): Promise<{ coins: number; herbo: number; seedCount: number }> {
   const [{ data: profile, error: profileErr }, { data: seedSlots, error: slotsErr }] =
     await Promise.all([
-      supabase.from('profiles').select('coins').eq('id', userId).single(),
+      supabase.from('profiles').select('coins, herbo').eq('id', userId).single(),
       supabase
         .from('inventory_items')
         .select('quantity')
@@ -35,7 +28,7 @@ async function loadWallet(userId: string): Promise<{ coins: number; seedCount: n
   if (profileErr) throw profileErr;
   if (slotsErr) throw slotsErr;
   const seedCount = (seedSlots ?? []).reduce((sum, s) => sum + s.quantity, 0);
-  return { coins: profile?.coins ?? 0, seedCount };
+  return { coins: profile?.coins ?? 0, herbo: profile?.herbo ?? 0, seedCount };
 }
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
@@ -53,16 +46,18 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     await qc.invalidateQueries({ queryKey: ['wallet', user?.id] });
   }, [qc, user?.id]);
 
-  // Permite override otimista do saldo sem aguardar re-fetch
   const setCoins = useCallback((coins: number) => {
-    qc.setQueryData(['wallet', user?.id], (old: { coins: number; seedCount: number } | undefined) =>
-      old ? { ...old, coins } : { coins, seedCount: 0 }
+    qc.setQueryData(
+      ['wallet', user?.id],
+      (old: { coins: number; herbo: number; seedCount: number } | undefined) =>
+        old ? { ...old, coins } : { coins, herbo: 0, seedCount: 0 },
     );
   }, [qc, user?.id]);
 
   return (
     <WalletContext.Provider value={{
-      coins: data?.coins ?? 0,
+      coins:     data?.coins    ?? 0,
+      herbo:     data?.herbo    ?? 0,
       seedCount: data?.seedCount ?? 0,
       refresh,
       setCoins,
@@ -74,8 +69,6 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
 export function useWallet() {
   const ctx = useContext(WalletContext);
-  if (ctx === undefined) {
-    throw new Error('useWallet must be used within a WalletProvider');
-  }
+  if (ctx === undefined) throw new Error('useWallet must be used within a WalletProvider');
   return ctx;
 }

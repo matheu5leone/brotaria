@@ -44,7 +44,7 @@ function NavItem({
 export function BottomNav() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
-  const { coins } = useWallet();
+  const { coins, herbo } = useWallet();
 
   return (
     <nav
@@ -68,7 +68,7 @@ export function BottomNav() {
           className="text-sm font-black leading-none"
           style={{ fontFamily: 'var(--font-display)', color: 'var(--color-gold)' }}
         >
-          🪙 {coins}
+          🪙 {coins} · 🍃 {herbo}
         </span>
       </NavLink>
 

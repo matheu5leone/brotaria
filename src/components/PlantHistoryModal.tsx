@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { X, ChevronLeft, ChevronRight, Droplets, Trash2, Leaf, Star, Flame, Zap, Sprout } from 'lucide-react';
-import { calcEvolutionCoins, GAME } from '@/config/economy';
+import { GAME } from '@/config/economy';
+import { calcPlantScore } from '@/lib/scoring';
 import { PlantRow, PlantVersionHistoryRow, usePlantHistory } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
 import { Rarity } from '@/types';
@@ -235,7 +236,7 @@ function VersionCard({
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold"
             style={{ background: 'rgba(201,162,39,0.12)', color: 'var(--color-gold)', border: '1px solid rgba(201,162,39,0.2)', fontFamily: 'var(--font-display)' }}
           >
-            🪙 {calcEvolutionCoins(level)} moedas
+            🍃 {calcPlantScore(version.dna_snapshot, version.stage?.order_index ?? 0)} herbo
           </div>
           <div
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold"

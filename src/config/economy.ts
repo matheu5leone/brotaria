@@ -126,14 +126,15 @@ export const GAME = {
   /** Segundos para cavar um canteiro (animação). */
   DIG_DURATION_SECONDS:  60,
 
-  // ── Recompensas de evolução ────────────────────────────────────────────────
+  // ── Recompensas de evolução (Herbo) ───────────────────────────────────────
   /**
-   * Moedas ganhas ao evoluir = order_index_do_novo_estágio * COINS_PER_STAGE.
-   * Exemplo com COINS_PER_STAGE = 3:
-   *   enterrada → broto  (order_index 0→1): 3 moedas
-   *   broto     → adulta (order_index 1→2): 6 moedas
+   * Herbo (🍃) é a moeda orgânica do jogo — ganha por evoluir plantas.
+   * Quantidade = calcPlantScore(dna, nextStage.order_index)
+   *   score = rarity_weight × stage_order_index × (1 + traits.length × 0.2)
+   *
+   * Herbo NÃO é comprado com dinheiro real. É obtido apenas jogando.
+   * Moedas (coins) são compradas com R$ e gastas na loja.
    */
-  COINS_PER_STAGE:  3,
   /** XP ganho por evolução (implementação futura). */
   XP_PER_EVOLUTION: 10,
 
@@ -143,11 +144,6 @@ export const GAME = {
 } as const;
 
 // ── Helpers derivados ─────────────────────────────────────────────────────────
-
-/** Moedas ganhas ao atingir um estágio com o order_index dado. */
-export function calcEvolutionCoins(newStageOrderIndex: number): number {
-  return newStageOrderIndex * GAME.COINS_PER_STAGE;
-}
 
 /** Milissegundos de cooldown de rega. */
 export const WATER_COOLDOWN_MS = GAME.WATER_COOLDOWN_HOURS * 60 * 60 * 1000;
