@@ -5,6 +5,13 @@
   --foreground: #171717;
 }
 
+/* Previne fundo branco em landscape e em qualquer orientação */
+html, body {
+  background: #0f200c; /* --color-garden-deep */
+  min-height: 100%;
+  overscroll-behavior: none;
+}
+
 /* ---------- Raridade — variáveis de cor ---------- */
 :root {
   --rarity-comum:          rgba(255, 255, 255, 0.85);
