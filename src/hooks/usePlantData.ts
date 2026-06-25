@@ -6,8 +6,10 @@ export type PlantRow = {
   id: string;
   hydration_status: string;
   current_stage_waters: number;
-  current_stage: { id: string; name: string; waters_required: number };
+  current_stage: { id: string; name: string; order_index: number; waters_required: number };
   dna: PlantDNA;
+  created_at: string;
+  next_water_needed_at: string;
 };
 
 export type PlantVersionRow = {

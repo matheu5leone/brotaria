@@ -1,14 +1,12 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
+import React, { useCallback, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Pot } from '@/types';
-import { Droplets, Plus, Shovel, Trash2, X } from 'lucide-react';
-import Loader from './Loader';
+import { X } from 'lucide-react';
 import CoinPurchaseModal from './CoinPurchaseModal';
 import { usePots, useShovelStatus } from '@/hooks/useGardenData';
-import { usePlant, usePlantVersion } from '@/hooks/usePlantData';
+import { usePlant } from '@/hooks/usePlantData';
 import {
   useDigMutation,
   usePlantMutation,
@@ -16,31 +14,27 @@ import {
   useDeleteMutation,
 } from '@/hooks/useGardenMutations';
 import { useQueryClient } from '@tanstack/react-query';
-import { RarityEffect } from '@/components/RarityEffect';
 import { PlantHistoryModal } from '@/components/PlantHistoryModal';
 import { InventoryPanel } from '@/components/InventoryPanel';
 import { useWrapPlant } from '@/hooks/useInventory';
 import { HexButton } from '@/components/HexButton';
+import { HexPot, getPotState } from '@/components/HexPot';
+import { PlantActionMenu } from '@/components/PlantActionMenu';
+import { PlantDetailModal } from '@/components/PlantDetailModal';
 
-const DIG_DURATION_MS = 60_000;
+const HEX_CLIP = 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)';
 
-type PotState = 'digging' | 'ready' | 'planted';
-
-function getPotState(pot: Pot): PotState {
-  if (pot.plant_id) return 'planted';
-  if (pot.digging_started_at) {
-    const elapsed = Date.now() - new Date(pot.digging_started_at).getTime();
-    if (elapsed < DIG_DURATION_MS) return 'digging';
-  }
-  return 'ready';
-}
-
-function formatSecondsLeft(ms: number): string {
-  const s = Math.ceil(ms / 1000);
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return `${m}:${String(sec).padStart(2, '0')}`;
-}
+// Partículas decorativas — posições fixas para SSR-safe
+const PARTICLES = [
+  { x: 4,  y: 8,  s: 18, d: 0,   o: 0.22, dur: 5.2 },
+  { x: 14, y: 82, s: 13, d: 1.3, o: 0.17, dur: 6.1 },
+  { x: 87, y: 6,  s: 16, d: 0.8, o: 0.20, dur: 4.8 },
+  { x: 94, y: 72, s: 11, d: 2.1, o: 0.15, dur: 5.7 },
+  { x: 48, y: 91, s: 10, d: 0.5, o: 0.14, dur: 6.4 },
+  { x: 2,  y: 48, s: 12, d: 1.9, o: 0.16, dur: 5.0 },
+  { x: 76, y: 88, s: 14, d: 0.3, o: 0.18, dur: 4.6 },
+  { x: 28, y: 4,  s: 9,  d: 1.6, o: 0.13, dur: 5.9 },
+];
 
 function formatCooldown(ms: number): string {
   if (ms <= 0) return 'Pronta';
@@ -51,64 +45,72 @@ function formatCooldown(ms: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
+// Wrapper para buscar plant e abrir o modal de histórico
+function HistoryWrapper({ plantId, onClose }: { plantId: string; onClose: () => void }) {
+  const { data: plant } = usePlant(plantId);
+  if (!plant) return null;
+  return <PlantHistoryModal plant={plant} open onClose={onClose} />;
+}
+
 export default function Garden() {
   const { user } = useAuth();
-
-  // ── Dados via React Query ─────────────────────────────────────────────
   const qc = useQueryClient();
+
+  // ── Queries ─────────────────────────────────────────────────────────────
   const { data: pots = [], isPending: potsLoading, error: potsError } = usePots(user?.id);
   const { data: shovelStatus } = useShovelStatus(user?.id);
   const shovelCooldownMs = shovelStatus?.cooldownRemainingMs ?? 0;
   const shovelReady = shovelCooldownMs === 0;
 
-  // ── Mutations ────────────────────────────────────────────────────────
-  const digMutation = useDigMutation(user?.id ?? '');
+  // ── Mutations ────────────────────────────────────────────────────────────
+  const digMutation    = useDigMutation(user?.id ?? '');
+  const plantMutation  = usePlantMutation(user?.id ?? '');
+  const waterMutation  = useWaterMutation(user?.id ?? '');
+  const deleteMutation = useDeleteMutation(user?.id ?? '');
+  const wrapMutation   = useWrapPlant(user?.id ?? '');
 
-  // ── UI state (local — não pertence ao servidor) ───────────────────────
+  // ── UI state ─────────────────────────────────────────────────────────────
+  const [selectedPotId, setSelectedPotId]   = useState<string | null>(null);
+  const [historyPlantId, setHistoryPlantId] = useState<string | null>(null);
   const [coinModalPotId, setCoinModalPotId] = useState<string | null>(null);
-  const [shovelActive, setShovelActive] = useState(false);
-  const [shovelError, setShovelError] = useState<string | null>(null);
-  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
-  const [wrappingMode, setWrappingMode] = useState(false);
-
-  const wrapPlantMutation = useWrapPlant(user?.id ?? '');
-  const [wrapError, setWrapError] = useState<string | null>(null);
+  const [shovelActive, setShovelActive]     = useState(false);
+  const [shovelError, setShovelError]       = useState<string | null>(null);
+  const [cursorPos, setCursorPos]           = useState<{ x: number; y: number } | null>(null);
+  const [wrappingMode, setWrappingMode]     = useState(false);
+  const [wrapError, setWrapError]           = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // ── Derived ──────────────────────────────────────────────────────────────
+  const selectedPot    = pots.find(p => p.id === selectedPotId) ?? null;
+  const selectedPlantId = selectedPot?.plant_id ?? null;
+
+  // ── Callbacks ────────────────────────────────────────────────────────────
   const handleDigComplete = useCallback(
     () => qc.invalidateQueries({ queryKey: ['garden', 'pots', user?.id] }),
     [qc, user?.id],
   );
 
-  if (potsError) {
-    const errMsg = potsError instanceof Error
-      ? potsError.message
-      : (potsError as { message?: string })?.message ?? '(sem message)';
-    const errCode = (potsError as { code?: string })?.code ?? '';
-    const errDetails = (potsError as { details?: string })?.details ?? '';
-    const errHint = (potsError as { hint?: string })?.hint ?? '';
-    return (
-      <div className="p-4 text-xs break-all" style={{ color: '#ff6b6b', background: '#1a0a0a', fontFamily: 'monospace' }}>
-        <div style={{ fontWeight: 'bold', marginBottom: 6 }}>ERRO AO CARREGAR JARDIM</div>
-        <div>msg: {errMsg}</div>
-        {errCode && <div>code: {errCode}</div>}
-        {errDetails && <div>details: {errDetails}</div>}
-        {errHint && <div>hint: {errHint}</div>}
-        <div style={{ marginTop: 6, opacity: 0.6 }}>raw: {JSON.stringify(potsError).slice(0, 300)}</div>
-      </div>
-    );
-  }
+  const digAt = useCallback(async (e: React.MouseEvent) => {
+    if (digMutation.isPending || !user) return;
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const rawX = ((e.clientX - rect.left) / rect.width) * 100;
+    const rawY = ((e.clientY - rect.top) / rect.height) * 100;
+    const posX = Math.min(94, Math.max(6, rawX));
+    const posY = Math.min(92, Math.max(8, rawY));
+    setShovelError(null);
+    setShovelActive(false);
+    setCursorPos(null);
+    try {
+      await digMutation.mutateAsync({ posX, posY });
+    } catch (err: unknown) {
+      const e = err as { code?: string; message?: string };
+      setShovelError(e.code === 'COOLDOWN' ? 'A pá ainda está recarregando.' : (e.message ?? 'Erro ao cavar.'));
+    }
+  }, [digMutation, user]);
 
-  if (potsLoading) {
-    return (
-      <div className="p-8 text-center text-stone-600 font-bold">
-        Carregando seu jardim...
-      </div>
-    );
-  }
-
-  // ── Event handlers ────────────────────────────────────────────────────────
+  // ── Handlers ─────────────────────────────────────────────────────────────
 
   const handleGardenMouseMove = (e: React.MouseEvent) => {
     if (!shovelActive) return;
@@ -120,42 +122,100 @@ export default function Garden() {
   const handleGardenMouseLeave = () => setCursorPos(null);
 
   const handleGardenClick = async (e: React.MouseEvent) => {
-    if (!shovelActive || digMutation.isPending || !user) return;
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
+    // Deselect on background click
+    if (selectedPotId) { setSelectedPotId(null); return; }
+    if (!shovelActive) return;
+    await digAt(e);
+  };
 
-    const rawX = ((e.clientX - rect.left) / rect.width) * 100;
-    const rawY = ((e.clientY - rect.top) / rect.height) * 100;
-    const posX = Math.min(94, Math.max(6, rawX));
-    const posY = Math.min(92, Math.max(8, rawY));
+  const handlePotClick = (pot: Pot) => async (e: React.MouseEvent) => {
+    e.stopPropagation();
 
-    setShovelError(null);
-    setShovelActive(false);
-    setCursorPos(null);
+    if (shovelActive) { await digAt(e); return; }
 
+    if (wrappingMode && pot.plant_id) {
+      if (!confirm('Embrulhar esta planta? 1 kit de embrulho será consumido.')) return;
+      try {
+        await wrapMutation.mutateAsync({ plantId: pot.plant_id });
+        setWrapError(null);
+        setWrappingMode(false);
+      } catch (err: unknown) {
+        setWrapError((err as { message?: string }).message ?? 'Erro ao embrulhar');
+        setWrappingMode(false);
+      }
+      return;
+    }
+
+    if (pot.plant_id) {
+      setSelectedPotId(prev => prev === pot.id ? null : pot.id);
+      return;
+    }
+
+    if (getPotState(pot) === 'ready') {
+      try {
+        await plantMutation.mutateAsync({ potId: pot.id });
+      } catch (err: unknown) {
+        if ((err as { code?: string }).code === 'NO_SEEDS') setCoinModalPotId(pot.id);
+      }
+    }
+  };
+
+  const handleRegar = async () => {
+    if (!selectedPlantId) return;
+    try { await waterMutation.mutateAsync({ plantId: selectedPlantId }); } catch {}
+  };
+
+  const handleRemover = async () => {
+    if (!selectedPot?.plant_id) return;
+    if (!window.confirm('Remover esta planta? Esta ação não pode ser desfeita e você perderá o DNA único dela.')) return;
     try {
-      await digMutation.mutateAsync({ posX, posY });
+      await deleteMutation.mutateAsync({ plantId: selectedPot.plant_id, potId: selectedPot.id });
+      setSelectedPotId(null);
     } catch (err: unknown) {
-      const e = err as { code?: string; message?: string };
-      setShovelError(e.code === 'COOLDOWN' ? 'A pá ainda está recarregando.' : (e.message ?? 'Erro ao cavar.'));
+      alert(err instanceof Error ? err.message : 'Erro ao excluir planta.');
     }
   };
 
   const toggleShovel = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!shovelReady) return;
-    setShovelActive((v) => !v);
+    setShovelActive(v => !v);
     setShovelError(null);
+    setSelectedPotId(null);
   };
 
+  // ── Early returns ─────────────────────────────────────────────────────────
+
+  if (potsError) {
+    const err = potsError as { message?: string; code?: string; details?: string };
+    return (
+      <div className="p-4 text-xs break-all" style={{ color: '#ff6b6b', background: '#1a0a0a', fontFamily: 'monospace' }}>
+        <div style={{ fontWeight: 'bold', marginBottom: 6 }}>ERRO AO CARREGAR JARDIM</div>
+        <div>msg: {err.message ?? String(potsError)}</div>
+        {err.code && <div>code: {err.code}</div>}
+        {err.details && <div>details: {err.details}</div>}
+        <div style={{ marginTop: 6, opacity: 0.6 }}>raw: {JSON.stringify(potsError).slice(0, 300)}</div>
+      </div>
+    );
+  }
+
+  if (potsLoading) {
+    return (
+      <div className="p-8 text-center font-bold" style={{ color: 'var(--color-text-light)' }}>
+        Carregando seu jardim...
+      </div>
+    );
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
+
+  const showActionMenu = !!(selectedPot?.plant_id && !wrappingMode);
+  const showDetailModal = !!(selectedPlantId && !wrappingMode);
 
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full overflow-hidden select-none ${
-        shovelActive ? 'cursor-none' : ''
-      }`}
+      className={`relative w-full h-full overflow-hidden select-none ${shovelActive ? 'cursor-none' : ''}`}
       style={{
         background: `
           radial-gradient(ellipse at 20% 10%, rgba(30,60,20,0.8) 0%, transparent 50%),
@@ -168,45 +228,86 @@ export default function Garden() {
       onMouseLeave={handleGardenMouseLeave}
       onClick={handleGardenClick}
     >
-      {/* Pots */}
+      {/* ── Partículas decorativas ──────────────────────────────────────── */}
+      {PARTICLES.map((p, i) => (
+        <div
+          key={i}
+          className="absolute pointer-events-none"
+          style={{
+            left: `${p.x}%`,
+            top: `${p.y}%`,
+            width: p.s,
+            height: p.s,
+            color: 'rgba(201,162,39,0.9)',
+            ['--p-opacity' as string]: p.o,
+            animation: `garden-float ${p.dur}s ease-in-out ${p.d}s infinite`,
+            opacity: p.o,
+          }}
+        >
+          <svg viewBox="0 0 20 20" fill="currentColor">
+            <ellipse cx="10" cy="4"  rx="2.5" ry="4.5" transform="rotate(0   10 10)" />
+            <ellipse cx="10" cy="4"  rx="2.5" ry="4.5" transform="rotate(90  10 10)" />
+            <ellipse cx="10" cy="4"  rx="2.5" ry="4.5" transform="rotate(180 10 10)" />
+            <ellipse cx="10" cy="4"  rx="2.5" ry="4.5" transform="rotate(270 10 10)" />
+            <circle  cx="10" cy="10" r="2" />
+          </svg>
+        </div>
+      ))}
+
+      {/* ── Pots ────────────────────────────────────────────────────────── */}
       {pots.map((pot) => {
         const x = pot.pos_x ?? 50;
         const y = pot.pos_y ?? 50;
-        const state = getPotState(pot);
         return (
           <div
             key={pot.id}
-            className="absolute w-[15%] aspect-square"
+            className="absolute w-[16%] aspect-square"
             style={{
               left: `${x}%`,
               top: `${y}%`,
               transform: 'translate(-50%, -50%)',
-              zIndex: 1,
+              zIndex: selectedPotId === pot.id ? 5 : 2,
             }}
           >
-            <PotSlot
+            <HexPot
               pot={pot}
-              state={state}
-              onNeedSeed={setCoinModalPotId}
-              wrappingMode={wrappingMode}
-              onWrap={async (plantId: string) => {
-                if (!confirm('Embrulhar esta planta? 1 kit de embrulho será consumido.')) return;
-                try {
-                  await wrapPlantMutation.mutateAsync({ plantId });
-                  setWrapError(null);
-                  setWrappingMode(false);
-                } catch (err: unknown) {
-                  const e = err as { code?: string; message?: string };
-                  setWrapError(e.message ?? 'Erro ao embrulhar');
-                  setWrappingMode(false);
-                }
-              }}
+              isSelected={selectedPotId === pot.id}
+              onClick={handlePotClick(pot)}
               onDigComplete={handleDigComplete}
             />
           </div>
         );
       })}
 
+      {/* ── Wrap overlay on planted pots ────────────────────────────────── */}
+      {wrappingMode && pots.map(pot => {
+        if (!pot.plant_id) return null;
+        const x = pot.pos_x ?? 50;
+        const y = pot.pos_y ?? 50;
+        return (
+          <div
+            key={`wrap-${pot.id}`}
+            className="absolute flex items-center justify-center cursor-pointer z-10"
+            style={{
+              left: `${x}%`,
+              top: `${y}%`,
+              width: '16%',
+              aspectRatio: '1',
+              transform: 'translate(-50%, -50%)',
+              clipPath: HEX_CLIP,
+              background: 'rgba(136,19,55,0.55)',
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePotClick(pot)(e);
+            }}
+          >
+            <span className="text-2xl">🎁</span>
+          </div>
+        );
+      })}
+
+      {/* ── Empty state ──────────────────────────────────────────────────── */}
       {pots.length === 0 && !shovelActive && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <p
@@ -223,28 +324,34 @@ export default function Garden() {
         </div>
       )}
 
-      {/* Shovel custom cursor */}
+      {/* ── Shovel cursor ────────────────────────────────────────────────── */}
       {shovelActive && cursorPos && (
         <div
           className="pointer-events-none absolute z-50 rounded-full border-2 border-white shadow-lg"
-          style={{
-            width: 40,
-            height: 40,
-            left: cursorPos.x - 20,
-            top: cursorPos.y - 20,
-          }}
+          style={{ width: 40, height: 40, left: cursorPos.x - 20, top: cursorPos.y - 20 }}
         />
       )}
 
-      {/* Inventory Panel */}
+      {/* ── Plant action menu (via SelectedPlantStatus para resolver canWater) */}
+      {showActionMenu && selectedPlantId && selectedPot && (
+        <SelectedPlantStatus
+          plantId={selectedPlantId}
+          potX={selectedPot.pos_x ?? 50}
+          potY={selectedPot.pos_y ?? 50}
+          isWaterPending={waterMutation.isPending}
+          isDeletePending={deleteMutation.isPending}
+          onRegar={handleRegar}
+          onHistorico={() => setHistoryPlantId(selectedPlantId)}
+          onRemover={handleRemover}
+        />
+      )}
+
+      {/* ── Inventory panel ──────────────────────────────────────────────── */}
       {!wrappingMode && (
-        <InventoryPanel
-          userId={user?.id}
-          onWrapMode={() => setWrappingMode(true)}
-        />
+        <InventoryPanel userId={user?.id} onWrapMode={() => setWrappingMode(true)} />
       )}
 
-      {/* Shovel toolbar — hexágono de madeira */}
+      {/* ── Shovel toolbar ───────────────────────────────────────────────── */}
       <div
         className="absolute bottom-4 right-4 z-20 flex flex-col items-end gap-3"
         style={{ paddingBottom: '24px' }}
@@ -261,12 +368,9 @@ export default function Garden() {
             }}
           >
             <span>{shovelError}</span>
-            <button onClick={() => setShovelError(null)}>
-              <X className="w-3 h-3" />
-            </button>
+            <button onClick={() => setShovelError(null)}><X className="w-3 h-3" /></button>
           </div>
         )}
-
         {shovelActive && (
           <div
             className="text-xs px-3 py-1.5 rounded-lg backdrop-blur-sm"
@@ -281,7 +385,6 @@ export default function Garden() {
             Clique no jardim para cavar
           </div>
         )}
-
         <HexButton
           icon={digMutation.isPending ? '⏳' : '⛏'}
           label={
@@ -294,14 +397,11 @@ export default function Garden() {
           disabled={!shovelReady || digMutation.isPending}
           active={shovelActive}
           onClick={toggleShovel}
-          title={
-            shovelReady ? 'Usar pá para cavar'
-            : `Recarregando: ${formatCooldown(shovelCooldownMs)}`
-          }
+          title={shovelReady ? 'Usar pá para cavar' : `Recarregando: ${formatCooldown(shovelCooldownMs)}`}
         />
       </div>
 
-      {/* Toolbar de seleção de embrulho */}
+      {/* ── Wrap mode toolbar ────────────────────────────────────────────── */}
       {wrappingMode && (
         <div
           className="absolute bottom-4 left-4 z-20 flex flex-col items-start gap-2"
@@ -314,17 +414,32 @@ export default function Garden() {
             onClick={() => { setWrappingMode(false); setWrapError(null); }}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold shadow-lg bg-stone-800 text-white hover:bg-stone-700 active:scale-95 transition-all text-sm"
           >
-            <X className="w-4 h-4" />
-            Cancelar
+            <X className="w-4 h-4" /> Cancelar
           </button>
           {wrapError && (
-            <div className="text-xs bg-red-700 text-white px-3 py-1.5 rounded-lg">
-              {wrapError}
-            </div>
+            <div className="text-xs bg-red-700 text-white px-3 py-1.5 rounded-lg">{wrapError}</div>
           )}
         </div>
       )}
 
+      {/* ── Plant detail modal ───────────────────────────────────────────── */}
+      {showDetailModal && selectedPlantId && (
+        <PlantDetailModal
+          plantId={selectedPlantId}
+          onClose={() => setSelectedPotId(null)}
+          onRegar={handleRegar}
+          onRemover={handleRemover}
+          isWaterPending={waterMutation.isPending}
+          isDeletePending={deleteMutation.isPending}
+        />
+      )}
+
+      {/* ── History modal ────────────────────────────────────────────────── */}
+      {historyPlantId && (
+        <HistoryWrapper plantId={historyPlantId} onClose={() => setHistoryPlantId(null)} />
+      )}
+
+      {/* ── Coin purchase modal ──────────────────────────────────────────── */}
       <CoinPurchaseModal
         open={coinModalPotId !== null}
         onClose={() => setCoinModalPotId(null)}
@@ -338,280 +453,29 @@ export default function Garden() {
   );
 }
 
-function PotSlot({
-  pot,
-  state,
-  onNeedSeed,
-  wrappingMode = false,
-  onWrap,
-  onDigComplete,
+// Resolve canWater from the selected plant and re-renders PlantActionMenu with correct value.
+// Separated to avoid prop-drilling hydration_status through Garden's root state.
+function SelectedPlantStatus({
+  plantId, potX, potY,
+  isWaterPending, isDeletePending,
+  onRegar, onHistorico, onRemover,
 }: {
-  pot: Pot;
-  state: PotState;
-  onNeedSeed: (potId: string) => void;
-  wrappingMode?: boolean;
-  onWrap?: (plantId: string) => void;
-  onDigComplete?: () => void;
+  plantId: string;
+  potX: number; potY: number;
+  isWaterPending: boolean; isDeletePending: boolean;
+  onRegar: () => void; onHistorico: () => void; onRemover: () => void;
 }) {
-  const { user } = useAuth();
-  const { data: plant } = usePlant(pot.plant_id);
-  const { data: latestVersion } = usePlantVersion(pot.plant_id);
-  const plantMutation = usePlantMutation(user?.id ?? '');
-  const waterMutation = useWaterMutation(user?.id ?? '');
-  const deleteMutation = useDeleteMutation(user?.id ?? '');
-
-  const [isEvolving, setIsEvolving] = useState(false);
-  const [msLeft, setMsLeft] = useState(0);
-  const [historyOpen, setHistoryOpen] = useState(false);
-
-  const notifiedRef = useRef(false);
-  useEffect(() => {
-    notifiedRef.current = false;
-  }, [pot.digging_started_at]);
-
-  useEffect(() => {
-    if (state !== 'digging' || !pot.digging_started_at) return;
-    const deadline = new Date(pot.digging_started_at).getTime() + DIG_DURATION_MS;
-    const update = () => {
-      const remaining = deadline - Date.now();
-      setMsLeft(Math.max(0, remaining));
-      if (remaining <= 0 && !notifiedRef.current) {
-        notifiedRef.current = true;
-        onDigComplete?.();
-      }
-    };
-    update();
-    const id = setInterval(update, 250);
-    return () => clearInterval(id);
-  }, [state, pot.digging_started_at, onDigComplete]);
-
-  // ── Action handlers ───────────────────────────────────────────────────────
-
-  const handleWater = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!user || !plant || waterMutation.isPending) return;
-    const willEvolve =
-      plant.current_stage_waters + 1 >= plant.current_stage.waters_required;
-    if (willEvolve) setIsEvolving(true);
-    try {
-      await waterMutation.mutateAsync({ plantId: plant.id });
-    } finally {
-      setIsEvolving(false);
-    }
-  };
-
-  const handlePlant = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!user) return;
-    try {
-      await plantMutation.mutateAsync({ potId: pot.id });
-    } catch (err: unknown) {
-      const e = err as { code?: string };
-      if (e.code === 'NO_SEEDS') onNeedSeed(pot.id);
-    }
-  };
-
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!user || !plant || deleteMutation.isPending) return;
-    if (!window.confirm('Tem certeza que deseja remover esta planta? Esta ação não pode ser desfeita e você perderá o DNA único dela.')) return;
-    try {
-      await deleteMutation.mutateAsync({ plantId: plant.id, potId: pot.id });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erro ao excluir planta.';
-      alert(msg);
-    }
-  };
-
-  // ── Render ────────────────────────────────────────────────────────────────
-
-  if (state === 'digging') {
-    return (
-      <div className="relative w-full h-full flex items-center justify-center">
-        {/* Canteiro oval — cavando */}
-        <div
-          className="relative flex items-center justify-center animate-pulse"
-          style={{
-            width: '82%', height: '58%',
-            borderRadius: '50px / 36px',
-            background: 'radial-gradient(ellipse at 38% 30%, #3d2a18, #1a0f05)',
-            border: '2.5px solid var(--color-wood-mid)',
-            boxShadow: 'inset 0 4px 16px rgba(0,0,0,0.8), 0 3px 8px rgba(0,0,0,0.4)',
-          }}
-        >
-          <div className="flex flex-col items-center gap-0.5">
-            <Shovel className="w-4 h-4" style={{ color: 'var(--color-parch-dark)', opacity: 0.8 }} />
-            <span className="font-mono text-xs font-bold leading-none" style={{ color: 'var(--color-parch-light)' }}>
-              {formatSecondsLeft(msLeft)}
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (state === 'ready') {
-    return (
-      <div className="relative w-full h-full flex items-center justify-center">
-        {/* Canteiro oval — pronto para plantar */}
-        <div
-          className="relative flex items-center justify-center"
-          style={{
-            width: '82%', height: '58%',
-            borderRadius: '50px / 36px',
-            background: 'radial-gradient(ellipse at 38% 30%, #2d1c10, #0f0905)',
-            border: '2.5px solid var(--color-wood-mid)',
-            boxShadow: 'inset 0 6px 20px rgba(0,0,0,0.95), inset 0 -2px 6px rgba(80,50,20,0.2), 0 3px 8px rgba(0,0,0,0.4)',
-          }}
-        >
-          {/* Anel ornamental interno */}
-          <div className="absolute pointer-events-none" style={{
-            inset: '-7px', borderRadius: '57px / 43px',
-            border: '2px solid var(--color-wood-light)', opacity: 0.5,
-          }} />
-          {/* Anel tracejado externo */}
-          <div className="absolute pointer-events-none" style={{
-            inset: '-11px', borderRadius: '61px / 47px',
-            border: '1.5px dashed rgba(92,58,30,0.3)',
-          }} />
-          <button
-            disabled={plantMutation.isPending}
-            onClick={handlePlant}
-            className="p-2 rounded-full transition-all active:scale-95"
-            style={{ color: 'rgba(139,99,70,0.7)' }}
-            title="Plantar semente"
-          >
-            <Plus className={`w-7 h-7 ${plantMutation.isPending ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // state === 'planted'
+  const { data: plant } = usePlant(plantId);
+  const canWater = plant?.hydration_status === 'waiting_water';
   return (
-    <div className="relative group w-full h-full flex flex-col items-center justify-end select-none">
-      {plant ? (
-        <>
-          {/* Canteiro oval de base */}
-          <div
-            className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
-            style={{
-              bottom: '8%',
-              width: '82%', height: '58%',
-              borderRadius: '50px / 36px',
-              background: 'radial-gradient(ellipse at 40% 40%, #2d1c10, #100806)',
-              border: '2.5px solid var(--color-wood-mid)',
-              boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.9), 0 2px 6px rgba(0,0,0,0.5)',
-              zIndex: 0,
-            }}
-          />
-          <div className="relative w-full h-full flex items-center justify-center" style={{ zIndex: 1 }}>
-            {isEvolving ? (
-              <Loader variant="inline" spin size={56} />
-            ) : latestVersion?.image_url ? (
-              <div
-                className="relative w-full h-full cursor-pointer"
-                onClick={() => setHistoryOpen(true)}
-                title="Ver histórico de evolução"
-              >
-                <RarityEffect rarity={plant.dna.rarity} alwaysVisible={false}>
-                  <Image
-                    src={latestVersion.image_url}
-                    alt={plant.current_stage.name}
-                    fill
-                    draggable={false}
-                    className="object-contain animate-in fade-in zoom-in duration-500"
-                  />
-                </RarityEffect>
-              </div>
-            ) : (
-              <div className="w-16 h-16 bg-stone-800/20 rounded-full blur-md animate-pulse" />
-            )}
-
-            {!isEvolving && plant.hydration_status === 'waiting_water' && (
-              <div className="absolute top-0 right-0 bg-amber-500 text-white p-1 rounded-full animate-bounce shadow-lg">
-                <Droplets className="w-4 h-4" />
-              </div>
-            )}
-          </div>
-
-          {/* Overlay de seleção de embrulho */}
-          {wrappingMode && plant && (
-            <div
-              className="absolute inset-0 flex items-center justify-center bg-rose-900/50 rounded-full cursor-pointer ring-2 ring-rose-400 transition-all hover:bg-rose-800/60"
-              onClick={(e) => { e.stopPropagation(); onWrap?.(plant.id); }}
-            >
-              <span className="text-2xl">🎁</span>
-            </div>
-          )}
-
-          {/* Overlay de ações — sem círculo, botões animam a partir do centro */}
-          {!wrappingMode && (
-            <div className="absolute inset-0 pointer-events-none">
-              {/* Nome do estágio — aparece no topo com fade */}
-              <div className="absolute top-2 left-0 right-0 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <p
-                  className="text-[10px] font-bold text-white uppercase tracking-tighter px-2 py-0.5 rounded-full"
-                  style={{ background: 'rgba(15,32,12,0.75)' }}
-                >
-                  {plant.current_stage.name}
-                </p>
-              </div>
-
-              {/* Botões de ação — emergem do centro da planta para baixo */}
-              <div className="absolute bottom-3 left-0 right-0 flex flex-col items-center gap-1.5 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto">
-                <div className="flex gap-2">
-                  <button
-                    disabled={waterMutation.isPending || plant.hydration_status === 'waiting_water'}
-                    onClick={handleWater}
-                    className={`action-btn-animated p-2 rounded-full shadow-xl transition-colors ${
-                      plant.hydration_status === 'waiting_water'
-                        ? 'bg-amber-500'
-                        : 'bg-blue-500 hover:bg-blue-400 active:scale-95'
-                    } text-white`}
-                  >
-                    <Droplets
-                      className={`w-5 h-5 ${waterMutation.isPending && !isEvolving ? 'animate-spin' : ''}`}
-                    />
-                  </button>
-                  <button
-                    disabled={deleteMutation.isPending}
-                    onClick={handleDelete}
-                    className="action-btn-animated p-2 rounded-full shadow-xl transition-colors bg-red-500 hover:bg-red-400 active:scale-95 text-white"
-                    title="Remover planta"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
-
-                {/* Pontos de progresso de rega */}
-                <div className="flex gap-1">
-                  {Array.from({ length: plant.current_stage.waters_required }).map((_, i) => (
-                    <div
-                      key={i}
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        i < plant.current_stage_waters ? 'bg-blue-400' : 'bg-white/30'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {plant && (
-            <PlantHistoryModal
-              key={historyOpen ? 1 : 0}
-              plant={plant}
-              open={historyOpen}
-              onClose={() => setHistoryOpen(false)}
-            />
-          )}
-        </>
-      ) : (
-        <div className="w-16 h-16 bg-stone-800/20 rounded-full blur-md animate-pulse" />
-      )}
-    </div>
+    <PlantActionMenu
+      potX={potX} potY={potY}
+      canWater={canWater}
+      isWaterPending={isWaterPending}
+      isDeletePending={isDeletePending}
+      onRegar={onRegar}
+      onHistorico={onHistorico}
+      onRemover={onRemover}
+    />
   );
 }
