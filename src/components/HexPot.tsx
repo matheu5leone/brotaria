@@ -95,11 +95,11 @@ export function HexPot({
       onClick={onClick}
     >
 
-      {/* ── Plant image — floats above the hex soil ── */}
+      {/* ── Plant image — base posicionada a 40% do hex a partir de baixo ── */}
       {state === 'planted' && (
         <div
           className="absolute left-0 right-0 top-0 pointer-events-none"
-          style={{ bottom: '38%' }}
+          style={{ bottom: '21%' }}
         >
           <div className="relative w-full h-full">
             {latestVersion?.image_url ? (
