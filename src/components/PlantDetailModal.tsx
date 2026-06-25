@@ -141,6 +141,13 @@ export function PlantDetailModal({
           <MetaChip label="Ambiente" value={BIOME_LABELS[biome] ?? biome} />
           <MetaChip label="Plantado em" value={formatDate(plant.created_at)} />
           <MetaChip label="Personalidade" value={plant.dna.personality} />
+          <MetaChip
+            label="Satisfação"
+            value={
+              plant.satisfacao > 0 ? `+${plant.satisfacao} 😊` :
+              plant.satisfacao < 0 ? `${plant.satisfacao} 😢` : '0 😐'
+            }
+          />
         </div>
 
         {/* Progress section */}

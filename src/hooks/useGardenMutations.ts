@@ -87,6 +87,39 @@ export function useWaterMutation(userId: string) {
   });
 }
 
+export function useRemovePotMutation(userId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ potId }: { potId: string }) => {
+      const res = await authFetch('/api/pots/remove', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ potId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw Object.assign(new Error(data.error ?? 'Erro ao remover canteiro'), { code: data.code });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['garden', 'pots', userId] }),
+  });
+}
+
+export function useMovePlantMutation(userId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ fromPotId, toPotId }: { fromPotId: string; toPotId: string }) => {
+      const res = await authFetch('/api/plants/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fromPotId, toPotId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw Object.assign(new Error(data.error ?? 'Erro ao mover planta'), { code: data.code });
+      return data as { stressed: boolean; satisfacao: number };
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['garden', 'pots', userId] }),
+  });
+}
+
 export function useDeleteMutation(userId: string) {
   const qc = useQueryClient();
   return useMutation({

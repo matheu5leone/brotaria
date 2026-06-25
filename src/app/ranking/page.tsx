@@ -22,6 +22,7 @@ function rankingEntryToPlantRow(entry: RankingEntry): PlantRow {
     dna: entry.dna,
     created_at: '',
     next_water_needed_at: '',
+    satisfacao: 0,
   };
 }
 

@@ -49,12 +49,18 @@ function HexSoil({ borderColor, innerBg, children }: {
 export function HexPot({
   pot,
   isSelected,
+  isStressed = false,
+  moveMode = false,
   onClick,
+  onPointerDown,
   onDigComplete,
 }: {
   pot: Pot;
   isSelected: boolean;
+  isStressed?: boolean;
+  moveMode?: boolean;
   onClick: (e: React.MouseEvent) => void;
+  onPointerDown?: (e: React.PointerEvent) => void;
   onDigComplete?: () => void;
 }) {
   const state = getPotState(pot);
@@ -91,8 +97,10 @@ export function HexPot({
 
   return (
     <div
-      className="relative w-full h-full cursor-pointer select-none"
+      className="relative w-full h-full select-none"
+      style={{ cursor: moveMode && state === 'planted' ? 'grab' : 'pointer' }}
       onClick={onClick}
+      onPointerDown={onPointerDown}
     >
 
       {/* ── Plant image — base posicionada a 40% do hex a partir de baixo ── */}
@@ -118,8 +126,36 @@ export function HexPot({
               </div>
             )}
           </div>
-          {/* Balão de rega — estilo PvZ */}
-          {plant?.hydration_status === 'waiting_water' && (
+          {/* Balão triste (stressed) — sobrepõe o balão de rega */}
+          {isStressed && (
+            <div
+              className="water-speech-bubble absolute pointer-events-none z-20 flex flex-col items-center"
+              style={{
+                top: '-38%',
+                left: '50%',
+                animation: 'water-bubble 2.2s ease-in-out infinite',
+                filter: 'drop-shadow(0 2px 5px rgba(239,68,68,0.5))',
+              }}
+            >
+              <div
+                style={{
+                  background: 'rgba(255,240,240,0.97)',
+                  border: '1.5px solid rgba(239,68,68,0.6)',
+                  borderRadius: 8,
+                  padding: '3px 6px',
+                  fontSize: 14,
+                  lineHeight: 1,
+                  userSelect: 'none',
+                }}
+              >
+                😢
+              </div>
+              <div style={{ width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '6px solid rgba(255,240,240,0.97)', marginTop: -1 }} />
+            </div>
+          )}
+
+          {/* Balão de rega — estilo PvZ (só aparece se não estiver stressed) */}
+          {!isStressed && plant?.hydration_status === 'waiting_water' && (
             <div
               className="water-speech-bubble absolute pointer-events-none z-20 flex flex-col items-center"
               style={{
@@ -194,6 +230,14 @@ export function HexPot({
         <div
           className="absolute bottom-0 left-0 right-0 pointer-events-none z-10"
           style={{ height: '52%', clipPath: HEX_CLIP, boxShadow: 'inset 0 0 0 2px rgba(201,162,39,0.8)' }}
+        />
+      )}
+
+      {/* Move mode: glow arrastável em pots plantados */}
+      {moveMode && state === 'planted' && (
+        <div
+          className="absolute inset-0 pointer-events-none z-10"
+          style={{ clipPath: HEX_CLIP, background: 'rgba(251,191,36,0.18)', boxShadow: 'inset 0 0 0 2px rgba(251,191,36,0.6)' }}
         />
       )}
 

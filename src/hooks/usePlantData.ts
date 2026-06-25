@@ -10,6 +10,7 @@ export type PlantRow = {
   dna: PlantDNA;
   created_at: string;
   next_water_needed_at: string;
+  satisfacao: number;
 };
 
 export type PlantVersionRow = {

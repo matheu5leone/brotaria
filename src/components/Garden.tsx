@@ -12,6 +12,8 @@ import {
   usePlantMutation,
   useWaterMutation,
   useDeleteMutation,
+  useRemovePotMutation,
+  useMovePlantMutation,
 } from '@/hooks/useGardenMutations';
 import { useQueryClient } from '@tanstack/react-query';
 import { PlantHistoryModal } from '@/components/PlantHistoryModal';
@@ -89,11 +91,13 @@ export default function Garden() {
   const canWaterToday = watersRemaining > 0;
 
   // ── Mutations ────────────────────────────────────────────────────────────
-  const digMutation    = useDigMutation(user?.id ?? '');
-  const plantMutation  = usePlantMutation(user?.id ?? '');
-  const waterMutation  = useWaterMutation(user?.id ?? '');
-  const deleteMutation = useDeleteMutation(user?.id ?? '');
-  const wrapMutation   = useWrapPlant(user?.id ?? '');
+  const digMutation       = useDigMutation(user?.id ?? '');
+  const plantMutation     = usePlantMutation(user?.id ?? '');
+  const waterMutation     = useWaterMutation(user?.id ?? '');
+  const deleteMutation    = useDeleteMutation(user?.id ?? '');
+  const wrapMutation      = useWrapPlant(user?.id ?? '');
+  const removePotMutation = useRemovePotMutation(user?.id ?? '');
+  const movePlantMutation = useMovePlantMutation(user?.id ?? '');
 
   // ── UI state ─────────────────────────────────────────────────────────────
   const [selectedPotId, setSelectedPotId]           = useState<string | null>(null);
@@ -106,6 +110,18 @@ export default function Garden() {
   const [wateringDragPos, setWateringDragPos]       = useState<{ x: number; y: number } | null>(null);
   const [wateringTargetPotId, setWateringTargetPotId] = useState<string | null>(null);
   const [wateringError, setWateringError]           = useState<string | null>(null);
+  // Remove spot mode
+  const [removeMode, setRemoveMode]                 = useState(false);
+  const [removeError, setRemoveError]               = useState<string | null>(null);
+  // Move plant drag
+  const [moveMode, setMoveMode]                     = useState(false);
+  const [moveSrcPotId, setMoveSrcPotId]             = useState<string | null>(null);
+  const [moveDragPos, setMoveDragPos]               = useState<{ x: number; y: number } | null>(null);
+  const [moveTargetPotId, setMoveTargetPotId]       = useState<string | null>(null);
+  const [moveDragImageUrl, setMoveDragImageUrl]     = useState<string | null>(null);
+  const [moveError, setMoveError]                   = useState<string | null>(null);
+  // Stressed pots (sad face after move)
+  const [stressedPotIds, setStressedPotIds]         = useState<Set<string>>(new Set());
   const [cursorPos, setCursorPos]                   = useState<{ x: number; y: number } | null>(null);
   const [wrappingMode, setWrappingMode]             = useState(false);
   const [wrapError, setWrapError]                   = useState<string | null>(null);
@@ -222,9 +238,71 @@ export default function Garden() {
     document.addEventListener('pointerup', onUp);
   }, [canWaterToday, waterMutation.isPending, findPotAtPoint, handleWaterPot]);
 
+  // Remove spot: click no pot vazio
+  const handleRemovePot = useCallback(async (pot: Pot) => {
+    if (pot.plant_id) { setRemoveError('Remova a planta antes de apagar o canteiro.'); return; }
+    setRemoveError(null);
+    try { await removePotMutation.mutateAsync({ potId: pot.id }); }
+    catch (err: unknown) { setRemoveError((err as Error).message); }
+  }, [removePotMutation]);
+
+  // Move plant drag via Pointer Events
+  const handleMovePotPointerDown = useCallback((pot: Pot) => (e: React.PointerEvent) => {
+    if (!moveMode || !pot.plant_id || movePlantMutation.isPending) return;
+    e.preventDefault(); e.stopPropagation();
+
+    // Pega imagem do cache do React Query
+    const cachedVersion = qc.getQueryData<{ image_url: string | null }>(['plant', pot.plant_id, 'version']);
+    setMoveSrcPotId(pot.id);
+    setMoveDragPos({ x: e.clientX, y: e.clientY });
+    setMoveDragImageUrl(cachedVersion?.image_url ?? null);
+    setMoveTargetPotId(null);
+    setMoveError(null);
+
+    let active = true;
+
+    const onMove = (ev: PointerEvent) => {
+      if (!active) return;
+      setMoveDragPos({ x: ev.clientX, y: ev.clientY });
+      const target = findPotAtPoint(ev.clientX, ev.clientY);
+      setMoveTargetPotId(target && !target.plant_id ? target.id : null);
+    };
+
+    const onUp = async (ev: PointerEvent) => {
+      active = false;
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      setMoveDragPos(null);
+      setMoveDragImageUrl(null);
+
+      const target = findPotAtPoint(ev.clientX, ev.clientY);
+      setMoveTargetPotId(null);
+      setMoveSrcPotId(null);
+
+      if (!target || target.plant_id || target.id === pot.id) return;
+
+      try {
+        const result = await movePlantMutation.mutateAsync({ fromPotId: pot.id, toPotId: target.id });
+        if (result.stressed) {
+          setStressedPotIds(prev => new Set([...prev, target.id]));
+          setTimeout(() => {
+            setStressedPotIds(prev => { const s = new Set(prev); s.delete(target.id); return s; });
+          }, 6000);
+        }
+      } catch (err: unknown) {
+        setMoveError((err as Error).message);
+      }
+    };
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  }, [moveMode, movePlantMutation, findPotAtPoint, qc]);
+
   const handlePotClick = (pot: Pot) => async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (wateringDrag) return; // drag cuida da rega
+    if (wateringDrag || moveMode) return; // drag cuida da rega/move
+
+    if (removeMode) { await handleRemovePot(pot); return; }
 
     if (shovelActive) { await digAt(e); return; }
 
@@ -275,8 +353,20 @@ export default function Garden() {
     e.stopPropagation();
     if (!shovelReady) return;
     setShovelActive(v => !v);
-    setShovelError(null);
+    setShovelError(null); setRemoveMode(false); setMoveMode(false);
     setSelectedPotId(null);
+  };
+
+  const toggleRemoveMode = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRemoveMode(v => !v);
+    setRemoveError(null); setShovelActive(false); setMoveMode(false);
+  };
+
+  const toggleMoveMode = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMoveMode(v => !v);
+    setMoveError(null); setShovelActive(false); setRemoveMode(false);
   };
 
   // ── Early returns ─────────────────────────────────────────────────────────
@@ -363,7 +453,10 @@ export default function Garden() {
             <HexPot
               pot={pot}
               isSelected={selectedPotId === pot.id}
+              isStressed={stressedPotIds.has(pot.id)}
+              moveMode={moveMode}
               onClick={handlePotClick(pot)}
+              onPointerDown={moveMode && pot.plant_id ? handleMovePotPointerDown(pot) : undefined}
               onDigComplete={handleDigComplete}
             />
           </div>
@@ -422,6 +515,30 @@ export default function Garden() {
           style={{ width: 40, height: 40, left: cursorPos.x - 20, top: cursorPos.y - 20 }}
         />
       )}
+
+      {/* ── Move plant drag cursor ───────────────────────────────────────── */}
+      {moveMode && moveDragPos && moveSrcPotId && (
+        <div
+          className="fixed pointer-events-none z-[9999]"
+          style={{ left: moveDragPos.x - 24, top: moveDragPos.y - 36, width: 48, height: 48 }}
+        >
+          {moveDragImageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={moveDragImageUrl} alt="planta" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.6)) brightness(1.1)' }} />
+          ) : (
+            <span style={{ fontSize: 36 }}>🌱</span>
+          )}
+        </div>
+      )}
+
+      {/* ── Move target highlight ────────────────────────────────────────── */}
+      {moveMode && moveTargetPotId && (() => {
+        const pot = pots.find(p => p.id === moveTargetPotId);
+        if (!pot) return null;
+        return (
+          <div className="absolute pointer-events-none z-10" style={{ left: `${pot.pos_x ?? 50}%`, top: `${pot.pos_y ?? 50}%`, width: '12%', aspectRatio: '1/1.65', transform: 'translate(-50%,-50%)', background: 'rgba(251,191,36,0.3)', clipPath: 'polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)', filter: 'drop-shadow(0 0 8px rgba(251,191,36,0.8))' }} />
+        );
+      })()}
 
       {/* ── Watering cursor (fixed — segue o ponteiro em toda a tela) ──── */}
       {wateringDrag && wateringDragPos && (
@@ -485,7 +602,7 @@ export default function Garden() {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Erros */}
-        {(shovelError || wateringError) && (
+        {(shovelError || wateringError || removeError || moveError) && (
           <div
             className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg shadow"
             style={{
@@ -495,17 +612,27 @@ export default function Garden() {
               fontFamily: 'var(--font-body)',
             }}
           >
-            <span>{shovelError ?? wateringError}</span>
-            <button onClick={() => { setShovelError(null); setWateringError(null); }}>
+            <span>{shovelError ?? wateringError ?? removeError ?? moveError}</span>
+            <button onClick={() => { setShovelError(null); setWateringError(null); setRemoveError(null); setMoveError(null); }}>
               <X className="w-3 h-3" />
             </button>
           </div>
         )}
 
-        {/* Hint de modo ativo */}
+        {/* Hints de modo ativo */}
         {shovelActive && (
           <div className="text-xs px-3 py-1.5 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: 'var(--color-text-light)', border: '1px solid rgba(92,58,30,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
             Clique no jardim para cavar
+          </div>
+        )}
+        {removeMode && (
+          <div className="text-xs px-3 py-1.5 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
+            Clique num canteiro vazio para removê-lo
+          </div>
+        )}
+        {moveMode && (
+          <div className="text-xs px-3 py-1.5 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: '#fde68a', border: '1px solid rgba(251,191,36,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
+            Arraste uma planta para outro canteiro
           </div>
         )}
 
@@ -522,6 +649,26 @@ export default function Garden() {
               title={`${pendingGifts.length} presente(s) aguardando`}
             />
           )}
+
+          {/* Remover canteiro */}
+          <HexButton
+            icon="🕳️"
+            label={removeMode ? 'Cancelar' : 'Remover'}
+            disabled={removePotMutation.isPending}
+            active={removeMode}
+            onClick={toggleRemoveMode}
+            title="Remover canteiro vazio do jardim"
+          />
+
+          {/* Mover planta */}
+          <HexButton
+            icon={movePlantMutation.isPending ? '⏳' : '🔀'}
+            label={moveMode ? 'Cancelar' : 'Mover'}
+            disabled={movePlantMutation.isPending}
+            active={moveMode}
+            onClick={toggleMoveMode}
+            title="Arrastar planta para outro canteiro"
+          />
 
           {/* Regador — drag-and-drop via onPointerDown */}
           <HexButton
