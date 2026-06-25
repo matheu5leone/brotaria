@@ -189,7 +189,8 @@ html, body {
   background-position: center center;
 }
 
-@media (min-width: 768px) {
+/* Desktop ou mobile deitado → imagem horizontal */
+@media (min-width: 768px), (orientation: landscape) {
   .garden-bg {
     background-image: url('/imgs/bg-garden.png');
   }
