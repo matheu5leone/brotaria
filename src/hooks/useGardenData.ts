@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Pot } from '@/types';
+import { GAME, SHOVEL_COOLDOWN_MS } from '@/config/economy';
 
-const SHOVEL_COOLDOWN_MS = 24 * 60 * 60 * 1000;
-const DAILY_WATER_LIMIT = 10;
+const DAILY_WATER_LIMIT = GAME.DAILY_WATER_LIMIT;
 
 function getBrasiliaDate(): string {
   const now = new Date();

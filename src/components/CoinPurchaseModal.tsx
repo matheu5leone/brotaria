@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
-import { COIN_PACKAGES, SEED_COST_COINS } from '@/config/economy';
+import { COIN_PACKAGES, PRICES } from '@/config/economy';
+const SEED_COST_COINS = PRICES.SEED;
 import { Coins, X, Loader2, Sprout, Sparkles } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
 

@@ -1,9 +1,9 @@
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { mutateDNA } from '@/services/dnaService';
 import { generatePlantEvolution } from './aiService';
+import { GAME, WATER_COOLDOWN_MS, calcEvolutionCoins } from '@/config/economy';
 
 const MODO_IA = process.env.AI_MODE || 'MOCK';
-const DAILY_WATER_LIMIT = 10;
 
 /** Retorna a data atual no fuso de Brasília (UTC-3) como 'YYYY-MM-DD'. */
 function getBrasiliaDate(): string {
@@ -40,7 +40,7 @@ export async function waterPlant(plantId: string, userId: string) {
   const resetNeeded = !profile.water_reset_date || profile.water_reset_date !== today;
   const watersUsed = resetNeeded ? 0 : (profile.daily_waters_used ?? 0);
 
-  if (watersUsed >= DAILY_WATER_LIMIT) {
+  if (watersUsed >= GAME.DAILY_WATER_LIMIT) {
     const err = new Error('Limite diário de regas atingido. Volte amanhã!') as Error & { code: string };
     err.code = 'DAILY_LIMIT_REACHED';
     throw err;
@@ -89,7 +89,7 @@ export async function waterPlant(plantId: string, userId: string) {
       current_stage_waters: newWatersCount,
       hydration_status: 'hydrated',
       last_watered_at: new Date().toISOString(),
-      next_water_needed_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+      next_water_needed_at: new Date(Date.now() + WATER_COOLDOWN_MS).toISOString(),
     })
     .eq('id', plantId);
 
@@ -99,7 +99,7 @@ export async function waterPlant(plantId: string, userId: string) {
     success: true,
     evolved: false,
     watersUsed: watersUsed + 1,
-    watersRemaining: DAILY_WATER_LIMIT - (watersUsed + 1),
+    watersRemaining: GAME.DAILY_WATER_LIMIT - (watersUsed + 1),
   };
 }
 
@@ -135,13 +135,20 @@ export async function evolvePlant(plantId: string) {
       dna: newDNA,
       hydration_status: 'hydrated',
       last_watered_at: new Date().toISOString(),
-      next_water_needed_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+      next_water_needed_at: new Date(Date.now() + WATER_COOLDOWN_MS).toISOString(),
     })
     .eq('id', plantId);
 
   if (updateError) {
     console.error(`[Growth] Error evolving plant ${plantId}:`, updateError);
     return { success: false, error: updateError };
+  }
+
+  // Recompensa de moedas — valor definido centralmente em economy.ts
+  const rewardCoins = calcEvolutionCoins(nextStage.order_index);
+  if (rewardCoins > 0) {
+    await supabaseAdmin.rpc('add_coins', { p_user_id: plant.user_id, p_amount: rewardCoins });
+    console.log(`[Growth] Granted ${rewardCoins} coins to user ${plant.user_id} (stage ${nextStage.code})`);
   }
 
   if (nextStage.generate_image) {

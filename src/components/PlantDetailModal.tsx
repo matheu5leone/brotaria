@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { X, Droplets, Trash2 } from 'lucide-react';
 import { usePlant, usePlantVersion } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
+import { calcEvolutionCoins, GAME } from '@/config/economy';
 
 const RARITY_LABELS: Record<string, string> = {
   comum: 'Comum', incomum: 'Incomum', raro: 'Raro',
@@ -218,7 +219,7 @@ export function PlantDetailModal({
                 fontFamily: 'var(--font-display)',
               }}
             >
-              🪙 {level * 2} moedas
+              🪙 {calcEvolutionCoins(stage.order_index + 1)} moedas
             </div>
             <div
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
@@ -229,7 +230,7 @@ export function PlantDetailModal({
                 fontFamily: 'var(--font-display)',
               }}
             >
-              💧 +10 XP
+              💧 +{GAME.XP_PER_EVOLUTION} XP
             </div>
           </div>
         </div>

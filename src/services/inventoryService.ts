@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { generateRandomDNA } from './dnaService';
+import { WATER_COOLDOWN_MS } from '@/config/economy';
 
 // ── Helpers de slot ────────────────────────────────────────────────────────
 
@@ -153,7 +154,7 @@ export async function plantSeed(userId: string, potId: string) {
       dna: dna,
       current_stage_id: stage.id,
       hydration_status: 'hydrated',
-      next_water_needed_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+      next_water_needed_at: new Date(Date.now() + WATER_COOLDOWN_MS).toISOString(),
     })
     .select()
     .single();
