@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import NavLink from '@/components/NavLink';
 import { FallingLeaves } from '@/components/FallingLeaves';
 import { Mail, Lock, Loader2, AtSign } from 'lucide-react';
+import { Turnstile } from '@marsidev/react-turnstile';
 
 const inputClass =
   'w-full pl-10 pr-4 py-3 rounded-xl outline-none transition-all text-sm';
@@ -23,7 +24,10 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [cfToken, setCfToken] = useState<string | null>(null);
   const router = useRouter();
+
+  const SITE_KEY = process.env.NEXT_PUBLIC_CF_TURNSTILE_SITE_KEY;
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,13 +36,20 @@ export default function SignupPage() {
     if (!/^[a-z0-9_]{3,20}$/.test(nick)) {
       setError('Apelido: 3-20 caracteres, apenas letras, números e _'); return;
     }
+    if (SITE_KEY && !cfToken) {
+      setError('Complete o desafio de segurança antes de continuar.');
+      return;
+    }
     setLoading(true);
     setError(null);
 
     const { data, error: signupError } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        ...(cfToken ? { captchaToken: cfToken } : {}),
+      },
     });
 
     if (signupError) {
@@ -213,9 +224,19 @@ export default function SignupPage() {
                 </div>
               </div>
 
+              {/* Cloudflare Turnstile — só renderiza se SITE_KEY estiver configurada */}
+              {SITE_KEY && (
+                <Turnstile
+                  siteKey={SITE_KEY}
+                  onSuccess={setCfToken}
+                  onExpire={() => setCfToken(null)}
+                  options={{ theme: 'light', size: 'flexible' }}
+                />
+              )}
+
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || (!!SITE_KEY && !cfToken)}
                 className="w-full py-3.5 rounded-xl font-bold text-base transition-all flex items-center justify-center gap-2 mt-2"
                 style={{
                   fontFamily: 'var(--font-display)',
