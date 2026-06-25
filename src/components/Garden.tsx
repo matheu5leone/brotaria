@@ -254,8 +254,10 @@ export default function Garden() {
         return (
           <div
             key={pot.id}
-            className="absolute w-[16%] aspect-square"
+            className="absolute"
             style={{
+              width: '12%',
+              aspectRatio: '1 / 1.65',
               left: `${x}%`,
               top: `${y}%`,
               transform: 'translate(-50%, -50%)',
@@ -280,15 +282,15 @@ export default function Garden() {
         return (
           <div
             key={`wrap-${pot.id}`}
-            className="absolute flex items-center justify-center cursor-pointer z-10"
+            className="absolute flex items-end justify-center cursor-pointer z-10 pb-[5%]"
             style={{
               left: `${x}%`,
               top: `${y}%`,
-              width: '16%',
-              aspectRatio: '1',
+              width: '12%',
+              aspectRatio: '1 / 1.65',
               transform: 'translate(-50%, -50%)',
-              clipPath: HEX_CLIP,
-              background: 'rgba(136,19,55,0.55)',
+              background: 'rgba(136,19,55,0.45)',
+              clipPath: 'polygon(0 38%, 50% 25%, 100% 38%, 100% 100%, 0 100%)',
             }}
             onClick={(e) => {
               e.stopPropagation();

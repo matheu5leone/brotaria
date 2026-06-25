@@ -28,6 +28,24 @@ function formatSecondsLeft(ms: number): string {
   return `${m}:${String(s % 60).padStart(2, '0')}`;
 }
 
+// Hex soil base — shared between states
+function HexSoil({ borderColor, innerBg, children }: {
+  borderColor: string;
+  innerBg: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="absolute bottom-0 left-0 right-0" style={{ height: '52%' }}>
+      {/* Border */}
+      <div className="absolute inset-0" style={{ clipPath: HEX_CLIP, background: borderColor }} />
+      {/* Content */}
+      <div className="absolute inset-[2px]" style={{ clipPath: HEX_CLIP, background: innerBg }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export function HexPot({
   pot,
   isSelected,
@@ -47,9 +65,7 @@ export function HexPot({
   const [msLeft, setMsLeft] = useState(0);
   const notifiedRef = useRef(false);
 
-  useEffect(() => {
-    notifiedRef.current = false;
-  }, [pot.digging_started_at]);
+  useEffect(() => { notifiedRef.current = false; }, [pot.digging_started_at]);
 
   useEffect(() => {
     if (state !== 'digging' || !pot.digging_started_at) return;
@@ -69,61 +85,23 @@ export function HexPot({
 
   const borderColor = isSelected
     ? 'rgba(201,162,39,0.95)'
-    : state === 'planted'
-    ? 'rgba(92,58,30,0.75)'
-    : 'rgba(60,38,18,0.6)';
+    : 'rgba(60,38,18,0.85)';
 
-  const innerBg =
-    state === 'digging'
-      ? 'radial-gradient(ellipse at 40% 30%, #3d2a18, #1a0f05)'
-      : state === 'ready'
-      ? 'radial-gradient(ellipse at 40% 30%, #1e1408, #0a0603)'
-      : 'radial-gradient(ellipse at 40% 30%, #1c1a0e, #080b05)';
+  const soilBg = 'radial-gradient(ellipse at 40% 30%, #2a1c0f, #0f0905)';
 
   return (
     <div
       className="relative w-full h-full cursor-pointer select-none"
       onClick={onClick}
     >
-      {/* Outer border hex */}
-      <div
-        className="absolute inset-0 transition-colors duration-150"
-        style={{ clipPath: HEX_CLIP, background: borderColor }}
-      />
 
-      {/* Content hex (inset creates border gap) */}
-      <div
-        className="absolute inset-[3px]"
-        style={{ clipPath: HEX_CLIP, background: innerBg }}
-      >
-        {state === 'digging' && (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-1">
-            <Shovel className="w-5 h-5 animate-pulse" style={{ color: 'var(--color-parch-dark)' }} />
-            <span className="font-mono text-xs font-bold" style={{ color: 'var(--color-parch-light)' }}>
-              {formatSecondsLeft(msLeft)}
-            </span>
-          </div>
-        )}
-
-        {state === 'ready' && (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-0.5">
-            <span
-              className="text-2xl font-bold leading-none"
-              style={{ color: 'rgba(139,99,70,0.45)' }}
-            >
-              +
-            </span>
-            <span
-              className="text-[8px] uppercase tracking-widest font-black"
-              style={{ color: 'rgba(139,99,70,0.4)', fontFamily: 'var(--font-display)' }}
-            >
-              Plantar
-            </span>
-          </div>
-        )}
-
-        {state === 'planted' && (
-          <div className="w-full h-full relative">
+      {/* ── Plant image — floats above the hex soil ── */}
+      {state === 'planted' && (
+        <div
+          className="absolute left-0 right-0 top-0 pointer-events-none"
+          style={{ bottom: '38%' }}
+        >
+          <div className="relative w-full h-full">
             {latestVersion?.image_url ? (
               <RarityEffect rarity={plant?.dna.rarity ?? 'comum'} alwaysVisible={false}>
                 <Image
@@ -131,48 +109,75 @@ export function HexPot({
                   alt={plant?.current_stage.name ?? 'Planta'}
                   fill
                   draggable={false}
-                  className="object-contain"
+                  className="object-contain object-bottom"
                 />
               </RarityEffect>
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <Loader variant="inline" spin size={28} />
+              <div className="flex items-end justify-center w-full h-full pb-1">
+                <Loader variant="inline" spin size={22} />
               </div>
             )}
-            {plant?.hydration_status === 'waiting_water' && (
-              <div className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse z-10" />
-            )}
           </div>
-        )}
-      </div>
+          {/* Hydration dot */}
+          {plant?.hydration_status === 'waiting_water' && (
+            <div className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse z-10" />
+          )}
+        </div>
+      )}
 
-      {/* Level badge — outside clip-path so it's not cut off */}
+      {/* ── Hex soil base ── */}
+      {state === 'planted' && (
+        <HexSoil borderColor={borderColor} innerBg={soilBg} />
+      )}
+
+      {state === 'digging' && (
+        <HexSoil borderColor={borderColor} innerBg="radial-gradient(ellipse, #3d2a18, #1a0f05)">
+          <div className="w-full h-full flex flex-col items-center justify-center gap-0.5">
+            <Shovel className="w-4 h-4 animate-pulse" style={{ color: 'var(--color-parch-dark)' }} />
+            <span className="font-mono text-[10px] font-bold" style={{ color: 'var(--color-parch-light)' }}>
+              {formatSecondsLeft(msLeft)}
+            </span>
+          </div>
+        </HexSoil>
+      )}
+
+      {state === 'ready' && (
+        <HexSoil borderColor={borderColor} innerBg="radial-gradient(ellipse at 40% 30%, #1c1408, #080603)">
+          <div className="w-full h-full flex flex-col items-center justify-center gap-0.5">
+            <span className="text-base font-bold leading-none" style={{ color: 'rgba(139,99,70,0.55)' }}>+</span>
+            <span
+              className="text-[7px] uppercase tracking-widest font-black"
+              style={{ color: 'rgba(139,99,70,0.45)', fontFamily: 'var(--font-display)' }}
+            >
+              Plantar
+            </span>
+          </div>
+        </HexSoil>
+      )}
+
+      {/* ── Selection glow on the soil hex ── */}
+      {isSelected && (
+        <div
+          className="absolute bottom-0 left-0 right-0 pointer-events-none z-10"
+          style={{ height: '52%', clipPath: HEX_CLIP, boxShadow: 'inset 0 0 0 2px rgba(201,162,39,0.8)' }}
+        />
+      )}
+
+      {/* ── Level badge ── */}
       {state === 'planted' && level !== null && (
         <div
-          className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[35%] px-1.5 py-0.5 rounded-full z-10 whitespace-nowrap pointer-events-none"
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[45%] px-1.5 py-0.5 rounded-full z-20 whitespace-nowrap pointer-events-none"
           style={{
             background: 'rgba(8,14,5,0.92)',
             color: 'var(--color-text-light)',
             fontFamily: 'var(--font-display)',
-            fontSize: '8px',
+            fontSize: '7px',
             fontWeight: 900,
             border: '1px solid rgba(92,58,30,0.6)',
           }}
         >
           Nível {level}
         </div>
-      )}
-
-      {/* Selection glow ring */}
-      {isSelected && (
-        <div
-          className="absolute inset-[-3px] pointer-events-none z-20"
-          style={{
-            clipPath: HEX_CLIP,
-            background: 'transparent',
-            boxShadow: 'inset 0 0 0 2px rgba(201,162,39,0.8)',
-          }}
-        />
       )}
     </div>
   );
