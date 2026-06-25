@@ -66,23 +66,22 @@ Carregadas via `next/font/google`. Nunca usar Geist (fonte padrão do Next.js) n
 
 ## 4. Componentes de UI
 
-### 4.1 Canteiro Oval (slot de planta)
+### 4.1 HexPot — Célula Hexagonal de Planta
 
-O buraco no jardim onde as plantas crescem. Substituiu os círculos genéricos.
+Substituiu o Canteiro Oval. Célula hexagonal com `clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)` (pointy-top), posicionada livremente pelo sistema de `pos_x / pos_y` da pá.
 
 **Anatomia:**
-- Forma elíptica (`border-radius: 50px / 36px`)
-- Fundo: gradiente radial escuro simulando profundidade de terra (`#2d1c10 → #0f0905`)
-- Borda primária: `2.5px solid #5c3a1e` (vime/madeira)
-- Borda interna ornamental: `2px solid #8b6346`, `opacity: 0.5`, `inset -7px`
-- Borda tracejada externa: `1.5px dashed rgba(92,58,30,0.3)`, `inset -11px`
-- Sombra interna: `inset 0 6px 20px rgba(0,0,0,0.95)`
+- Camada de borda: div outer com clip-path hex, fundo = cor da borda (`rgba(92,58,30,0.75)`)
+- Camada de conteúdo: div inner com `inset: 3px` + mesmo clip-path, fundo escuro radial
+- Badge "Nível X": fora do clip-path (não cortado), posicionado na base (`bottom: 0, translate-y: 35%`)
 
 **Estados:**
-- **Vazio**: `+` centralizado em madeira fosca + ícone de folha no topo
-- **Cavando**: animação pulse com countdown de timer
-- **Pronto**: buraco escuro aguardando semente
-- **Plantado**: imagem da planta emergindo do centro do canteiro
+- **Vazio / Pronto**: `+` + "Plantar" centralizados, fundo `#1e1408`
+- **Cavando**: ícone de pá pulsando + countdown `mm:ss`, fundo `#3d2a18`
+- **Plantado**: imagem da planta via `next/image` + `RarityEffect`, fundo escuro-verde
+- **Selecionado**: borda dourada `rgba(201,162,39,0.95)` + anel de seleção interno
+
+**Arquivo:** `src/components/HexPot.tsx`
 
 ### 4.2 Botão Hexagonal de Madeira
 
@@ -113,7 +112,46 @@ Usado para **Pá** e **Mochila** — os dois controles principais do jardim.
 **Tipografia:** Cinzel Decorative para labels, Crimson Text para itens de nav  
 **Itens ativos:** `border-left: 2px solid #5c3a1e; background: rgba(201,162,39,0.12)`
 
-### 4.4 Toolbar Flutuante (barra inferior do jardim)
+### 4.4 PlantActionMenu — Menu de Ação Flutuante
+
+Aparece acima do pot selecionado ao clicar numa planta. Três botões: **Regar**, **Histórico**, **Remover**.
+
+**Anatomia:**
+- Pill `border-radius: full`, fundo `rgba(8,14,5,0.92)` com `backdrop-filter: blur(10px)`
+- Borda `rgba(201,162,39,0.25)` (sutil dourado)
+- Posicionado em `left: potX%, top: potY%`, transform `translate(-50%, -145%)`
+- Arrow pointer triangular abaixo do pill
+- Cada botão: ícone + label em `var(--font-display)` 8px uppercase
+
+**Arquivo:** `src/components/PlantActionMenu.tsx`
+
+### 4.5 PlantDetailModal — Painel de Detalhes
+
+Abre junto ao menu de ação; mostra informações completas da planta selecionada.
+
+**Layout responsivo:**
+- **Mobile** (`< md`): `fixed inset-0` — tela inteira com backdrop
+- **Desktop** (`≥ md`): `fixed right-0 top-0 bottom-0 w-80` — painel lateral
+
+**Conteúdo:**
+- Badge de raridade no topo + botão X
+- Imagem da planta em container circular com `RarityEffect`
+- Nome: `{stage.name} {level}`
+- Grid 2×2 de chips: Tipo, Ambiente, Plantado em, Personalidade
+- Barra de progresso verde: `current_stage_waters / waters_required`
+- "Pode regar agora!" ou "Próxima rega em Xh Xm"
+- Recompensas: `nivel * 2` moedas + 10 XP
+- Botões **Regar** (azul, desabilitado se não puder regar) e **Remover** (vermelho)
+
+**Arquivo:** `src/components/PlantDetailModal.tsx`
+
+### 4.6 Partículas de Background do Jardim
+
+8 flores SVG de 4 pétalas posicionadas em coordenadas fixas nas bordas do jardim. Animação CSS `garden-float` (keyframe em `globals.css`): oscilação suave de ±9px com rotação leve, opacidade 0.13–0.22, duração 4.6–6.4s com delays variados.
+
+Cor: `rgba(201,162,39,0.9)` (ouro/dourado). Não interativas (`pointer-events-none`).
+
+### 4.7 Toolbar Flutuante (barra inferior do jardim)
 
 Fundo: `rgba(8,14,5,0.75)` com `backdrop-filter: blur(6px)`  
 Borda: `1px solid rgba(92,58,30,0.35)`  
