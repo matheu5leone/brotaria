@@ -66,12 +66,15 @@ export async function addStackableItem(
 
 // ── Inicialização ──────────────────────────────────────────────────────────
 
-export async function initializeUser(userId: string, email: string) {
+export async function initializeUser(userId: string, email: string, nickname?: string | null) {
   console.log(`[Inventory] Checking/Initializing user ${userId}`);
+
+  const upsertData: Record<string, unknown> = { id: userId, email };
+  if (nickname) upsertData.nickname = nickname.toLowerCase();
 
   const { error: profileError } = await supabaseAdmin
     .from('profiles')
-    .upsert({ id: userId, email: email })
+    .upsert(upsertData)
     .select()
     .single();
 

@@ -2,8 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { Sprout, Gift, X, Info } from 'lucide-react';
+import { Sprout, Gift, X, Info, PackageOpen, SendHorizonal } from 'lucide-react';
 import { useInventory, useOpenGift, usePatchLabel } from '@/hooks/useInventory';
+import { useUnwrap } from '@/hooks/useGifts';
+import { GiftSendModal } from '@/components/GiftSendModal';
 import { usePlantVersion, usePlant } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
 import { InventoryItem, Rarity, PlantDNA } from '@/types';
@@ -17,17 +19,22 @@ type OpenPhase = 'idle' | 'shaking' | 'exploding' | 'revealing';
 
 function WrappedPlantSlot({
   item,
+  userId,
   onOpen,
   onLabelSave,
 }: {
   item: InventoryItem;
+  userId: string;
   onOpen: () => void;
   onLabelSave: (label: string) => void;
 }) {
   const [editingLabel, setEditingLabel] = useState(false);
   const [labelValue, setLabelValue] = useState(item.label ?? '');
+  const [showActions, setShowActions] = useState(false);
+  const [giftModalOpen, setGiftModalOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const escapeRef = useRef(false);
+  const unwrapMutation = useUnwrap(userId);
 
   useEffect(() => {
     setLabelValue(item.label ?? '');
@@ -44,13 +51,49 @@ function WrappedPlantSlot({
     onLabelSave(labelValue);
   };
 
+  if (giftModalOpen) {
+    return <GiftSendModal userId={userId} itemId={item.id} onClose={() => setGiftModalOpen(false)} />;
+  }
+
   return (
     <div
-      className="relative flex flex-col items-center justify-center gap-0.5 w-full h-full bg-rose-950/40 border border-rose-700/40 rounded-xl cursor-pointer hover:bg-rose-900/40 transition-colors group"
-      onClick={onOpen}
+      className="relative flex flex-col items-center justify-center gap-0.5 w-full h-full bg-rose-950/40 border border-rose-700/40 rounded-xl transition-colors group"
+      onClick={() => setShowActions(v => !v)}
     >
       <span className="text-2xl select-none">🎁</span>
-      <span className="text-rose-300 text-[8px] font-bold">Abrir</span>
+      <span className="text-rose-300 text-[8px] font-bold">{showActions ? 'Fechar' : 'Opções'}</span>
+
+      {/* Action overlay */}
+      {showActions && (
+        <div
+          className="absolute inset-0 rounded-xl flex flex-col gap-1 p-1.5 z-10"
+          style={{ background: 'rgba(10,5,5,0.92)' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => { setShowActions(false); onOpen(); }}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-bold transition-all hover:bg-rose-900/60 active:scale-95"
+            style={{ color: '#fca5a5' }}
+          >
+            <Gift className="w-3 h-3" /> Abrir
+          </button>
+          <button
+            onClick={() => { setShowActions(false); unwrapMutation.mutate({ itemId: item.id }); }}
+            disabled={unwrapMutation.isPending}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-bold transition-all hover:bg-amber-900/60 active:scale-95 disabled:opacity-40"
+            style={{ color: '#fde68a' }}
+          >
+            <PackageOpen className="w-3 h-3" /> Desfazer
+          </button>
+          <button
+            onClick={() => { setShowActions(false); setGiftModalOpen(true); }}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-bold transition-all hover:bg-green-900/60 active:scale-95"
+            style={{ color: '#86efac' }}
+          >
+            <SendHorizonal className="w-3 h-3" /> Presentear
+          </button>
+        </div>
+      )}
 
       {/* Ícone de info com label */}
       <button
@@ -159,12 +202,14 @@ function AnimatingSlot({ phase, rarity }: { phase: OpenPhase; rarity: Rarity }) 
 
 function SlotContent({
   item,
+  userId,
   animPhase,
   animRarity,
   onOpenGift,
   onLabelSave,
 }: {
   item: InventoryItem | undefined;
+  userId: string;
   animPhase: OpenPhase;
   animRarity: Rarity;
   onOpenGift: () => void;
@@ -191,7 +236,7 @@ function SlotContent({
     );
   }
   if (item.item_type === 'wrapped_plant') {
-    return <WrappedPlantSlot item={item} onOpen={onOpenGift} onLabelSave={onLabelSave} />;
+    return <WrappedPlantSlot item={item} userId={userId} onOpen={onOpenGift} onLabelSave={onLabelSave} />;
   }
   if (item.item_type === 'plant') {
     return <PlantSlot item={item} />;
@@ -305,6 +350,7 @@ export function InventoryPanel({
               <div key={i} className="aspect-square">
                 <SlotContent
                   item={item}
+                  userId={userId ?? ''}
                   animPhase={animatingSlot === i ? animPhase : 'idle'}
                   animRarity={animRarity}
                   onOpenGift={() => item && handleOpenGift(item)}

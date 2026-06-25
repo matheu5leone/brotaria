@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import NavLink from '@/components/NavLink';
 import { FallingLeaves } from '@/components/FallingLeaves';
-import { Mail, Lock, Loader2 } from 'lucide-react';
+import { Mail, Lock, Loader2, AtSign } from 'lucide-react';
 
 const inputClass =
   'w-full pl-10 pr-4 py-3 rounded-xl outline-none transition-all text-sm';
@@ -19,6 +19,7 @@ const inputStyle = {
 export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [nickname, setNickname] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -26,24 +27,37 @@ export default function SignupPage() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    const nick = nickname.replace(/^@/, '').trim().toLowerCase();
+    if (!nick) { setError('Escolha um apelido.'); return; }
+    if (!/^[a-z0-9_]{3,20}$/.test(nick)) {
+      setError('Apelido: 3-20 caracteres, apenas letras, números e _'); return;
+    }
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error: signupError } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
 
-    if (error) {
-      setError(error.message);
+    if (signupError) {
+      setError(signupError.message);
       setLoading(false);
-    } else {
-      setDone(true);
-      setTimeout(() => router.push('/login'), 3000);
+      return;
     }
+
+    // Salva o apelido junto com o perfil
+    if (data.user) {
+      await fetch('/api/auth/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: data.user.id, email, nickname: nick }),
+      });
+    }
+
+    setDone(true);
+    setTimeout(() => router.push('/login'), 3000);
   };
 
   return (
@@ -129,6 +143,27 @@ export default function SignupPage() {
             )}
 
             <form onSubmit={handleSignup} className="space-y-5">
+              {/* Apelido */}
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-muted)' }}>
+                  Apelido <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>(único, para receber presentes)</span>
+                </label>
+                <div className="relative">
+                  <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--color-wood-light)' }} />
+                  <input
+                    type="text"
+                    required
+                    className={inputClass}
+                    style={inputStyle}
+                    placeholder="seunome"
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value.toLowerCase().replace(/[^a-z0-9_@]/g, ''))}
+                    minLength={3}
+                    maxLength={21}
+                  />
+                </div>
+              </div>
+
               <div>
                 <label
                   className="block text-[10px] font-black uppercase tracking-widest mb-1.5"

@@ -21,6 +21,9 @@ import { HexButton } from '@/components/HexButton';
 import { HexPot, getPotState } from '@/components/HexPot';
 import { PlantActionMenu } from '@/components/PlantActionMenu';
 import { PlantDetailModal } from '@/components/PlantDetailModal';
+import { usePendingGifts } from '@/hooks/useGifts';
+import { GiftReceiveModal } from '@/components/GiftReceiveModal';
+import type { PendingGift } from '@/hooks/useGifts';
 
 const HEX_CLIP = 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)';
 
@@ -79,6 +82,7 @@ export default function Garden() {
   const { data: pots = [], isPending: potsLoading, error: potsError } = usePots(user?.id);
   const { data: shovelStatus } = useShovelStatus(user?.id);
   const { data: wateringStatus } = useWateringStatus(user?.id);
+  const { data: pendingGifts = [] } = usePendingGifts(user?.id);
   const shovelCooldownMs = shovelStatus?.cooldownRemainingMs ?? 0;
   const shovelReady = shovelCooldownMs === 0;
   const watersRemaining = wateringStatus?.watersRemaining ?? 10;
@@ -105,6 +109,7 @@ export default function Garden() {
   const [cursorPos, setCursorPos]                   = useState<{ x: number; y: number } | null>(null);
   const [wrappingMode, setWrappingMode]             = useState(false);
   const [wrapError, setWrapError]                   = useState<string | null>(null);
+  const [activeGift, setActiveGift]                 = useState<PendingGift | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -506,6 +511,18 @@ export default function Garden() {
 
         {/* Botões lado a lado */}
         <div className="flex items-end gap-3">
+          {/* Presente pendente — aparece quando há presentes */}
+          {pendingGifts.length > 0 && (
+            <HexButton
+              icon={<span style={{ animation: 'gift-shake 1.2s ease-in-out infinite', display: 'inline-block' }}>🎁</span>}
+              label="Presente"
+              badge={pendingGifts.length}
+              active={false}
+              onClick={(e) => { e.stopPropagation(); setActiveGift(pendingGifts[0]); }}
+              title={`${pendingGifts.length} presente(s) aguardando`}
+            />
+          )}
+
           {/* Regador — drag-and-drop via onPointerDown */}
           <HexButton
             icon={waterMutation.isPending ? '⏳' : '🪣'}
@@ -565,6 +582,15 @@ export default function Garden() {
           onRemover={handleRemover}
           isWaterPending={waterMutation.isPending}
           isDeletePending={deleteMutation.isPending}
+        />
+      )}
+
+      {/* ── Gift receive modal ──────────────────────────────────────────── */}
+      {activeGift && user && (
+        <GiftReceiveModal
+          userId={user.id}
+          gift={activeGift}
+          onClose={() => setActiveGift(null)}
         />
       )}
 
