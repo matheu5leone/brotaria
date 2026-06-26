@@ -34,6 +34,7 @@ export function HexPot({
   moveMode = false,
   isWaterTarget = false,
   isMoveTarget = false,
+  isTrashTarget = false,
   onClick,
   onPointerDown,
   onDigComplete,
@@ -44,6 +45,7 @@ export function HexPot({
   moveMode?: boolean;
   isWaterTarget?: boolean;
   isMoveTarget?: boolean;
+  isTrashTarget?: boolean;
   onClick: (e: React.MouseEvent) => void;
   onPointerDown?: (e: React.PointerEvent) => void;
   onDigComplete?: () => void;
@@ -85,8 +87,9 @@ export function HexPot({
   // Aplicado tanto ao canteiro quanto à planta para realçar o hitbox exato.
   const waterGlow = 'drop-shadow(0 0 4px rgba(59,130,246,0.95)) drop-shadow(0 0 9px rgba(59,130,246,0.85))';
   const moveGlow  = 'drop-shadow(0 0 4px rgba(251,191,36,0.95)) drop-shadow(0 0 9px rgba(251,191,36,0.85))';
+  const trashGlow = 'drop-shadow(0 0 4px rgba(239,68,68,0.95)) drop-shadow(0 0 9px rgba(239,68,68,0.85))';
   const selectGlow = 'drop-shadow(0 0 10px rgba(201,162,39,0.85))';
-  const targetGlow = isWaterTarget ? waterGlow : isMoveTarget ? moveGlow : undefined;
+  const targetGlow = isWaterTarget ? waterGlow : isMoveTarget ? moveGlow : isTrashTarget ? trashGlow : undefined;
   // Glow do canteiro: alvo (água/mover) tem prioridade sobre seleção
   const potGlow = targetGlow ?? (isSelected ? selectGlow : undefined);
 

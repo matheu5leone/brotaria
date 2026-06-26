@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Pot } from '@/types';
-import { X, Loader2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Loader2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 
 // Ícones PNG dimensionados em `em` para escalar com o tamanho do botão (.hex-button)
 const WateringCanIcon = () => (
@@ -34,6 +34,11 @@ const WheelbarrowIcon = ({ carriedImageUrl }: { carriedImageUrl: string | null }
         style={{ position: 'absolute', left: '50%', top: '-0.45em', transform: 'translateX(-50%)', width: '1.3em', height: '1.3em', objectFit: 'contain', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.55))' }}
       />
     )}
+  </span>
+);
+const TrashIcon = () => (
+  <span className="relative inline-block" style={{ width: '2.1em', height: '2.1em' }}>
+    <Image src="/imgs/trash.png" alt="lixeira" fill className="object-contain" draggable={false} />
   </span>
 );
 const SpinnerIcon = () => (
@@ -160,8 +165,12 @@ export default function Garden() {
   const [wateringTargetPotId, setWateringTargetPotId] = useState<string | null>(null);
   const [wateringError, setWateringError]           = useState<string | null>(null);
   // Remove spot mode
-  const [removeMode, setRemoveMode]                 = useState(false);
   const [removeError, setRemoveError]               = useState<string | null>(null);
+  // Lixeira (remover planta / canteiro) — drag-and-drop estilo regador
+  const [trashDrag, setTrashDrag]                   = useState(false);
+  const [trashDragPos, setTrashDragPos]             = useState<{ x: number; y: number } | null>(null);
+  const [trashTargetPotId, setTrashTargetPotId]     = useState<string | null>(null);
+  const [confirmDeletePot, setConfirmDeletePot]     = useState<Pot | null>(null);
   // Carrinho de mão (mover plantas) — drag-and-drop estilo regador
   // carried = planta atualmente "no carrinho" (recolhida, aguardando replante)
   const [carried, setCarried]                       = useState<{ plantId: string; fromPotId: string; imageUrl: string | null } | null>(null);
@@ -341,13 +350,67 @@ export default function Garden() {
     captureEl.addEventListener('pointercancel', onUp);
   }, [canWaterToday, waterMutation.isPending, findPotAtPoint, handleWaterPot]);
 
-  // Remove spot: click no pot vazio
+  // Remove canteiro vazio
   const handleRemovePot = useCallback(async (pot: Pot) => {
     if (pot.plant_id) { setRemoveError('Remova a planta antes de apagar o canteiro.'); return; }
     setRemoveError(null);
     try { await removePotMutation.mutateAsync({ potId: pot.id }); }
     catch (err: unknown) { setRemoveError((err as Error).message); }
   }, [removePotMutation]);
+
+  // Drag da lixeira (inicia no pointerdown do botão), estilo regador.
+  // - Solta em pot COM planta → abre confirmação de exclusão da planta
+  // - Solta em pot SEM planta → remove o canteiro vazio direto
+  const handleTrashPointerDown = useCallback((e: React.PointerEvent) => {
+    if (deleteMutation.isPending || removePotMutation.isPending) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const captureEl = e.currentTarget as HTMLElement;
+    const pointerId = e.pointerId;
+    try { captureEl.setPointerCapture(pointerId); } catch {}
+
+    setTrashDrag(true);
+    setTrashDragPos({ x: e.clientX, y: e.clientY });
+    setTrashTargetPotId(null);
+    setRemoveError(null);
+    setShovelActive(false);
+
+    let active = true;
+
+    const onMove = (ev: PointerEvent) => {
+      if (!active) return;
+      setTrashDragPos({ x: ev.clientX, y: ev.clientY });
+      const pot = findPotAtPoint(ev.clientX, ev.clientY);
+      setTrashTargetPotId(pot ? pot.id : null);
+    };
+
+    const onUp = (ev: PointerEvent) => {
+      active = false;
+      setTrashDrag(false);
+      setTrashDragPos(null);
+      setTrashTargetPotId(null);
+      captureEl.removeEventListener('pointermove', onMove);
+      captureEl.removeEventListener('pointerup', onUp);
+      captureEl.removeEventListener('pointercancel', onUp);
+      try { captureEl.releasePointerCapture(pointerId); } catch {}
+
+      const pot = findPotAtPoint(ev.clientX, ev.clientY);
+      if (!pot) return;
+      suppressClickRef.current = true;
+      setTimeout(() => { suppressClickRef.current = false; }, 400);
+
+      if (pot.plant_id) {
+        setConfirmDeletePot(pot); // confirma antes de excluir a planta
+      } else {
+        handleRemovePot(pot); // canteiro vazio: remove direto
+      }
+    };
+
+    captureEl.addEventListener('pointermove', onMove);
+    captureEl.addEventListener('pointerup', onUp);
+    captureEl.addEventListener('pointercancel', onUp);
+  }, [deleteMutation.isPending, removePotMutation.isPending, findPotAtPoint, handleRemovePot]);
 
   // Move plant drag via Pointer Events
   // Drag do carrinho de mão (inicia no pointerdown do botão), estilo regador.
@@ -426,9 +489,7 @@ export default function Garden() {
   const handlePotClick = (pot: Pot) => async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (suppressClickRef.current) return; // ignora clique sintético pós-rega
-    if (wateringDrag || barrowDrag) return; // drag cuida da rega/carrinho
-
-    if (removeMode) { await handleRemovePot(pot); return; }
+    if (wateringDrag || barrowDrag || trashDrag) return; // drag cuida das ferramentas
 
     if (shovelActive) { await digAt(e); return; }
 
@@ -466,17 +527,25 @@ export default function Garden() {
 
   const handleRemover = async () => {
     if (!selectedPot?.plant_id) return;
-    if (!window.confirm('Remover esta planta? Esta ação não pode ser desfeita e você perderá o DNA único dela.')) return;
+    setConfirmDeletePot(selectedPot); // usa o diálogo de confirmação estilizado
+  };
+
+  // Confirmação da lixeira / card: exclui a planta do pot pendente
+  const handleConfirmDelete = async () => {
+    const pot = confirmDeletePot;
+    if (!pot?.plant_id) { setConfirmDeletePot(null); return; }
     try {
-      await deleteMutation.mutateAsync({ plantId: selectedPot.plant_id, potId: selectedPot.id });
-      setSelectedPotId(null);
+      await deleteMutation.mutateAsync({ plantId: pot.plant_id, potId: pot.id });
+      if (selectedPotId === pot.id) setSelectedPotId(null);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Erro ao excluir planta.');
+      setRemoveError(err instanceof Error ? err.message : 'Erro ao excluir planta.');
+    } finally {
+      setConfirmDeletePot(null);
     }
   };
 
   const closeAllModes = () => {
-    setShovelActive(false); setRemoveMode(false); setInventoryOpen(false);
+    setShovelActive(false); setInventoryOpen(false);
   };
 
   const toggleShovel = (e: React.MouseEvent) => {
@@ -485,13 +554,6 @@ export default function Garden() {
     const next = !shovelActive;
     closeAllModes(); setShovelActive(next);
     setShovelError(null); setSelectedPotId(null);
-  };
-
-  const toggleRemoveMode = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const next = !removeMode;
-    closeAllModes(); setRemoveMode(next);
-    setRemoveError(null);
   };
 
   const toggleInventory = (e: React.MouseEvent) => {
@@ -505,11 +567,11 @@ export default function Garden() {
     activePointers.current.add(e.pointerId);
     // Cancela pan se 2º dedo entrar (será pinch)
     if (activePointers.current.size > 1) { panPointer.current = null; return; }
-    if (shovelActive || wateringDrag || barrowDrag || removeMode || wrappingMode) return;
+    if (shovelActive || wateringDrag || barrowDrag || trashDrag || wrappingMode) return;
     panPointer.current = { id: e.pointerId, startX: e.clientX, startY: e.clientY, panX: panRef.current.x, panY: panRef.current.y };
     hasPanned.current = false;
     (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
-  }, [shovelActive, wateringDrag, barrowDrag, removeMode, wrappingMode]);
+  }, [shovelActive, wateringDrag, barrowDrag, trashDrag, wrappingMode]);
 
   const handleCanvasPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!panPointer.current || panPointer.current.id !== e.pointerId) return;
@@ -705,6 +767,7 @@ export default function Garden() {
                 isStressed={stressedPotIds.has(pot.id)}
                 isWaterTarget={wateringDrag && wateringTargetPotId === pot.id}
                 isMoveTarget={barrowDrag && barrowTargetPotId === pot.id}
+                isTrashTarget={trashDrag && trashTargetPotId === pot.id}
                 onClick={handlePotClick(pot)}
                 onDigComplete={handleDigComplete}
               />
@@ -796,6 +859,16 @@ export default function Garden() {
         </div>
       )}
 
+      {/* ── Trash cursor (fixed) ─────────────────────────────────────────── */}
+      {trashDrag && trashDragPos && (
+        <div
+          className="fixed pointer-events-none z-[9999] select-none"
+          style={{ left: trashDragPos.x - 26, top: trashDragPos.y - 30, width: 52, height: 52, filter: 'drop-shadow(0 2px 6px rgba(239,68,68,0.6))' }}
+        >
+          <Image src="/imgs/trash.png" alt="lixeira" width={52} height={52} className="object-contain" draggable={false} />
+        </div>
+      )}
+
       {/* ── Inventory panel ──────────────────────────────────────────────── */}
       {!wrappingMode && (
         <InventoryPanel
@@ -824,7 +897,7 @@ export default function Garden() {
             </div>
           )}
           {shovelActive  && <div className="text-xs px-3 py-1 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: 'var(--color-text-light)', border: '1px solid rgba(92,58,30,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>Clique no jardim para cavar</div>}
-          {removeMode    && <div className="text-xs px-3 py-1 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>Clique num canteiro vazio para removê-lo</div>}
+          {trashDrag     && <div className="text-xs px-3 py-1 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>Solte numa planta para removê-la</div>}
           {carried       && <div className="text-xs px-3 py-1 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: '#fde68a', border: '1px solid rgba(251,191,36,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>Arraste o carrinho até um canteiro vazio para replantar</div>}
         </div>
 
@@ -878,14 +951,14 @@ export default function Garden() {
                 label="Carrinho"
                 title={carried ? 'Arraste até um canteiro vazio para replantar' : 'Arraste até uma planta para recolhê-la'}
               />
-              {/* 5 — Excluir canteiro */}
+              {/* 5 — Lixeira (remover planta / canteiro) */}
               <HexButton
-                icon="🕳️"
-                disabled={removePotMutation.isPending}
-                active={removeMode}
-                onClick={toggleRemoveMode}
-                label="Excluir"
-                title="Remover canteiro vazio do jardim"
+                icon={deleteMutation.isPending || removePotMutation.isPending ? <SpinnerIcon /> : <TrashIcon />}
+                disabled={deleteMutation.isPending || removePotMutation.isPending}
+                active={trashDrag}
+                onPointerDown={handleTrashPointerDown}
+                label="Lixeira"
+                title="Arraste até uma planta para removê-la"
               />
               {/* SEMPRE ÚLTIMO — Presente */}
               {pendingGifts.length > 0 && (
@@ -966,6 +1039,84 @@ export default function Garden() {
           if (uid) qc.invalidateQueries({ queryKey: ['garden', 'pots', uid] });
         }}
       />
+
+      {/* ── Confirmação de exclusão de planta (lixeira) ──────────────────── */}
+      {confirmDeletePot && (
+        <ConfirmDeleteModal
+          isPending={deleteMutation.isPending}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setConfirmDeletePot(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// Diálogo de confirmação de exclusão — tema grimório escuro (design.md §4.7)
+function ConfirmDeleteModal({
+  isPending, onConfirm, onCancel,
+}: {
+  isPending: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+      style={{ background: 'rgba(5,8,3,0.62)', backdropFilter: 'blur(4px)' }}
+      onClick={onCancel}
+    >
+      <div
+        className="relative flex flex-col items-center text-center px-6 py-6"
+        style={{
+          width: 'min(88vw, 340px)',
+          background: 'linear-gradient(160deg, #1c2d10, #0f1a08, #0a1205)',
+          border: '1.5px solid rgba(201,162,39,0.35)',
+          boxShadow: '0 18px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(201,162,39,0.12)',
+          borderRadius: 24,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="flex items-center justify-center mb-3"
+          style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.4)' }}
+        >
+          <Trash2 className="w-7 h-7" style={{ color: '#f87171' }} />
+        </div>
+
+        <h3
+          className="mb-1.5"
+          style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 900, color: 'var(--color-text-light)', letterSpacing: '0.02em' }}
+        >
+          Remover planta?
+        </h3>
+        <p
+          className="mb-5"
+          style={{ fontFamily: 'var(--font-body)', fontSize: 13.5, lineHeight: 1.45, color: 'rgba(232,213,160,0.7)' }}
+        >
+          Esta ação não pode ser desfeita. Você perderá o DNA único desta planta para sempre.
+        </p>
+
+        <div className="flex gap-2.5 w-full">
+          <button
+            onClick={onCancel}
+            disabled={isPending}
+            className="flex-1 py-2.5 rounded-xl font-bold transition-all active:scale-95 disabled:opacity-50"
+            style={{ fontFamily: 'var(--font-display)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-light)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(201,162,39,0.25)' }}
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isPending}
+            className="flex-1 py-2.5 rounded-xl font-bold transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
+            style={{ fontFamily: 'var(--font-display)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#fecaca', background: 'rgba(185,28,28,0.45)', border: '1px solid rgba(239,68,68,0.55)' }}
+          >
+            {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+            Remover
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
