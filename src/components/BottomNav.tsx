@@ -86,6 +86,9 @@ export function BottomNav() {
         <Trophy className="w-5 h-5" />
       </NavItem>
 
+      {/* Slot das ferramentas do jardim — preenchido via portal no landscape mobile */}
+      <div id="garden-tools-slot" className="garden-tools-slot" />
+
       {/* User avatar + logout */}
       <button
         onClick={signOut}

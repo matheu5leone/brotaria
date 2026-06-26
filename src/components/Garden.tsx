@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Pot } from '@/types';
@@ -186,6 +187,9 @@ export default function Garden() {
   const [activeGift, setActiveGift]                 = useState<PendingGift | null>(null);
   const [inventoryOpen, setInventoryOpen]           = useState(false);
   const [hudExpanded, setHudExpanded]               = useState(true); // HUD recolhível
+  // Landscape mobile: HUD vai pro footer (portal) para aproveitar o espaço
+  const [isLandscapeMobile, setIsLandscapeMobile]   = useState(false);
+  const [toolsSlot, setToolsSlot]                   = useState<HTMLElement | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef    = useRef<HTMLDivElement>(null);
@@ -652,6 +656,19 @@ export default function Garden() {
     };
   }, [clampPan]);
 
+  // ── Landscape mobile: detecta e localiza o slot do footer ─────────────────
+  useEffect(() => {
+    const mq = window.matchMedia('(orientation: landscape) and (max-height: 600px)');
+    const update = () => setIsLandscapeMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
+  useEffect(() => {
+    setToolsSlot(isLandscapeMobile ? document.getElementById('garden-tools-slot') : null);
+  }, [isLandscapeMobile]);
+
   // ── Early returns ─────────────────────────────────────────────────────────
 
   if (potsError) {
@@ -879,11 +896,10 @@ export default function Garden() {
         />
       )}
 
-      {/* ── HUD Toolbar unificado ─────────────────────────────────────────── */}
-      <div
-        className="hud-pos absolute right-4 z-20"
-        onClick={(e) => e.stopPropagation()}
-      >
+      {/* ── HUD Toolbar unificado — flutuante OU no footer (landscape mobile) ── */}
+      {(() => {
+        const hudInner = (
+          <>
         <div className="absolute bottom-full right-0 mb-2 flex flex-col items-end gap-1.5">
           {(shovelError || wateringError || removeError || moveError) && (
             <div
@@ -974,8 +990,22 @@ export default function Garden() {
               )}
             </div>
           </div>
-        </div>
-      </div>
+          </div>
+          </>
+        );
+        return isLandscapeMobile && toolsSlot
+          ? createPortal(
+              <div className="hud-in-footer relative flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+                {hudInner}
+              </div>,
+              toolsSlot,
+            )
+          : (
+            <div className="hud-pos absolute right-4 z-20" onClick={(e) => e.stopPropagation()}>
+              {hudInner}
+            </div>
+          );
+      })()}
 
       {/* ── Wrap mode toolbar ────────────────────────────────────────────── */}
       {wrappingMode && (

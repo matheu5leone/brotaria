@@ -110,173 +110,174 @@ function VersionCard({
   const canWater = isLast && plant.hydration_status === 'waiting_water';
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Plant image */}
-      <div
-        className="relative flex-shrink-0 mx-auto rounded-2xl overflow-hidden"
-        style={{
-          width: '75%',
-          aspectRatio: '1',
-          background: 'radial-gradient(ellipse at 40% 30%, rgba(30,50,15,0.8), rgba(5,10,3,0.95))',
-          border: '1px solid rgba(92,58,30,0.3)',
-        }}
-      >
-        {version.image_url ? (
-          <RarityEffect rarity={rarity} alwaysVisible>
-            <Image
-              src={version.image_url}
-              alt={version.stage?.name ?? 'Planta'}
-              fill
-              className="object-contain p-3"
-              draggable={false}
-            />
-          </RarityEffect>
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="w-12 h-12 rounded-full animate-pulse" style={{ background: 'rgba(92,58,30,0.3)' }} />
-          </div>
-        )}
-      </div>
-
-      {/* Name + description */}
-      <div className="mt-3 px-1 text-center">
+    <div className="flex gap-4 h-full items-stretch">
+      {/* ══ ESQUERDA — maioria das informações ══ */}
+      <div className="flex-1 flex flex-col min-w-0">
         <h2
-          className="text-lg font-black mb-1"
+          className="text-lg font-black mb-1 leading-tight"
           style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-light)' }}
         >
           {version.stage?.name ?? 'Planta'} {level}
         </h2>
         <p
-          className="text-xs leading-relaxed"
+          className="text-xs leading-relaxed mb-3"
           style={{ fontFamily: 'var(--font-caption)', fontStyle: 'italic', color: 'rgba(232,213,160,0.6)' }}
         >
           {description}
         </p>
-      </div>
 
-      {/* Meta chips */}
-      <div className="mt-3 flex gap-1.5 justify-center px-1">
-        {[
-          { label: 'Tipo',       value: RARITY_CONFIG[rarity]?.label ?? rarity },
-          { label: 'Plantado em', value: formatDate(version.created_at) },
-          { label: 'Ambiente',   value: BIOME_LABEL[biome] ?? biome },
-        ].map(({ label, value }) => (
-          <div
-            key={label}
-            className="flex-1 rounded-xl px-1.5 py-1.5 text-center min-w-0"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-          >
+        {/* Meta chips — empilhados */}
+        <div className="flex flex-col gap-1.5 mb-3">
+          {[
+            { label: 'Tipo',        value: RARITY_CONFIG[rarity]?.label ?? rarity },
+            { label: 'Plantado em', value: formatDate(version.created_at) },
+            { label: 'Ambiente',    value: BIOME_LABEL[biome] ?? biome },
+          ].map(({ label, value }) => (
             <div
-              className="text-[7px] font-black uppercase tracking-widest mb-0.5 truncate"
+              key={label}
+              className="flex items-center justify-between rounded-lg px-2.5 py-1.5"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              <span
+                className="text-[8px] font-black uppercase tracking-widest"
+                style={{ fontFamily: 'var(--font-display)', color: 'rgba(232,213,160,0.45)' }}
+              >
+                {label}
+              </span>
+              <span
+                className="text-[10px] font-bold truncate ml-2"
+                style={{ fontFamily: 'var(--font-body)', color: 'rgba(232,213,160,0.9)' }}
+              >
+                {value}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Progress */}
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-1">
+            <span
+              className="text-[8px] font-black uppercase tracking-widest"
               style={{ fontFamily: 'var(--font-display)', color: 'rgba(232,213,160,0.45)' }}
             >
-              {label}
-            </div>
-            <div
-              className="text-[9px] font-bold truncate"
-              style={{ fontFamily: 'var(--font-body)', color: 'rgba(232,213,160,0.85)' }}
+              Crescimento
+            </span>
+            <span
+              className="text-[9px] font-bold"
+              style={{ fontFamily: 'var(--font-display)', color: 'rgba(232,213,160,0.7)' }}
             >
-              {value}
-            </div>
+              Nível {level}
+            </span>
           </div>
-        ))}
-      </div>
-
-      {/* Progress */}
-      <div className="mt-3 px-1">
-        <div className="flex items-center justify-between mb-1">
-          <span
-            className="text-[8px] font-black uppercase tracking-widest"
-            style={{ fontFamily: 'var(--font-display)', color: 'rgba(232,213,160,0.45)' }}
-          >
-            Progresso de crescimento
-          </span>
-          <span
-            className="text-[9px] font-bold"
-            style={{ fontFamily: 'var(--font-display)', color: 'rgba(232,213,160,0.7)' }}
-          >
-            Nível {level}
-          </span>
-        </div>
-        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-          <div
-            className="h-full rounded-full transition-all duration-700"
-            style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg, #2d7a2d, #4ade80)' }}
-          />
-        </div>
-        <div className="mt-1 text-right">
-          {isLast ? (
-            canWater ? (
-              <span className="text-[8px] font-bold" style={{ color: '#fbbf24', fontFamily: 'var(--font-display)' }}>
-                Pode regar agora! 💧
-              </span>
+          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg, #2d7a2d, #4ade80)' }}
+            />
+          </div>
+          <div className="mt-1 text-right">
+            {isLast ? (
+              canWater ? (
+                <span className="text-[8px] font-bold" style={{ color: '#fbbf24', fontFamily: 'var(--font-display)' }}>
+                  Pode regar agora! 💧
+                </span>
+              ) : (
+                <span className="text-[8px]" style={{ color: 'rgba(232,213,160,0.4)', fontFamily: 'var(--font-caption)' }}>
+                  Próximo nível em: {formatNextWater(plant.next_water_needed_at)}
+                </span>
+              )
             ) : (
               <span className="text-[8px]" style={{ color: 'rgba(232,213,160,0.4)', fontFamily: 'var(--font-caption)' }}>
-                Próximo nível em: {formatNextWater(plant.next_water_needed_at)}
+                Fase concluída ✓
               </span>
-            )
-          ) : (
-            <span className="text-[8px]" style={{ color: 'rgba(232,213,160,0.4)', fontFamily: 'var(--font-caption)' }}>
-              Fase concluída ✓
-            </span>
-          )}
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Rewards */}
-      <div className="mt-3 px-1">
-        <span
-          className="block text-[8px] font-black uppercase tracking-widest mb-1.5"
-          style={{ fontFamily: 'var(--font-display)', color: 'rgba(232,213,160,0.45)' }}
-        >
-          Recompensas
-        </span>
-        <div className="flex gap-2">
+        {/* Rewards */}
+        <div className="flex gap-2 mb-3">
           <div
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold"
             style={{ background: 'rgba(201,162,39,0.12)', color: 'var(--color-gold)', border: '1px solid rgba(201,162,39,0.2)', fontFamily: 'var(--font-display)' }}
           >
-            🍃 {calcPlantScore(version.dna_snapshot, version.stage?.order_index ?? 0)} herbo
+            🍃 {calcPlantScore(version.dna_snapshot, version.stage?.order_index ?? 0)}
           </div>
           <div
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold"
             style={{ background: 'rgba(59,130,246,0.1)', color: '#93c5fd', border: '1px solid rgba(59,130,246,0.15)', fontFamily: 'var(--font-display)' }}
           >
             💧 +{GAME.XP_PER_EVOLUTION} XP
           </div>
         </div>
+
+        {/* Action buttons */}
+        <div className="mt-auto flex gap-2">
+          <button
+            onClick={onRemover}
+            disabled={isDeletePending}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold text-xs transition-all active:scale-95 disabled:opacity-40"
+            style={{ fontFamily: 'var(--font-display)', background: 'rgba(127,29,29,0.3)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.25)' }}
+          >
+            <Trash2 className={`w-4 h-4 ${isDeletePending ? 'animate-spin' : ''}`} />
+            Remover
+          </button>
+          <button
+            onClick={onRegar}
+            disabled={isWaterPending || !canWater}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold text-xs transition-all active:scale-95 disabled:opacity-40"
+            style={{
+              fontFamily: 'var(--font-display)',
+              background: canWater ? 'linear-gradient(135deg, #166534, #15803d)' : 'rgba(255,255,255,0.05)',
+              color: canWater ? '#bbf7d0' : 'rgba(232,213,160,0.35)',
+              border: `1px solid ${canWater ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.08)'}`,
+            }}
+          >
+            <Droplets className={`w-4 h-4 ${isWaterPending ? 'animate-spin' : ''}`} />
+            Regar
+          </button>
+        </div>
       </div>
 
-      {/* Action buttons */}
-      <div className="mt-auto pt-4 flex gap-2">
-        <button
-          onClick={onRemover}
-          disabled={isDeletePending}
-          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all active:scale-95 disabled:opacity-40"
+      {/* Divisória dourada central */}
+      <div
+        className="w-px flex-shrink-0 self-stretch"
+        style={{ background: 'linear-gradient(180deg, transparent, rgba(201,162,39,0.4), transparent)' }}
+      />
+
+      {/* ══ DIREITA — foto + algumas infos ══ */}
+      <div className="flex flex-col items-center flex-shrink-0" style={{ width: '42%' }}>
+        <div className="mb-2"><RarityBadge rarity={rarity} /></div>
+        <div
+          className="relative w-full rounded-2xl overflow-hidden"
           style={{
-            fontFamily: 'var(--font-display)',
-            background: 'rgba(127,29,29,0.3)',
-            color: '#fca5a5',
-            border: '1px solid rgba(239,68,68,0.25)',
+            aspectRatio: '1',
+            background: 'radial-gradient(ellipse at 40% 30%, rgba(30,50,15,0.8), rgba(5,10,3,0.95))',
+            border: '1px solid rgba(92,58,30,0.3)',
           }}
         >
-          <Trash2 className={`w-4 h-4 ${isDeletePending ? 'animate-spin' : ''}`} />
-          Remover
-        </button>
-        <button
-          onClick={onRegar}
-          disabled={isWaterPending || !canWater}
-          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all active:scale-95 disabled:opacity-40"
-          style={{
-            fontFamily: 'var(--font-display)',
-            background: canWater ? 'linear-gradient(135deg, #166534, #15803d)' : 'rgba(255,255,255,0.05)',
-            color: canWater ? '#bbf7d0' : 'rgba(232,213,160,0.35)',
-            border: `1px solid ${canWater ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.08)'}`,
-          }}
+          {version.image_url ? (
+            <RarityEffect rarity={rarity} alwaysVisible>
+              <Image
+                src={version.image_url}
+                alt={version.stage?.name ?? 'Planta'}
+                fill
+                className="object-contain p-2"
+                draggable={false}
+              />
+            </RarityEffect>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full animate-pulse" style={{ background: 'rgba(92,58,30,0.3)' }} />
+            </div>
+          )}
+        </div>
+        <div
+          className="mt-2 text-center text-[10px] font-bold leading-tight"
+          style={{ fontFamily: 'var(--font-display)', color: 'rgba(232,213,160,0.85)' }}
         >
-          <Droplets className={`w-4 h-4 ${isWaterPending ? 'animate-spin' : ''}`} />
-          Regar
-        </button>
+          {version.stage?.name ?? 'Planta'} {level}
+        </div>
       </div>
     </div>
   );
@@ -342,12 +343,12 @@ export function PlantHistoryModal({
         </button>
       )}
 
-      {/* Card */}
+      {/* Card — modal central dividido ao meio */}
       <div
-        className="relative flex flex-col mx-8 p-5 rounded-3xl overflow-hidden"
+        className="relative flex flex-col mx-8 p-5 pt-10 rounded-3xl overflow-hidden"
         style={{
-          width: 'min(88vw, 360px)',
-          maxHeight: '90vh',
+          width: 'min(94vw, 600px)',
+          maxHeight: '92vh',
           overflowY: 'auto',
           background: 'linear-gradient(160deg, #1c2d10 0%, #0f1a08 60%, #0a1205 100%)',
           border: '1.5px solid rgba(201,162,39,0.35)',
@@ -361,17 +362,14 @@ export function PlantHistoryModal({
           style={{ background: 'linear-gradient(90deg, transparent, var(--color-gold), transparent)' }}
         />
 
-        {/* Header: rarity badge + close */}
-        <div className="flex items-center justify-between mb-4 flex-shrink-0">
-          <RarityBadge rarity={activeRarity} />
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-full transition-all active:scale-90 hover:bg-white/10"
-            style={{ color: 'rgba(232,213,160,0.5)' }}
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        {/* Close button — canto superior direito */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 z-10 p-1.5 rounded-full transition-all active:scale-90 hover:bg-white/10"
+          style={{ color: 'rgba(232,213,160,0.5)' }}
+        >
+          <X className="w-5 h-5" />
+        </button>
 
         {/* Content */}
         {isPending ? (
