@@ -10,7 +10,7 @@ const WateringCanIcon = () => (
   <Image src="/imgs/watering-can.png" alt="regador" width={58} height={58} className="object-contain" draggable={false} />
 );
 const ShovelIcon = () => (
-  <Image src="/imgs/shovel.png" alt="pá" width={52} height={58} className="object-contain" draggable={false} />
+  <Image src="/imgs/shovel.png" alt="pá" width={52} height={58} className="object-contain" draggable={false} style={{ transform: 'rotate(-35deg)' }} />
 );
 const SpinnerIcon = () => <Loader2 className="w-9 h-9 animate-spin text-amber-200" />;
 import CoinPurchaseModal from './CoinPurchaseModal';
