@@ -44,20 +44,22 @@ export default function CoinPurchaseModal({
     setBusyPackage(packageId);
     setError(null);
     try {
-      const res = await authFetch('/api/coins/purchase', {
+      // Cria a sessão de checkout no servidor e redireciona para a página do Stripe.
+      // As moedas são creditadas pelo webhook após o pagamento confirmado.
+      const res = await authFetch('/api/coins/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ packageId }),
       });
       const data = await res.json();
-      if (data.success) {
-        setCoins(data.coins);
+      if (data.url) {
+        window.location.href = data.url; // → página de pagamento do Stripe
       } else {
-        setError(data.error || 'Falha ao comprar moedas');
+        setError(data.error || 'Falha ao iniciar pagamento');
+        setBusyPackage(null);
       }
     } catch {
-      setError('Falha ao comprar moedas');
-    } finally {
+      setError('Falha ao iniciar pagamento');
       setBusyPackage(null);
     }
   };

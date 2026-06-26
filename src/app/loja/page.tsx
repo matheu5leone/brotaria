@@ -19,12 +19,29 @@ export default function LojaPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [buyingId, setBuyingId] = useState<string | null>(null);
+  const [banner, setBanner] = useState<{ type: 'success' | 'cancel'; text: string } | null>(null);
 
   useEffect(() => {
     if (!isLoading && !user) {
       router.push('/login');
     }
   }, [user, isLoading, router]);
+
+  // Retorno do Stripe Checkout: ?success=<session_id> ou ?canceled=1
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('success')) {
+      setBanner({ type: 'success', text: 'Pagamento concluído! Suas moedas chegam em instantes.' });
+      // Webhook credita as moedas; revalidamos o saldo algumas vezes para refletir logo
+      const id = setInterval(() => refresh(), 2000);
+      setTimeout(() => clearInterval(id), 12000);
+      window.history.replaceState({}, '', '/loja');
+    } else if (params.has('canceled')) {
+      setBanner({ type: 'cancel', text: 'Pagamento cancelado. Nenhuma cobrança foi feita.' });
+      window.history.replaceState({}, '', '/loja');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const buyProduct = async (productId: string, costCoins: number) => {
     if (!user || buyingId) return;
@@ -74,6 +91,20 @@ export default function LojaPage() {
     <AppShell>
       <div className="p-6 md:p-8">
         <div className="max-w-4xl mx-auto">
+          {/* Banner de retorno do Stripe */}
+          {banner && (
+            <div
+              className={`mb-6 flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-sm font-medium ${
+                banner.type === 'success'
+                  ? 'bg-green-50 border border-green-200 text-green-700'
+                  : 'bg-stone-100 border border-stone-200 text-stone-600'
+              }`}
+            >
+              <span>{banner.type === 'success' ? '✅ ' : 'ℹ️ '}{banner.text}</span>
+              <button onClick={() => setBanner(null)} className="opacity-60 hover:opacity-100">✕</button>
+            </div>
+          )}
+
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>

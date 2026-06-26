@@ -10,12 +10,16 @@
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. PACOTES DE MOEDAS  (R$ → moedas)
-//    Preparado para Stripe: adicione stripe_price_id quando configurar.
+//
+//    Integração Stripe: o preço (price_brl) é enviado ao Stripe como
+//    `price_data` inline na criação do Checkout Session — NÃO é preciso
+//    pré-criar produtos/preços no dashboard. Este arquivo é a única fonte
+//    de verdade dos preços. Para alterar valores, edite apenas aqui.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface CoinPackage {
   id: string;
-  /** Preço em reais (BRL). */
+  /** Preço em reais (BRL). Enviado ao Stripe como unit_amount (× 100 centavos). */
   price_brl: number;
   /** Moedas creditadas ao comprar este pacote. */
   coins: number;
@@ -23,12 +27,6 @@ export interface CoinPackage {
   label: string;
   /** Destaque visual (ex.: "mais popular"). */
   highlight?: boolean;
-  /**
-   * Stripe Price ID — preencher quando a integração Stripe estiver ativa.
-   * Formato: price_xxxxxxxxxxxxxxxxxxxx
-   * @see https://dashboard.stripe.com/prices
-   */
-  stripe_price_id?: string;
 }
 
 export const COIN_PACKAGES: CoinPackage[] = [
@@ -36,23 +34,20 @@ export const COIN_PACKAGES: CoinPackage[] = [
     id: 'pkg_10',
     price_brl: 10,
     coins: 10,
-    label: 'Broto',
-    // stripe_price_id: 'price_xxx',
+    label: 'Saco de moedas',
   },
   {
     id: 'pkg_50',
     price_brl: 50,
     coins: 65,          // ← bônus de +15 (30% extra) para incentivar
-    label: 'Florescendo',
+    label: 'Cesta de moedas',
     highlight: true,
-    // stripe_price_id: 'price_xxx',
   },
   {
     id: 'pkg_100',
     price_brl: 100,
     coins: 150,         // ← bônus de +50 (50% extra) para incentivar
-    label: 'Jardim Pleno',
-    // stripe_price_id: 'price_xxx',
+    label: 'Baú de moedas',
   },
 ];
 

@@ -16,10 +16,11 @@ import type { NextRequest } from 'next/server';
 const counts = new Map<string, { count: number; resetAt: number }>();
 
 const LIMITS: Record<string, number> = {
-  '/api/users/search': 20,   // enumeração de nicknames
-  '/api/gifts/send':   5,    // spam de presentes
-  '/api/store/buy':    10,   // compras
-  '/api/coins/purchase': 5,  // compras de moedas
+  '/api/users/search': 20,         // enumeração de nicknames
+  '/api/gifts/send':   5,          // spam de presentes
+  '/api/store/buy':    10,         // compras
+  '/api/coins/purchase': 5,        // compras de moedas (legado)
+  '/api/coins/create-checkout': 8, // criação de sessões Stripe
 };
 
 const WINDOW_MS = 60_000;
@@ -68,10 +69,12 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
+  // NÃO incluir /api/webhooks/stripe — o Stripe precisa de acesso livre.
   matcher: [
     '/api/users/search',
     '/api/gifts/send',
     '/api/store/buy',
     '/api/coins/purchase',
+    '/api/coins/create-checkout',
   ],
 };
