@@ -177,6 +177,27 @@ html, body {
   100% { transform: translateY(108vh) rotate(320deg) translateX(6px);   opacity: 0; }
 }
 
+/* ---------- HUD Toolbar — direção responsiva ---------- */
+
+/*
+ * Portrait mobile  → coluna (de baixo pra cima: flex-col-reverse)
+ * Landscape mobile → linha (flex-row)
+ * Desktop (md+)   → linha (flex-row)
+ */
+.hub-toolbar {
+  display: flex;
+  flex-direction: column-reverse; /* portrait: primeiro item embaixo */
+  align-items: center;
+  gap: 6px;
+}
+
+@media (min-width: 768px), (orientation: landscape) {
+  .hub-toolbar {
+    flex-direction: row; /* landscape/desktop: primeiro item à esquerda */
+    align-items: flex-end;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .falling-leaf { display: none !important; }
 }

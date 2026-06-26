@@ -135,6 +135,7 @@ export default function Garden() {
   const [wrappingMode, setWrappingMode]             = useState(false);
   const [wrapError, setWrapError]                   = useState<string | null>(null);
   const [activeGift, setActiveGift]                 = useState<PendingGift | null>(null);
+  const [inventoryOpen, setInventoryOpen]           = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -358,24 +359,35 @@ export default function Garden() {
     }
   };
 
+  const closeAllModes = () => {
+    setShovelActive(false); setRemoveMode(false); setMoveMode(false); setInventoryOpen(false);
+  };
+
   const toggleShovel = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!shovelReady) return;
-    setShovelActive(v => !v);
-    setShovelError(null); setRemoveMode(false); setMoveMode(false);
-    setSelectedPotId(null);
+    const next = !shovelActive;
+    closeAllModes(); setShovelActive(next);
+    setShovelError(null); setSelectedPotId(null);
   };
 
   const toggleRemoveMode = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setRemoveMode(v => !v);
-    setRemoveError(null); setShovelActive(false); setMoveMode(false);
+    const next = !removeMode;
+    closeAllModes(); setRemoveMode(next);
+    setRemoveError(null);
   };
 
   const toggleMoveMode = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setMoveMode(v => !v);
-    setMoveError(null); setShovelActive(false); setRemoveMode(false);
+    const next = !moveMode;
+    closeAllModes(); setMoveMode(next);
+    setMoveError(null);
+  };
+
+  const toggleInventory = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setInventoryOpen(v => !v);
   };
 
   // ── Early returns ─────────────────────────────────────────────────────────
@@ -601,110 +613,110 @@ export default function Garden() {
 
       {/* ── Inventory panel ──────────────────────────────────────────────── */}
       {!wrappingMode && (
-        <InventoryPanel userId={user?.id} onWrapMode={() => setWrappingMode(true)} />
+        <InventoryPanel
+          userId={user?.id}
+          onWrapMode={() => setWrappingMode(true)}
+          open={inventoryOpen}
+          onClose={() => setInventoryOpen(false)}
+        />
       )}
 
-      {/* ── Toolbar (regador + pá) ────────────────────────────────────────── */}
+      {/* ── HUD Toolbar unificado ─────────────────────────────────────────── */}
       <div
-        className="absolute bottom-4 right-4 z-20 flex flex-col items-end gap-3"
-        style={{ paddingBottom: '24px' }}
+        className="absolute bottom-4 right-4 z-20"
+        style={{ paddingBottom: '20px' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Erros */}
-        {(shovelError || wateringError || removeError || moveError) && (
-          <div
-            className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg shadow"
-            style={{
-              background: 'rgba(139,40,40,0.9)',
-              color: '#fecaca',
-              border: '1px solid rgba(220,80,80,0.4)',
-              fontFamily: 'var(--font-body)',
-            }}
-          >
-            <span>{shovelError ?? wateringError ?? removeError ?? moveError}</span>
-            <button onClick={() => { setShovelError(null); setWateringError(null); setRemoveError(null); setMoveError(null); }}>
-              <X className="w-3 h-3" />
-            </button>
-          </div>
-        )}
-
-        {/* Hints de modo ativo */}
-        {shovelActive && (
-          <div className="text-xs px-3 py-1.5 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: 'var(--color-text-light)', border: '1px solid rgba(92,58,30,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
-            Clique no jardim para cavar
-          </div>
-        )}
-        {removeMode && (
-          <div className="text-xs px-3 py-1.5 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
-            Clique num canteiro vazio para removê-lo
-          </div>
-        )}
-        {moveMode && (
-          <div className="text-xs px-3 py-1.5 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: '#fde68a', border: '1px solid rgba(251,191,36,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
-            Arraste uma planta para outro canteiro
-          </div>
-        )}
-
-        {/* Botões lado a lado */}
-        <div className="flex items-end gap-3">
-          {/* Presente pendente — aparece quando há presentes */}
-          {pendingGifts.length > 0 && (
-            <HexButton
-              icon={<span style={{ animation: 'gift-shake 1.2s ease-in-out infinite', display: 'inline-block' }}>🎁</span>}
-              label="Presente"
-              badge={pendingGifts.length}
-              active={false}
-              onClick={(e) => { e.stopPropagation(); setActiveGift(pendingGifts[0]); }}
-              title={`${pendingGifts.length} presente(s) aguardando`}
-            />
+        {/* Mensagens de erro e hint — acima do toolbar */}
+        <div className="flex flex-col items-end gap-1.5 mb-2">
+          {(shovelError || wateringError || removeError || moveError) && (
+            <div
+              className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg shadow"
+              style={{ background: 'rgba(139,40,40,0.9)', color: '#fecaca', border: '1px solid rgba(220,80,80,0.4)', fontFamily: 'var(--font-body)' }}
+            >
+              <span>{shovelError ?? wateringError ?? removeError ?? moveError}</span>
+              <button onClick={() => { setShovelError(null); setWateringError(null); setRemoveError(null); setMoveError(null); }}>
+                <X className="w-3 h-3" />
+              </button>
+            </div>
           )}
+          {shovelActive  && <div className="text-xs px-3 py-1 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: 'var(--color-text-light)', border: '1px solid rgba(92,58,30,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>Clique no jardim para cavar</div>}
+          {removeMode    && <div className="text-xs px-3 py-1 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>Clique num canteiro vazio para removê-lo</div>}
+          {moveMode      && <div className="text-xs px-3 py-1 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: '#fde68a', border: '1px solid rgba(251,191,36,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>Arraste uma planta para outro canteiro</div>}
+        </div>
 
-          {/* Remover canteiro */}
+        {/*
+          Array de botões — ordem: [mochila, pá, regador, mover, excluir, ...extras, presente]
+          .hub-toolbar aplica:
+            portrait  → flex-col-reverse  (índice 0 fica embaixo = mochila)
+            landscape/desktop → flex-row  (índice 0 fica à esquerda = mochila)
+          O "presente" é o último item do array → sempre no topo/direita
+        */}
+        <div className="hub-toolbar">
+
+          {/* 1 — Mochila */}
           <HexButton
-            icon="🕳️"
-            label={removeMode ? 'Cancelar' : 'Remover'}
-            disabled={removePotMutation.isPending}
-            active={removeMode}
-            onClick={toggleRemoveMode}
-            title="Remover canteiro vazio do jardim"
+            icon="🎒"
+            label="Mochila"
+            badge={undefined}
+            active={inventoryOpen}
+            onClick={toggleInventory}
+            title="Abrir mochila"
           />
 
-          {/* Mover planta */}
-          <HexButton
-            icon={movePlantMutation.isPending ? '⏳' : '🔀'}
-            label={moveMode ? 'Cancelar' : 'Mover'}
-            disabled={movePlantMutation.isPending}
-            active={moveMode}
-            onClick={toggleMoveMode}
-            title="Arrastar planta para outro canteiro"
-          />
-
-          {/* Regador — drag-and-drop via onPointerDown */}
-          <HexButton
-            icon={waterMutation.isPending ? <SpinnerIcon /> : <WateringCanIcon />}
-            label={waterMutation.isPending ? 'Regando...' : `${watersRemaining}/10`}
-            badge={watersRemaining}
-            disabled={!canWaterToday || waterMutation.isPending}
-            active={wateringDrag}
-            onPointerDown={handleWateringPointerDown}
-            title={canWaterToday ? 'Arraste até uma planta para regar' : 'Limite diário atingido'}
-          />
-
-          {/* Pá */}
+          {/* 2 — Pá */}
           <HexButton
             icon={digMutation.isPending ? <SpinnerIcon /> : <ShovelIcon />}
-            label={
-              digMutation.isPending ? 'Cavando...'
-              : shovelActive ? 'Cancelar'
-              : shovelReady ? 'Pá'
-              : formatCooldown(shovelCooldownMs)
-            }
             badge={!shovelReady ? formatCooldown(shovelCooldownMs) : undefined}
             disabled={!shovelReady || digMutation.isPending}
             active={shovelActive}
             onClick={toggleShovel}
+            label="Pá"
             title={shovelReady ? 'Usar pá para cavar' : `Recarregando: ${formatCooldown(shovelCooldownMs)}`}
           />
+
+          {/* 3 — Regador */}
+          <HexButton
+            icon={waterMutation.isPending ? <SpinnerIcon /> : <WateringCanIcon />}
+            badge={watersRemaining}
+            disabled={!canWaterToday || waterMutation.isPending}
+            active={wateringDrag}
+            onPointerDown={handleWateringPointerDown}
+            label="Regador"
+            title={canWaterToday ? 'Arraste até uma planta para regar' : 'Limite diário atingido'}
+          />
+
+          {/* 4 — Mover planta */}
+          <HexButton
+            icon={movePlantMutation.isPending ? <SpinnerIcon /> : '🔀'}
+            disabled={movePlantMutation.isPending}
+            active={moveMode}
+            onClick={toggleMoveMode}
+            label="Mover"
+            title="Arrastar planta para outro canteiro"
+          />
+
+          {/* 5 — Excluir canteiro */}
+          <HexButton
+            icon="🕳️"
+            disabled={removePotMutation.isPending}
+            active={removeMode}
+            onClick={toggleRemoveMode}
+            label="Excluir"
+            title="Remover canteiro vazio do jardim"
+          />
+
+          {/* SEMPRE ÚLTIMO — Presente (pinned ao topo/direita) */}
+          {pendingGifts.length > 0 && (
+            <HexButton
+              icon={<span style={{ animation: 'gift-shake 1.2s ease-in-out infinite', display: 'inline-block' }}>🎁</span>}
+              badge={pendingGifts.length}
+              onClick={(e) => { e.stopPropagation(); setActiveGift(pendingGifts[0]); }}
+              label="Presente"
+              title={`${pendingGifts.length} presente(s) aguardando`}
+            />
+          )}
+
         </div>
       </div>
 

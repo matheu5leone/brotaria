@@ -9,7 +9,6 @@ import { GiftSendModal } from '@/components/GiftSendModal';
 import { usePlantVersion, usePlant } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
 import { InventoryItem, Rarity, PlantDNA } from '@/types';
-import { HexButton } from '@/components/HexButton';
 
 // ── Tipos de animação ────────────────────────────────────────────────────────
 
@@ -249,11 +248,14 @@ function SlotContent({
 export function InventoryPanel({
   userId,
   onWrapMode,
+  open,
+  onClose,
 }: {
   userId: string | undefined;
   onWrapMode: () => void;
+  open: boolean;
+  onClose: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [animatingSlot, setAnimatingSlot] = useState<number | null>(null);
   const [animPhase, setAnimPhase] = useState<OpenPhase>('idle');
   const [animRarity, setAnimRarity] = useState<Rarity>('comum');
@@ -315,31 +317,15 @@ export function InventoryPanel({
 
   return (
     <>
-      {/* Botão flutuante — hexágono de madeira */}
-      <div
-        className="absolute bottom-4 left-4 z-20"
-        onClick={(e) => e.stopPropagation()}
-        style={{ paddingBottom: '24px' }}
-      >
-        <HexButton
-          icon="🎒"
-          label="Mochila"
-          badge={totalItems > 0 ? totalItems : undefined}
-          active={open}
-          onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-          title="Abrir mochila"
-        />
-      </div>
-
       {/* Painel */}
       {open && (
         <div
-          className="absolute bottom-16 left-4 z-30 w-72 bg-stone-900/95 backdrop-blur-sm border border-stone-700/50 rounded-2xl p-4 shadow-2xl"
+          className="absolute bottom-4 right-[92px] z-30 w-72 bg-stone-900/95 backdrop-blur-sm border border-stone-700/50 rounded-2xl p-4 shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-3">
             <span className="font-black text-white text-sm">🎒 Mochila</span>
-            <button onClick={() => setOpen(false)} className="text-stone-400 hover:text-white transition-colors">
+            <button onClick={() => onClose()} className="text-stone-400 hover:text-white transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -363,7 +349,7 @@ export function InventoryPanel({
           {/* Botão embrulhar */}
           {hasKits && (
             <button
-              onClick={() => { setOpen(false); onWrapMode(); }}
+              onClick={() => { onClose(); onWrapMode(); }}
               className="mt-3 w-full py-2 bg-rose-700 hover:bg-rose-600 text-white text-sm font-bold rounded-xl transition-all active:scale-95"
             >
               🎁 Embrulhar planta
