@@ -14,7 +14,18 @@ interface HexButtonProps {
   title?: string;
 }
 
-const SIZE = 82;
+// Partículas douradas (estilo das plantas) exibidas quando o botão está ativo.
+// Distâncias em `em` para escalar junto com o tamanho do botão.
+const ACTIVE_PARTICLES = Array.from({ length: 6 }, (_, i) => {
+  const angle = (i / 6) * 360;
+  const r = 1.7 + (i % 2 ? 0.5 : 0); // raio em em
+  return {
+    '--tx': `${(Math.cos((angle * Math.PI) / 180) * r).toFixed(2)}em`,
+    '--ty': `${(Math.sin((angle * Math.PI) / 180) * r).toFixed(2)}em`,
+    animationDelay: `${(i * 0.22).toFixed(2)}s`,
+    animationDuration: `${(1.2 + (i % 3) * 0.22).toFixed(2)}s`,
+  } as React.CSSProperties;
+});
 
 export function HexButton({
   icon, label, badge, disabled = false, active = false, onClick, onPointerDown, title,
@@ -50,10 +61,8 @@ export function HexButton({
       tabIndex={disabled ? -1 : 0}
       aria-label={tooltipText}
       aria-disabled={disabled}
-      className="relative select-none"
+      className="hex-button relative select-none"
       style={{
-        width: SIZE,
-        height: SIZE,
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.65 : 1,
         transform: scale,
@@ -80,12 +89,33 @@ export function HexButton({
         />
       </div>
 
-      {/* Ícone — mix-blend-mode:multiply remove fundos brancos dos PNGs */}
+      {/* Partículas douradas quando ativo (igual às plantas) */}
+      {active && (
+        <div className="pointer-events-none absolute inset-0 z-20">
+          {ACTIVE_PARTICLES.map((style, i) => (
+            <span
+              key={i}
+              className="absolute top-1/2 left-1/2 rounded-full"
+              style={{
+                ...style,
+                width: '0.3em',
+                height: '0.3em',
+                marginLeft: '-0.15em',
+                marginTop: '-0.15em',
+                backgroundColor: 'var(--color-gold)',
+                boxShadow: '0 0 6px var(--color-gold)',
+                animation: `particle-float ${style.animationDuration} ${style.animationDelay} ease-out infinite`,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Ícone — font-size herdada de .hex-button (escala no desktop) */}
       <div
-        className="absolute inset-0 flex items-center justify-center z-10 text-[22px]"
+        className="absolute inset-0 flex items-center justify-center z-10"
         style={{
           paddingBottom: '10%',
-          mixBlendMode: 'multiply',
           filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.7))',
         }}
       >

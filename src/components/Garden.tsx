@@ -6,13 +6,20 @@ import { useAuth } from '@/hooks/useAuth';
 import { Pot } from '@/types';
 import { X, Loader2 } from 'lucide-react';
 
+// Ícones PNG dimensionados em `em` para escalar com o tamanho do botão (.hex-button)
 const WateringCanIcon = () => (
-  <Image src="/imgs/watering-can.png" alt="regador" width={44} height={44} className="object-contain" draggable={false} />
+  <span className="relative inline-block" style={{ width: '2em', height: '2em' }}>
+    <Image src="/imgs/watering-can.png" alt="regador" fill className="object-contain" draggable={false} />
+  </span>
 );
 const ShovelIcon = () => (
-  <Image src="/imgs/shovel.png" alt="pá" width={36} height={44} className="object-contain" draggable={false} style={{ transform: 'rotate(-35deg)' }} />
+  <span className="relative inline-block" style={{ width: '1.7em', height: '2em', transform: 'rotate(-35deg)' }}>
+    <Image src="/imgs/shovel.png" alt="pá" fill className="object-contain" draggable={false} />
+  </span>
 );
-const SpinnerIcon = () => <Loader2 className="w-6 h-6 animate-spin text-amber-200" />;
+const SpinnerIcon = () => (
+  <Loader2 className="animate-spin text-amber-200" style={{ width: '1.4em', height: '1.4em' }} />
+);
 import CoinPurchaseModal from './CoinPurchaseModal';
 import { usePots, useShovelStatus, useWateringStatus } from '@/hooks/useGardenData';
 import { usePlant } from '@/hooks/usePlantData';
@@ -622,9 +629,10 @@ export default function Garden() {
       )}
 
       {/* ── HUD Toolbar unificado ─────────────────────────────────────────── */}
+      {/* Mobile: levantado (bottom-6) p/ não colar no rodapé.
+          Desktop: bem rente ao rodapé (md:bottom-1). */}
       <div
-        className="absolute bottom-4 right-4 z-20"
-        style={{ paddingBottom: '20px' }}
+        className="absolute right-4 z-20 bottom-6 md:bottom-1"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Mensagens de erro e hint — acima do toolbar */}

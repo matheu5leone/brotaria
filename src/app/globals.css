@@ -188,13 +188,30 @@ html, body {
   display: flex;
   flex-direction: column-reverse; /* portrait: primeiro item embaixo */
   align-items: center;
-  gap: 6px;
+  gap: 20px;
 }
 
 @media (min-width: 768px), (orientation: landscape) {
   .hub-toolbar {
     flex-direction: row; /* landscape/desktop: primeiro item à esquerda */
     align-items: flex-end;
+  }
+}
+
+/* ---------- HexButton — tamanho responsivo ---------- */
+
+.hex-button {
+  width: 82px;
+  height: 82px;
+  font-size: 22px; /* drive dos ícones (emoji + PNGs em unidades em) */
+}
+
+/* Desktop: dobra o tamanho dos botões (+100%) */
+@media (min-width: 768px) {
+  .hex-button {
+    width: 164px;
+    height: 164px;
+    font-size: 40px;
   }
 }
 
