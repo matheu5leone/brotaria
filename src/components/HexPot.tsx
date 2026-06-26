@@ -71,10 +71,9 @@ export function HexPot({
   }, [state, pot.digging_started_at, onDigComplete]);
 
   // Canteiro hexagonal — imagem landscape em container portrait
-  // object-contain restringe pela largura: solo fica em ~73% do topo do container
   const POT_HEIGHT = '80%';
-  // PLANT_BOTTOM = 27%: base da planta em 73% do topo ≈ superfície de terra do hex
-  const PLANT_BOTTOM = '27%';
+  // PLANT_BOTTOM = 18%: base da planta encaixa na terra do canteiro hex
+  const PLANT_BOTTOM = '18%';
 
   return (
     <div
@@ -90,7 +89,7 @@ export function HexPot({
           className="absolute left-0 right-0 top-0 pointer-events-none"
           style={{ bottom: PLANT_BOTTOM }}
         >
-          <div className="relative w-full h-full">
+          <div className="hex-plant-img relative w-full h-full">
             {latestVersion?.image_url ? (
               <RarityEffect rarity={plant?.dna.rarity ?? 'comum'} alwaysVisible={false}>
                 <Image

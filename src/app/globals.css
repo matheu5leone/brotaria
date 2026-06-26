@@ -197,9 +197,9 @@ html, body {
   }
 }
 
-/* Portrait: gap pequeno entre os botões */
+/* Portrait: overlap leve (~16px de gap visual; PNG tem padding transparente) */
 .hub-toolbar .hex-button + .hex-button {
-  margin-top: -40px;
+  margin-top: -28px;
 }
 
 /* Desktop / landscape: lado a lado */
@@ -212,15 +212,27 @@ html, body {
 
 /* ---------- Canteiro — tamanho responsivo ---------- */
 
-/* Mobile portrait: 24% (dobro do desktop para compensar tela menor) */
+/* Mobile portrait: 36% (50% maior que os 24% anteriores) */
 .hex-pot {
-  width: 24%;
+  width: 36%;
 }
 
 /* Desktop / landscape: 12% */
 @media (min-width: 768px), (orientation: landscape) {
   .hex-pot {
     width: 12%;
+  }
+}
+
+/* Plantas (broto+) — 30% menores no mobile, ancoradas pela base */
+.hex-plant-img {
+  transform: scale(0.7);
+  transform-origin: bottom center;
+}
+
+@media (min-width: 768px), (orientation: landscape) {
+  .hex-plant-img {
+    transform: none;
   }
 }
 
