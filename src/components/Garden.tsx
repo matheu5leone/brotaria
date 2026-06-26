@@ -782,7 +782,7 @@ export default function Garden() {
         className="absolute right-4 z-20 bottom-6 md:bottom-1"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex flex-col items-end gap-1.5 mb-2">
+        <div className="absolute bottom-full right-0 mb-2 flex flex-col items-end gap-1.5">
           {(shovelError || wateringError || removeError || moveError) && (
             <div
               className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg shadow"

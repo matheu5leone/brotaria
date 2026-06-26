@@ -74,6 +74,8 @@ export function HexPot({
   const POT_HEIGHT = '80%';
   // PLANT_BOTTOM = 18%: base da planta encaixa na terra do canteiro hex
   const PLANT_BOTTOM = '18%';
+  // BALLOON_BOTTOM = 48%: balão flutua logo acima do topo do canteiro
+  const BALLOON_BOTTOM = '48%';
 
   return (
     <div
@@ -83,10 +85,10 @@ export function HexPot({
       onPointerDown={onPointerDown}
     >
 
-      {/* ── Plant image — flutua acima do canteiro ── */}
+      {/* ── Plant image — fica NA FRENTE do canteiro (z-10) ── */}
       {state === 'planted' && (
         <div
-          className="absolute left-0 right-0 top-0 pointer-events-none"
+          className="absolute left-0 right-0 top-0 pointer-events-none z-10"
           style={{ bottom: PLANT_BOTTOM }}
         >
           <div className="hex-plant-img relative w-full h-full">
@@ -107,37 +109,36 @@ export function HexPot({
               </div>
             ) : null}
           </div>
-
-          {/* Balão triste (stressed) */}
-          {isStressed && (
-            <div
-              className="water-speech-bubble absolute pointer-events-none z-20 flex flex-col items-center"
-              style={{ top: '-38%', left: '50%', animation: 'water-bubble 2.2s ease-in-out infinite', filter: 'drop-shadow(0 2px 5px rgba(239,68,68,0.5))' }}
-            >
-              <div style={{ background: 'rgba(255,240,240,0.97)', border: '1.5px solid rgba(239,68,68,0.6)', borderRadius: 8, padding: '3px 6px', fontSize: 14, lineHeight: 1, userSelect: 'none' }}>😢</div>
-              <div style={{ width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '6px solid rgba(255,240,240,0.97)', marginTop: -1 }} />
-            </div>
-          )}
-
-          {/* Balão de rega — mostra se status é waiting_water OU se o timer já passou (sem depender do cron) */}
-          {!isStressed && plant && (
-            plant.hydration_status === 'waiting_water' ||
-            (plant.next_water_needed_at && new Date(plant.next_water_needed_at) < new Date())
-          ) && (
-            <div
-              className="water-speech-bubble absolute pointer-events-none z-20 flex flex-col items-center"
-              style={{ top: '-38%', left: '50%', animation: 'water-bubble 2.2s ease-in-out infinite', filter: 'drop-shadow(0 2px 5px rgba(59,130,246,0.5))' }}
-            >
-              <div style={{ background: 'rgba(239,246,255,0.97)', border: '1.5px solid rgba(96,165,250,0.75)', borderRadius: 8, padding: '3px 6px', fontSize: 14, lineHeight: 1, userSelect: 'none' }}>💧</div>
-              <div style={{ width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '6px solid rgba(239,246,255,0.97)', marginTop: -1 }} />
-            </div>
-          )}
         </div>
       )}
 
-      {/* ── Canteiro (imagem PNG) — aparece em todos os estados ── */}
+      {/* ── Balões de status — ancorados ACIMA do canteiro (não na planta) ── */}
+      {state === 'planted' && isStressed && (
+        <div
+          className="water-speech-bubble absolute pointer-events-none z-20 flex flex-col items-center"
+          style={{ bottom: BALLOON_BOTTOM, left: '50%', transform: 'translateX(-50%)', animation: 'water-bubble 2.2s ease-in-out infinite', filter: 'drop-shadow(0 2px 5px rgba(239,68,68,0.5))' }}
+        >
+          <div style={{ background: 'rgba(255,240,240,0.97)', border: '1.5px solid rgba(239,68,68,0.6)', borderRadius: 8, padding: '3px 6px', fontSize: 14, lineHeight: 1, userSelect: 'none' }}>😢</div>
+          <div style={{ width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '6px solid rgba(255,240,240,0.97)', marginTop: -1 }} />
+        </div>
+      )}
+
+      {state === 'planted' && !isStressed && plant && (
+        plant.hydration_status === 'waiting_water' ||
+        (plant.next_water_needed_at && new Date(plant.next_water_needed_at) < new Date())
+      ) && (
+        <div
+          className="water-speech-bubble absolute pointer-events-none z-20 flex flex-col items-center"
+          style={{ bottom: BALLOON_BOTTOM, left: '50%', transform: 'translateX(-50%)', animation: 'water-bubble 2.2s ease-in-out infinite', filter: 'drop-shadow(0 2px 5px rgba(59,130,246,0.5))' }}
+        >
+          <div style={{ background: 'rgba(239,246,255,0.97)', border: '1.5px solid rgba(96,165,250,0.75)', borderRadius: 8, padding: '3px 6px', fontSize: 14, lineHeight: 1, userSelect: 'none' }}>💧</div>
+          <div style={{ width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '6px solid rgba(239,246,255,0.97)', marginTop: -1 }} />
+        </div>
+      )}
+
+      {/* ── Canteiro (imagem PNG) — z-0, fica ATRÁS da planta ── */}
       <div
-        className="absolute bottom-0 left-0 right-0 pointer-events-none"
+        className="absolute bottom-0 left-0 right-0 pointer-events-none z-0"
         style={{
           height: POT_HEIGHT,
           filter: isSelected
