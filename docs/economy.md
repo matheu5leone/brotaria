@@ -18,8 +18,9 @@ A moeda do jogo são as **moedas**. O fluxo da economia é:
 R$ → moedas → produtos (sementes)
 ```
 
-O usuário compra moedas com dinheiro (pagamento **mockado** por enquanto — Stripe
-no fim do projeto) e gasta moedas na **Loja** para adquirir produtos.
+O usuário compra moedas com dinheiro real via **Stripe Checkout** e gasta moedas
+na **Loja** para adquirir produtos. Detalhes da integração de pagamento em
+**[stripe.md](stripe.md)**.
 
 A lógica completa da Loja (pacotes, produtos, popup, APIs, data model) está em
 **[store.md](store.md)**.
