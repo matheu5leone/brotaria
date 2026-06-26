@@ -197,15 +197,17 @@ html, body {
   }
 }
 
-/* Portrait: overlap leve (~16px de gap visual; PNG tem padding transparente) */
+/* Portrait (column-reverse): usa margin-BOTTOM para overlap uniforme.
+   Com margin-top, o 1º item do DOM (mochila) fica sem margem e cai colado
+   à pá no fundo visual → vão mochila↔pá saía diferente dos demais. */
 .hub-toolbar .hex-button + .hex-button {
-  margin-top: -28px;
+  margin-bottom: -28px;
 }
 
-/* Desktop / landscape: lado a lado */
+/* Desktop / landscape (row): lado a lado, margin-left funciona normal */
 @media (min-width: 768px), (orientation: landscape) {
   .hub-toolbar .hex-button + .hex-button {
-    margin-top: 0;
+    margin-bottom: 0;
     margin-left: -56px;
   }
 }
