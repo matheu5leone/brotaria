@@ -174,6 +174,8 @@ export default function Garden() {
   const panPointer    = useRef<{ id: number; startX: number; startY: number; panX: number; panY: number } | null>(null);
   const activePointers = useRef(new Set<number>());
   const hasPanned     = useRef(false);
+  // Bloqueia clique sintético logo após soltar a rega (não abrir card da planta)
+  const suppressClickRef = useRef(false);
 
   // ── Derived ──────────────────────────────────────────────────────────────
   const selectedPot    = pots.find(p => p.id === selectedPotId) ?? null;
@@ -264,6 +266,12 @@ export default function Garden() {
     e.preventDefault();
     e.stopPropagation();
 
+    // Pointer capture garante que pointermove/up cheguem mesmo movendo o dedo
+    // para fora do botão (essencial no mobile/touch).
+    const captureEl = e.currentTarget as HTMLElement;
+    const pointerId = e.pointerId;
+    try { captureEl.setPointerCapture(pointerId); } catch {}
+
     setWateringDrag(true);
     setWateringDragPos({ x: e.clientX, y: e.clientY });
     setWateringTargetPotId(null);
@@ -284,15 +292,24 @@ export default function Garden() {
       setWateringDrag(false);
       setWateringDragPos(null);
       setWateringTargetPotId(null);
-      document.removeEventListener('pointermove', onMove);
-      document.removeEventListener('pointerup', onUp);
+      captureEl.removeEventListener('pointermove', onMove);
+      captureEl.removeEventListener('pointerup', onUp);
+      captureEl.removeEventListener('pointercancel', onUp);
+      try { captureEl.releasePointerCapture(pointerId); } catch {}
 
       const pot = findPotAtPoint(ev.clientX, ev.clientY);
-      if (pot?.plant_id) handleWaterPot(pot);
+      if (pot?.plant_id) {
+        // Bloqueia o clique sintético pós-toque (evitaria abrir o card da planta)
+        suppressClickRef.current = true;
+        setTimeout(() => { suppressClickRef.current = false; }, 400);
+        handleWaterPot(pot);
+      }
     };
 
-    document.addEventListener('pointermove', onMove);
-    document.addEventListener('pointerup', onUp);
+    // Com pointer capture, os eventos são entregues ao elemento capturante
+    captureEl.addEventListener('pointermove', onMove);
+    captureEl.addEventListener('pointerup', onUp);
+    captureEl.addEventListener('pointercancel', onUp);
   }, [canWaterToday, waterMutation.isPending, findPotAtPoint, handleWaterPot]);
 
   // Remove spot: click no pot vazio
@@ -357,6 +374,7 @@ export default function Garden() {
 
   const handlePotClick = (pot: Pot) => async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (suppressClickRef.current) return; // ignora clique sintético pós-rega
     if (wateringDrag || moveMode) return; // drag cuida da rega/move
 
     if (removeMode) { await handleRemovePot(pot); return; }
@@ -761,9 +779,9 @@ export default function Garden() {
       {wateringDrag && wateringDragPos && (
         <div
           className="fixed pointer-events-none z-[9999] select-none"
-          style={{ left: wateringDragPos.x - 18, top: wateringDragPos.y - 32, fontSize: 32, filter: 'drop-shadow(0 2px 6px rgba(59,130,246,0.7))' }}
+          style={{ left: wateringDragPos.x - 24, top: wateringDragPos.y - 28, width: 48, height: 48, filter: 'drop-shadow(0 2px 6px rgba(59,130,246,0.7))' }}
         >
-          🪣
+          <Image src="/imgs/watering-can.png" alt="regador" width={48} height={48} className="object-contain" draggable={false} />
         </div>
       )}
 

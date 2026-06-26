@@ -67,6 +67,7 @@ export function HexButton({
         opacity: disabled ? 0.65 : 1,
         transform: scale,
         transition: 'transform 0.15s ease',
+        touchAction: 'none', // permite drag por toque sem o navegador cancelar (scroll)
       }}
       onClick={disabled ? undefined : onClick}
       onPointerDown={disabled ? undefined : onPointerDown}
