@@ -9,6 +9,7 @@ interface HexButtonProps {
   badge?: string | number;
   disabled?: boolean;
   active?: boolean;
+  anchor?: boolean;
   onClick?: (e: React.MouseEvent) => void;
   onPointerDown?: (e: React.PointerEvent) => void;
   title?: string;
@@ -28,12 +29,15 @@ const ACTIVE_PARTICLES = Array.from({ length: 6 }, (_, i) => {
 });
 
 export function HexButton({
-  icon, label, badge, disabled = false, active = false, onClick, onPointerDown, title,
+  icon, label, badge, disabled = false, active = false, anchor = false, onClick, onPointerDown, title,
 }: HexButtonProps) {
   const [hovered, setHovered] = useState(false);
+  const [pressed, setPressed] = useState(false);
 
+  // Press scale tem prioridade — feedback tátil rápido ao clicar/tocar
   const scale = disabled
     ? 'scale(1)'
+    : pressed            ? 'scale(0.88)'
     : active && hovered ? 'scale(1.12)'
     : active             ? 'scale(1.07)'
     : hovered            ? 'scale(1.08)'
@@ -61,18 +65,20 @@ export function HexButton({
       tabIndex={disabled ? -1 : 0}
       aria-label={tooltipText}
       aria-disabled={disabled}
-      className="hex-button relative select-none"
+      className={`hex-button relative select-none${anchor ? ' hex-button--anchor' : ''}`}
       style={{
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.65 : 1,
         transform: scale,
-        transition: 'transform 0.15s ease',
+        transition: 'transform 0.18s cubic-bezier(0.34,1.56,0.64,1)',
         touchAction: 'none', // permite drag por toque sem o navegador cancelar (scroll)
       }}
       onClick={disabled ? undefined : onClick}
-      onPointerDown={disabled ? undefined : onPointerDown}
+      onPointerDown={disabled ? undefined : (e) => { setPressed(true); onPointerDown?.(e); }}
+      onPointerUp={() => setPressed(false)}
+      onPointerCancel={() => setPressed(false)}
       onMouseEnter={() => { if (!disabled) setHovered(true); }}
-      onMouseLeave={() => setHovered(false)}
+      onMouseLeave={() => { setHovered(false); setPressed(false); }}
       onKeyDown={handleKeyDown}
     >
       {/* Imagem do botão */}

@@ -68,18 +68,24 @@ Carregadas via `next/font/google`. Nunca usar Geist (fonte padrão do Next.js) n
 
 ### 4.1 HexPot — Célula Hexagonal de Planta
 
-Substituiu o Canteiro Oval. Célula hexagonal com `clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)` (pointy-top), posicionada livremente pelo sistema de `pos_x / pos_y` da pá.
+> **Atualização 2026-06-26:** o canteiro agora é a **imagem `empty-pot.png`** (hexágono de madeira achatado), não mais clip-path CSS. A planta renderiza **na frente** do canteiro (`z-10` vs `z-0`).
+
+Posicionada livremente pelo sistema de `pos_x / pos_y` da pá. Container retangular alto (`aspect-ratio: 1 / 1.65`), responsivo via `.hex-pot` (36% mobile / 12% desktop).
 
 **Anatomia:**
-- Camada de borda: div outer com clip-path hex, fundo = cor da borda (`rgba(92,58,30,0.75)`)
-- Camada de conteúdo: div inner com `inset: 3px` + mesmo clip-path, fundo escuro radial
-- Badge "Nível X": fora do clip-path (não cortado), posicionado na base (`bottom: 0, translate-y: 35%`)
+- Canteiro: `empty-pot.png` ancorado embaixo (`POT_HEIGHT 80%`, `object-contain object-bottom`), `z-0`
+- Planta: imagem IA `z-10`, base em `PLANT_BOTTOM 18%` (encaixa na terra); 30% menor no mobile (`.hex-plant-img scale(0.7)`)
+- **Hitbox preciso** (`HITBOX_CLIP`): um div recortado com `clip-path` na silhueta (base do canteiro + coluna central da planta) é o **único** elemento clicável (`pointer-events: auto`); o wrapper é `pointer-events: none`. Evita que o retângulo vazio de um pot roube cliques do vizinho. Carrega o `data-pot-id` (detecção de drop)
+- Badge "Nível X": `bottom: 6%`, encostada na madeira do canteiro
+- Balões de status (💧 rega / 😢 stress): ancorados ao container em `bottom: 48%` (acima do canteiro), não à planta
 
 **Estados:**
-- **Vazio / Pronto**: `+` + "Plantar" centralizados, fundo `#1e1408`
-- **Cavando**: ícone de pá pulsando + countdown `mm:ss`, fundo `#3d2a18`
-- **Plantado**: imagem da planta via `next/image` + `RarityEffect`, fundo escuro-verde
-- **Selecionado**: borda dourada `rgba(201,162,39,0.95)` + anel de seleção interno
+- **Vazio / Pronto**: `+` + "Plantar" centralizados
+- **Cavando**: ícone de pá pulsando + countdown `mm:ss`
+- **Plantado**: imagem da planta via `next/image` + `RarityEffect`
+- **Selecionado / alvo**: glow via `drop-shadow` na silhueta (dourado=seleção, azul=rega, âmbar=mover, vermelho=lixeira)
+
+**Loading:** spinner só a partir do 4º estágio (`order_index > 2`) — estágios enterrada (1–3) não geram imagem IA.
 
 **Arquivo:** `src/components/HexPot.tsx`
 
@@ -112,18 +118,31 @@ Usado para **Pá** e **Mochila** — os dois controles principais do jardim.
 **Tipografia:** Cinzel Decorative para labels, Crimson Text para itens de nav  
 **Itens ativos:** `border-left: 2px solid #5c3a1e; background: rgba(201,162,39,0.12)`
 
-### 4.4 PlantActionMenu — Menu de Ação Flutuante
+### 4.4 HUD de Ferramentas — Barra Hexagonal (`Garden.tsx` + `HexButton.tsx`)
 
-Aparece acima do pot selecionado ao clicar numa planta. Três botões: **Regar**, **Histórico**, **Remover**.
+> **Atualização 2026-06-26:** o antigo `PlantActionMenu` flutuante (popup Regar/Histórico/Remover ao clicar na planta) foi **removido**. Todas as ações são agora pelas ferramentas do HUD, a maioria via **drag-and-drop**.
 
-**Anatomia:**
-- Pill `border-radius: full`, fundo `rgba(8,14,5,0.92)` com `backdrop-filter: blur(10px)`
-- Borda `rgba(201,162,39,0.25)` (sutil dourado)
-- Posicionado em `left: potX%, top: potY%`, transform `translate(-50%, -145%)`
-- Arrow pointer triangular abaixo do pill
-- Cada botão: ícone + label em `var(--font-display)` 8px uppercase
+**Botões (ordem do array):** `[âncora, mochila, pá, regador, carrinho, lixeira, presente]`
 
-**Arquivo:** `src/components/PlantActionMenu.tsx`
+**Layout responsivo (`.hub-toolbar`):**
+- **Portrait** (`< 768px`, retrato): coluna `flex-direction: column-reverse` — primeiro item embaixo
+- **Landscape / Desktop** (`≥ 768px` ou `orientation: landscape`): linha `flex-row`, `align-items: center`
+- Overlap entre botões: `margin-bottom: -28px` (portrait) / `margin-left: -56px` (desktop) para ~16px de gap visual (o PNG do hexágono tem padding transparente)
+
+**Botão âncora (recolher/expandir):**
+- Ocupa o primeiro slot; **20% maior** que os demais (`.hex-button--anchor`: 98px mobile / 197px desktop)
+- Ícone de chevron: ↑/↓ em portrait, ←/→ em landscape/desktop, conforme o estado
+- Recolhe/expande o `.hud-group` com animação **grid `0fr → 1fr`** (`transition` de `grid-template-rows`/`columns`, `0.28s`, `cubic-bezier(0.4,0,0.2,1)`) + fade
+- Press feedback: `scale(0.88)` ao clicar/tocar (todos os HexButton), `transition` com easing `cubic-bezier(0.34,1.56,0.64,1)`
+
+**Ferramentas drag-and-drop** (estilo unificado, `setPointerCapture` para funcionar no toque):
+| Ferramenta | Asset | Ação | Glow do alvo |
+|-----------|-------|------|--------------|
+| Regador   | `watering-can.png` | arrasta até a planta → rega | azul |
+| Carrinho  | `wheelbarrow.png`  | arrasta até planta (recolhe) → arrasta até pot vazio (replanta); miniatura da planta no botão enquanto carrega | âmbar |
+| Lixeira   | `trash.png`        | arrasta até planta → abre confirmação; até pot vazio → remove canteiro | vermelho |
+
+O **glow do alvo** segue a silhueta real via `drop-shadow` (respeita o alpha do PNG), aplicado no HexPot (`isWaterTarget`/`isMoveTarget`/`isTrashTarget`), não em overlays retangulares.
 
 ### 4.5 PlantDetailModal — Painel de Detalhes
 
@@ -192,7 +211,20 @@ Modal de histórico/detalhe da planta. Usa **tema escuro do jardim** (não perga
 
 **Arquivo:** `src/components/PlantHistoryModal.tsx`
 
-### 4.8 Toolbar Flutuante (barra inferior do jardim)
+### 4.9 ConfirmDeleteModal — Diálogo de Confirmação (lixeira)
+
+Modal de confirmação ao remover uma planta (via lixeira ou card). Segue o **tema grimório escuro** (mesma linguagem do PlantHistoryModal §4.7).
+
+**Anatomia:**
+- Backdrop `rgba(5,8,3,0.62)` + `backdrop-filter: blur(4px)`, clicar fora cancela
+- Card: `linear-gradient(160deg, #1c2d10, #0f1a08, #0a1205)`, borda `1.5px rgba(201,162,39,0.35)`, `border-radius: 24px`, `width: min(88vw, 340px)`
+- Ícone de lixeira (`Trash2`) num círculo vermelho translúcido
+- Título Cinzel + corpo Crimson
+- Botões: **Cancelar** (neutro) + **Remover** (vermelho translúcido `rgba(185,28,28,0.45)`)
+
+**Arquivo:** `ConfirmDeleteModal` em `src/components/Garden.tsx`
+
+### 4.10 Toolbar Flutuante (barra inferior do jardim)
 
 Fundo: `rgba(8,14,5,0.75)` com `backdrop-filter: blur(6px)`  
 Borda: `1px solid rgba(92,58,30,0.35)`  

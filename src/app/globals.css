@@ -193,23 +193,53 @@ html, body {
 @media (min-width: 768px), (orientation: landscape) {
   .hub-toolbar {
     flex-direction: row; /* landscape/desktop: primeiro item à esquerda */
-    align-items: flex-end;
+    align-items: center; /* centraliza no eixo (anchor maior fica alinhado) */
   }
 }
 
-/* Portrait (column-reverse): usa margin-BOTTOM para overlap uniforme.
-   Com margin-top, o 1º item do DOM (mochila) fica sem margem e cai colado
-   à pá no fundo visual → vão mochila↔pá saía diferente dos demais. */
-.hub-toolbar .hex-button + .hex-button {
-  margin-bottom: -28px;
+/* Botão âncora (toggle): 20% maior que os demais */
+.hub-toolbar .hex-button--anchor { width: 98px; height: 98px; font-size: 26px; }
+@media (min-width: 768px) {
+  .hub-toolbar .hex-button--anchor { width: 197px; height: 197px; font-size: 48px; }
 }
 
-/* Desktop / landscape (row): lado a lado, margin-left funciona normal */
+/* ---------- HUD colapsável — animação via grid 0fr/1fr (≤0.3s) ---------- */
+.hud-group {
+  display: grid;
+  grid-template-rows: 1fr;                 /* portrait: colapsa a altura */
+  transition: grid-template-rows 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease;
+}
+.hud-group[data-expanded="false"] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+}
+.hud-group-inner {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+}
+/* overlap uniforme entre os tools (margin-bottom funciona em column-reverse) */
+.hud-group-inner .hex-button + .hex-button { margin-bottom: -28px; }
+
 @media (min-width: 768px), (orientation: landscape) {
-  .hub-toolbar .hex-button + .hex-button {
-    margin-bottom: 0;
-    margin-left: -56px;
+  .hud-group {
+    grid-template-rows: none;
+    grid-template-columns: 1fr;            /* landscape/desktop: colapsa a largura */
+    transition: grid-template-columns 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease;
   }
+  .hud-group[data-expanded="false"] {
+    grid-template-columns: 0fr;
+    grid-template-rows: none;
+  }
+  .hud-group-inner {
+    min-width: 0;
+    flex-direction: row;
+    align-items: center;
+  }
+  .hud-group-inner .hex-button + .hex-button { margin-bottom: 0; margin-left: -56px; }
 }
 
 /* ---------- Canteiro — tamanho responsivo ---------- */

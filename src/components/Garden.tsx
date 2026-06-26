@@ -904,6 +904,7 @@ export default function Garden() {
         <div className="hub-toolbar">
           {/* 0 — Toggle recolher/expandir (ocupa a posição-âncora) */}
           <HexButton
+            anchor
             icon={<HudToggleIcon expanded={hudExpanded} />}
             label={hudExpanded ? 'Recolher' : 'Menu'}
             active={false}
@@ -911,8 +912,9 @@ export default function Garden() {
             title={hudExpanded ? 'Recolher menu' : 'Abrir menu'}
           />
 
-          {hudExpanded && (
-            <>
+          {/* Grupo colapsável (animação grid 0fr/1fr) — sempre montado */}
+          <div className="hud-group" data-expanded={hudExpanded}>
+            <div className="hud-group-inner">
               {/* 1 — Mochila */}
               <HexButton
                 icon={<BackpackIcon open={inventoryOpen} />}
@@ -970,8 +972,8 @@ export default function Garden() {
                   title={`${pendingGifts.length} presente(s) aguardando`}
                 />
               )}
-            </>
-          )}
+            </div>
+          </div>
         </div>
       </div>
 
