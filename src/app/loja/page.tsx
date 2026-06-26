@@ -8,7 +8,8 @@ import CoinPurchaseModal from '@/components/CoinPurchaseModal';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import { STORE_PRODUCTS } from '@/config/economy';
-import { Coins, Sprout, Loader2, Plus } from 'lucide-react';
+import { Sprout, Loader2, Plus } from 'lucide-react';
+import { CoinIcon } from '@/components/CoinIcon';
 import { authFetch } from '@/lib/authFetch';
 
 export default function LojaPage() {
@@ -83,7 +84,7 @@ export default function LojaPage() {
               onClick={() => setModalOpen(true)}
               className="flex items-center gap-2 bg-amber-400 hover:bg-amber-500 text-white font-bold px-4 py-2.5 rounded-xl shadow-lg hover:shadow-xl active:scale-95 transition-all"
             >
-              <Coins className="w-5 h-5" />
+              <CoinIcon size={20} />
               <span className="font-black">{coins}</span>
               <span className="opacity-80">moedas</span>
               <Plus className="w-4 h-4 ml-1" />
@@ -120,7 +121,7 @@ export default function LojaPage() {
                           <span className="text-green-600">Grátis</span>
                         ) : (
                           <>
-                            <Coins className="w-5 h-5" />
+                            <CoinIcon size={20} />
                             {product.cost_coins}
                           </>
                         )}

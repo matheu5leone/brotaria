@@ -6,7 +6,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import { COIN_PACKAGES, PRICES } from '@/config/economy';
 const SEED_COST_COINS = PRICES.SEED;
-import { Coins, X, Loader2, Sprout, Sparkles } from 'lucide-react';
+import { X, Loader2, Sprout, Sparkles } from 'lucide-react';
+import { CoinIcon } from '@/components/CoinIcon';
 import { authFetch } from '@/lib/authFetch';
 
 interface CoinPurchaseModalProps {
@@ -125,7 +126,7 @@ export default function CoinPurchaseModal({
           </button>
           <div className="flex items-center gap-3">
             <div className="bg-white/20 p-2.5 rounded-2xl">
-              <Coins className="w-7 h-7" />
+              <CoinIcon size={28} />
             </div>
             <div>
               <h2 className="text-xl font-black leading-tight">Comprar Moedas</h2>
@@ -155,7 +156,7 @@ export default function CoinPurchaseModal({
               >
                 <div className="flex items-center gap-3">
                   <div className="bg-amber-100 text-amber-600 p-2 rounded-xl group-hover:scale-110 transition-transform">
-                    <Coins className="w-5 h-5" />
+                    <CoinIcon size={20} />
                   </div>
                   <div className="text-left">
                     <p className="font-black text-stone-800 text-lg leading-none">

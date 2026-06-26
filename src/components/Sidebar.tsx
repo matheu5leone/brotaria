@@ -9,8 +9,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import {
   LogOut, LayoutDashboard, Store, Settings,
-  ChevronLeft, ChevronRight, Coins, Trophy,
+  ChevronLeft, ChevronRight, Trophy,
 } from 'lucide-react';
+import { CoinIcon } from '@/components/CoinIcon';
 
 export default function Sidebar() {
   const { user, signOut } = useAuth();
@@ -102,7 +103,7 @@ export default function Sidebar() {
           }`}
           style={{ background: 'rgba(201,162,39,0.1)', border: '1px solid rgba(201,162,39,0.4)' }}
         >
-          <Coins className="w-5 h-5 min-w-[20px]" style={{ color: 'var(--color-gold)' }} />
+          <CoinIcon size={20} />
           {!isSidebarCollapsed && (
             <span className="font-black text-base" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-wood-dark)' }}>
               {coins}{' '}

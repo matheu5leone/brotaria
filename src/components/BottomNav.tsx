@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import { LayoutDashboard, Store, Trophy } from 'lucide-react';
+import { CoinIcon } from '@/components/CoinIcon';
 
 function NavItem({
   href,
@@ -68,7 +69,7 @@ export function BottomNav() {
           className="text-sm font-black leading-none"
           style={{ fontFamily: 'var(--font-display)', color: 'var(--color-gold)' }}
         >
-          🪙 {coins} · 🍃 {herbo}
+          <CoinIcon size={16} className="inline-block mr-1" />{coins} · 🍃 {herbo}
         </span>
       </NavLink>
 

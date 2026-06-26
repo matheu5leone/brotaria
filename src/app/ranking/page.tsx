@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Trophy, Coins } from 'lucide-react';
+import { Trophy } from 'lucide-react';
+import { CoinIcon } from '@/components/CoinIcon';
 import { AppShell } from '@/components/AppShell';
 import { useRanking, RankingEntry } from '@/hooks/useRanking';
 import { RarityEffect } from '@/components/RarityEffect';
@@ -86,7 +87,7 @@ function RankingCard({ entry, onOpen }: { entry: RankingEntry; onOpen: () => voi
 
       {/* Score */}
       <div className="flex items-center gap-1.5 text-amber-400 font-black text-lg flex-shrink-0">
-        <Coins className="w-4 h-4" />
+        <CoinIcon size={16} />
         {entry.score.toLocaleString('pt-BR')}
       </div>
     </button>
