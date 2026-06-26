@@ -256,16 +256,9 @@ html, body {
   }
 }
 
-/* Plantas (broto+) — 30% menores no mobile, ancoradas pela base */
+/* Escala da planta é por estágio (inline em HexPot); aqui só a âncora da base */
 .hex-plant-img {
-  transform: scale(0.7);
   transform-origin: bottom center;
-}
-
-@media (min-width: 768px), (orientation: landscape) {
-  .hex-plant-img {
-    transform: none;
-  }
 }
 
 /* ---------- HexButton — tamanho responsivo ---------- */

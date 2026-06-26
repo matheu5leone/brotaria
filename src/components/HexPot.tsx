@@ -83,6 +83,15 @@ export function HexPot({
   // BALLOON_BOTTOM = 48%: balão flutua logo acima do topo do canteiro
   const BALLOON_BOTTOM = '48%';
 
+  // Escala visual da planta por categoria de estágio (renderização no HexPot)
+  // broto -50% · pequena -25% · media 0% · grande +25%
+  const stageCode = plant?.current_stage.code ?? '';
+  const plantScale =
+    stageCode.startsWith('grande')  ? 1.25 :
+    stageCode.startsWith('media')   ? 1.0  :
+    stageCode.startsWith('pequena') ? 0.75 :
+    0.5; // broto (e fallback)
+
   // Glow seguindo a silhueta real das imagens (drop-shadow respeita o alpha do PNG).
   // Aplicado tanto ao canteiro quanto à planta para realçar o hitbox exato.
   const waterGlow = 'drop-shadow(0 0 4px rgba(59,130,246,0.95)) drop-shadow(0 0 9px rgba(59,130,246,0.85))';
@@ -121,7 +130,12 @@ export function HexPot({
         >
           <div
             className="hex-plant-img relative w-full h-full"
-            style={{ filter: targetGlow, transition: 'filter 0.12s ease' }}
+            style={{
+              filter: targetGlow,
+              transition: 'filter 0.12s ease',
+              transform: `scale(${plantScale})`,
+              transformOrigin: 'bottom center',
+            }}
           >
             {latestVersion?.image_url ? (
               <RarityEffect rarity={plant?.dna.rarity ?? 'comum'} alwaysVisible={false}>
