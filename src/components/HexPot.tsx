@@ -70,10 +70,10 @@ export function HexPot({
     return () => clearInterval(id);
   }, [state, pot.digging_started_at, onDigComplete]);
 
-  // Altura que o pot-image ocupa no container
-  const POT_HEIGHT = '62%';
-  // Âncora inferior da planta (emerge de dentro do canteiro)
-  const PLANT_BOTTOM = '30%';
+  // Altura que o canteiro hexagonal ocupa no container
+  const POT_HEIGHT = '82%';
+  // Base da planta alinhada à superfície de terra do canteiro hex
+  const PLANT_BOTTOM = '56%';
 
   return (
     <div
@@ -100,11 +100,12 @@ export function HexPot({
                   className="object-contain object-bottom"
                 />
               </RarityEffect>
-            ) : (
+            ) : plant && plant.current_stage.order_index > 0 ? (
+              // Só mostra loading se não é o estágio inicial (enterrada não gera imagem)
               <div className="flex items-end justify-center w-full h-full pb-1">
                 <Loader variant="inline" spin size={22} />
               </div>
-            )}
+            ) : null}
           </div>
 
           {/* Balão triste (stressed) */}
@@ -118,8 +119,11 @@ export function HexPot({
             </div>
           )}
 
-          {/* Balão de rega — estilo PvZ */}
-          {!isStressed && plant?.hydration_status === 'waiting_water' && (
+          {/* Balão de rega — mostra se status é waiting_water OU se o timer já passou (sem depender do cron) */}
+          {!isStressed && plant && (
+            plant.hydration_status === 'waiting_water' ||
+            (plant.next_water_needed_at && new Date(plant.next_water_needed_at) < new Date())
+          ) && (
             <div
               className="water-speech-bubble absolute pointer-events-none z-20 flex flex-col items-center"
               style={{ top: '-38%', left: '50%', animation: 'water-bubble 2.2s ease-in-out infinite', filter: 'drop-shadow(0 2px 5px rgba(59,130,246,0.5))' }}

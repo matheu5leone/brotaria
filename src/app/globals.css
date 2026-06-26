@@ -197,9 +197,9 @@ html, body {
   }
 }
 
-/* Gap entre botões — portrait: empilhados */
+/* Portrait: overlap leve para ~16px de gap visual entre hexágonos */
 .hub-toolbar .hex-button + .hex-button {
-  margin-top: 16px;
+  margin-top: -14px;
 }
 
 /* Desktop / landscape: lado a lado */
