@@ -1,9 +1,18 @@
 'use client';
 
 import React, { useCallback, useRef, useState } from 'react';
+import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Pot } from '@/types';
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
+
+const WateringCanIcon = () => (
+  <Image src="/imgs/watering-can.png" alt="regador" width={58} height={58} className="object-contain" draggable={false} />
+);
+const ShovelIcon = () => (
+  <Image src="/imgs/shovel.png" alt="pá" width={52} height={58} className="object-contain" draggable={false} />
+);
+const SpinnerIcon = () => <Loader2 className="w-9 h-9 animate-spin text-amber-200" />;
 import CoinPurchaseModal from './CoinPurchaseModal';
 import { usePots, useShovelStatus, useWateringStatus } from '@/hooks/useGardenData';
 import { usePlant } from '@/hooks/usePlantData';
@@ -672,7 +681,7 @@ export default function Garden() {
 
           {/* Regador — drag-and-drop via onPointerDown */}
           <HexButton
-            icon={waterMutation.isPending ? '⏳' : '🪣'}
+            icon={waterMutation.isPending ? <SpinnerIcon /> : <WateringCanIcon />}
             label={waterMutation.isPending ? 'Regando...' : `${watersRemaining}/10`}
             badge={watersRemaining}
             disabled={!canWaterToday || waterMutation.isPending}
@@ -683,7 +692,7 @@ export default function Garden() {
 
           {/* Pá */}
           <HexButton
-            icon={digMutation.isPending ? '⏳' : '⛏'}
+            icon={digMutation.isPending ? <SpinnerIcon /> : <ShovelIcon />}
             label={
               digMutation.isPending ? 'Cavando...'
               : shovelActive ? 'Cancelar'
