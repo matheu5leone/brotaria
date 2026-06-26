@@ -90,13 +90,25 @@ export function HexPot({
   // Glow do canteiro: alvo (água/mover) tem prioridade sobre seleção
   const potGlow = targetGlow ?? (isSelected ? selectGlow : undefined);
 
+  // Hitbox preciso: canteiro (base larga) + coluna central da planta.
+  // clip-path recorta os cantos vazios → não invade o hitbox do pot vizinho.
+  const HITBOX_CLIP =
+    'polygon(37% 8%, 63% 8%, 63% 58%, 100% 60%, 100% 100%, 0% 100%, 0% 60%, 37% 58%)';
+
   return (
-    <div
-      className="relative w-full h-full select-none"
-      style={{ cursor: moveMode && state === 'planted' ? 'grab' : 'pointer' }}
-      onClick={onClick}
-      onPointerDown={onPointerDown}
-    >
+    <div className="relative w-full h-full select-none" style={{ pointerEvents: 'none' }}>
+      {/* Hitbox clicável recortado na silhueta (canteiro + coluna da planta) */}
+      <div
+        data-pot-id={pot.id}
+        className="absolute inset-0 z-30"
+        style={{
+          pointerEvents: 'auto',
+          clipPath: HITBOX_CLIP,
+          cursor: moveMode && state === 'planted' ? 'grab' : 'pointer',
+        }}
+        onClick={onClick}
+        onPointerDown={onPointerDown}
+      />
 
       {/* ── Plant image — fica NA FRENTE do canteiro (z-10) ── */}
       {state === 'planted' && (

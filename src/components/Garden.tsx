@@ -642,7 +642,6 @@ export default function Garden() {
           return (
             <div
               key={pot.id}
-              data-pot-id={pot.id}
               className="absolute hex-pot"
               style={{
                 aspectRatio: '1 / 1.65',
@@ -650,6 +649,7 @@ export default function Garden() {
                 top: `${y}%`,
                 transform: 'translate(-50%, -50%)',
                 zIndex: selectedPotId === pot.id ? 5 : 2,
+                pointerEvents: 'none', // só o hitbox recortado dentro do HexPot clica
               }}
             >
               <HexPot
