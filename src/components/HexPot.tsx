@@ -9,7 +9,6 @@ import { RarityEffect } from '@/components/RarityEffect';
 import Loader from './Loader';
 
 const DIG_DURATION_MS = 60_000;
-const HEX_CLIP = 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)';
 
 export type PotState = 'digging' | 'ready' | 'planted';
 
@@ -26,24 +25,6 @@ function formatSecondsLeft(ms: number): string {
   const s = Math.ceil(ms / 1000);
   const m = Math.floor(s / 60);
   return `${m}:${String(s % 60).padStart(2, '0')}`;
-}
-
-// Hex soil base — shared between states
-function HexSoil({ borderColor, innerBg, children }: {
-  borderColor: string;
-  innerBg: string;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div className="absolute bottom-0 left-0 right-0" style={{ height: '52%' }}>
-      {/* Border */}
-      <div className="absolute inset-0" style={{ clipPath: HEX_CLIP, background: borderColor }} />
-      {/* Content */}
-      <div className="absolute inset-[2px]" style={{ clipPath: HEX_CLIP, background: innerBg }}>
-        {children}
-      </div>
-    </div>
-  );
 }
 
 export function HexPot({
@@ -89,11 +70,10 @@ export function HexPot({
     return () => clearInterval(id);
   }, [state, pot.digging_started_at, onDigComplete]);
 
-  const borderColor = isSelected
-    ? 'rgba(201,162,39,0.95)'
-    : 'rgba(60,38,18,0.85)';
-
-  const soilBg = 'radial-gradient(ellipse at 40% 30%, #2a1c0f, #0f0905)';
+  // Altura que o pot-image ocupa no container
+  const POT_HEIGHT = '62%';
+  // Âncora inferior da planta (emerge de dentro do canteiro)
+  const PLANT_BOTTOM = '30%';
 
   return (
     <div
@@ -103,11 +83,11 @@ export function HexPot({
       onPointerDown={onPointerDown}
     >
 
-      {/* ── Plant image — base posicionada a 40% do hex a partir de baixo ── */}
+      {/* ── Plant image — flutua acima do canteiro ── */}
       {state === 'planted' && (
         <div
           className="absolute left-0 right-0 top-0 pointer-events-none"
-          style={{ bottom: '21%' }}
+          style={{ bottom: PLANT_BOTTOM }}
         >
           <div className="relative w-full h-full">
             {latestVersion?.image_url ? (
@@ -126,125 +106,95 @@ export function HexPot({
               </div>
             )}
           </div>
-          {/* Balão triste (stressed) — sobrepõe o balão de rega */}
+
+          {/* Balão triste (stressed) */}
           {isStressed && (
             <div
               className="water-speech-bubble absolute pointer-events-none z-20 flex flex-col items-center"
-              style={{
-                top: '-38%',
-                left: '50%',
-                animation: 'water-bubble 2.2s ease-in-out infinite',
-                filter: 'drop-shadow(0 2px 5px rgba(239,68,68,0.5))',
-              }}
+              style={{ top: '-38%', left: '50%', animation: 'water-bubble 2.2s ease-in-out infinite', filter: 'drop-shadow(0 2px 5px rgba(239,68,68,0.5))' }}
             >
-              <div
-                style={{
-                  background: 'rgba(255,240,240,0.97)',
-                  border: '1.5px solid rgba(239,68,68,0.6)',
-                  borderRadius: 8,
-                  padding: '3px 6px',
-                  fontSize: 14,
-                  lineHeight: 1,
-                  userSelect: 'none',
-                }}
-              >
-                😢
-              </div>
+              <div style={{ background: 'rgba(255,240,240,0.97)', border: '1.5px solid rgba(239,68,68,0.6)', borderRadius: 8, padding: '3px 6px', fontSize: 14, lineHeight: 1, userSelect: 'none' }}>😢</div>
               <div style={{ width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '6px solid rgba(255,240,240,0.97)', marginTop: -1 }} />
             </div>
           )}
 
-          {/* Balão de rega — estilo PvZ (só aparece se não estiver stressed) */}
+          {/* Balão de rega — estilo PvZ */}
           {!isStressed && plant?.hydration_status === 'waiting_water' && (
             <div
               className="water-speech-bubble absolute pointer-events-none z-20 flex flex-col items-center"
-              style={{
-                top: '-38%',
-                left: '50%',
-                animation: 'water-bubble 2.2s ease-in-out infinite',
-                filter: 'drop-shadow(0 2px 5px rgba(59,130,246,0.5))',
-              }}
+              style={{ top: '-38%', left: '50%', animation: 'water-bubble 2.2s ease-in-out infinite', filter: 'drop-shadow(0 2px 5px rgba(59,130,246,0.5))' }}
             >
-              {/* Corpo do balão */}
-              <div
-                style={{
-                  background: 'rgba(239,246,255,0.97)',
-                  border: '1.5px solid rgba(96,165,250,0.75)',
-                  borderRadius: 8,
-                  padding: '3px 6px',
-                  fontSize: 14,
-                  lineHeight: 1,
-                  userSelect: 'none',
-                }}
-              >
-                💧
-              </div>
-              {/* Cauda apontando para baixo */}
-              <div
-                style={{
-                  width: 0,
-                  height: 0,
-                  borderLeft: '5px solid transparent',
-                  borderRight: '5px solid transparent',
-                  borderTop: '6px solid rgba(239,246,255,0.97)',
-                  marginTop: -1,
-                }}
-              />
+              <div style={{ background: 'rgba(239,246,255,0.97)', border: '1.5px solid rgba(96,165,250,0.75)', borderRadius: 8, padding: '3px 6px', fontSize: 14, lineHeight: 1, userSelect: 'none' }}>💧</div>
+              <div style={{ width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '6px solid rgba(239,246,255,0.97)', marginTop: -1 }} />
             </div>
           )}
         </div>
       )}
 
-      {/* ── Hex soil base ── */}
-      {state === 'planted' && (
-        <HexSoil borderColor={borderColor} innerBg={soilBg} />
-      )}
+      {/* ── Canteiro (imagem PNG) — aparece em todos os estados ── */}
+      {/*
+        mix-blend-mode:multiply no div interno remove o fundo branco do PNG:
+        branco × verde-escuro do jardim ≈ transparente, madeira fica visível.
+        drop-shadow no wrapper externo cria o glow dourado de seleção SEM sofrer
+        o efeito multiply (ficaria escurecido).
+      */}
+      <div
+        className="absolute bottom-0 left-0 right-0 pointer-events-none"
+        style={{
+          height: POT_HEIGHT,
+          filter: isSelected
+            ? 'drop-shadow(0 0 10px rgba(201,162,39,0.85))'
+            : undefined,
+        }}
+      >
+        {/* Camada multiply para remover fundo branco */}
+        <div style={{ position: 'absolute', inset: 0, mixBlendMode: 'multiply' }}>
+          <Image
+            src="/imgs/empty-pot.png"
+            alt="canteiro"
+            fill
+            className="object-contain object-bottom"
+            draggable={false}
+            priority
+            style={{
+              // Escurece levemente quando desabilitado para modo de seleção
+              filter: isSelected ? 'brightness(1.2) saturate(1.3)' : undefined,
+            }}
+          />
+        </div>
 
-      {state === 'digging' && (
-        <HexSoil borderColor={borderColor} innerBg="radial-gradient(ellipse, #3d2a18, #1a0f05)">
-          <div className="w-full h-full flex flex-col items-center justify-center gap-0.5">
-            <Shovel className="w-4 h-4 animate-pulse" style={{ color: 'var(--color-parch-dark)' }} />
-            <span className="font-mono text-[10px] font-bold" style={{ color: 'var(--color-parch-light)' }}>
+        {/* ── Conteúdo sobreposto ao canteiro ── */}
+        {state === 'digging' && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-10 gap-0.5" style={{ paddingBottom: '18%' }}>
+            <Shovel className="w-4 h-4 animate-pulse" style={{ color: '#d4b483' }} />
+            <span className="font-mono text-[10px] font-bold" style={{ color: '#f2e8d5' }}>
               {formatSecondsLeft(msLeft)}
             </span>
           </div>
-        </HexSoil>
-      )}
+        )}
 
-      {state === 'ready' && (
-        <HexSoil borderColor={borderColor} innerBg="radial-gradient(ellipse at 40% 30%, #1c1408, #080603)">
-          <div className="w-full h-full flex flex-col items-center justify-center gap-0.5">
-            <span className="text-base font-bold leading-none" style={{ color: 'rgba(139,99,70,0.55)' }}>+</span>
-            <span
-              className="text-[7px] uppercase tracking-widest font-black"
-              style={{ color: 'rgba(139,99,70,0.45)', fontFamily: 'var(--font-display)' }}
-            >
+        {state === 'ready' && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-10 gap-0.5" style={{ paddingBottom: '18%' }}>
+            <span className="text-sm font-bold leading-none" style={{ color: 'rgba(210,165,100,0.8)' }}>+</span>
+            <span className="text-[7px] uppercase tracking-widest font-black" style={{ color: 'rgba(210,165,100,0.65)', fontFamily: 'var(--font-display)' }}>
               Plantar
             </span>
           </div>
-        </HexSoil>
-      )}
+        )}
+      </div>
 
-      {/* ── Selection glow on the soil hex ── */}
-      {isSelected && (
-        <div
-          className="absolute bottom-0 left-0 right-0 pointer-events-none z-10"
-          style={{ height: '52%', clipPath: HEX_CLIP, boxShadow: 'inset 0 0 0 2px rgba(201,162,39,0.8)' }}
-        />
-      )}
-
-      {/* Move mode: glow arrastável em pots plantados */}
+      {/* Move mode: glow âmbar */}
       {moveMode && state === 'planted' && (
         <div
           className="absolute inset-0 pointer-events-none z-10"
-          style={{ clipPath: HEX_CLIP, background: 'rgba(251,191,36,0.18)', boxShadow: 'inset 0 0 0 2px rgba(251,191,36,0.6)' }}
+          style={{ background: 'rgba(251,191,36,0.15)', filter: 'drop-shadow(0 0 8px rgba(251,191,36,0.6))' }}
         />
       )}
 
       {/* ── Level badge ── */}
       {state === 'planted' && level !== null && (
         <div
-          className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[45%] px-1.5 py-0.5 rounded-full z-20 whitespace-nowrap pointer-events-none"
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[40%] px-1.5 py-0.5 rounded-full z-20 whitespace-nowrap pointer-events-none"
           style={{
             background: 'rgba(8,14,5,0.92)',
             color: 'var(--color-text-light)',
