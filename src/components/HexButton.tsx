@@ -14,6 +14,8 @@ interface HexButtonProps {
   title?: string;
 }
 
+const SIZE = 130; // 74 × 1.75 ≈ 130px
+
 export function HexButton({
   icon, label, badge, disabled = false, active = false, onClick, onPointerDown, title,
 }: HexButtonProps) {
@@ -21,17 +23,14 @@ export function HexButton({
 
   const scale = disabled
     ? 'scale(1)'
-    : active && hovered
-    ? 'scale(1.12)'
-    : active
-    ? 'scale(1.07)'
-    : hovered
-    ? 'scale(1.08)'
+    : active && hovered ? 'scale(1.12)'
+    : active             ? 'scale(1.07)'
+    : hovered            ? 'scale(1.08)'
     : 'scale(1)';
 
   const imgFilter = [
-    disabled  ? 'grayscale(0.6) brightness(0.65)' : '',
-    active    ? 'brightness(1.2) saturate(1.3) drop-shadow(0 0 10px rgba(201,162,39,0.7))' : '',
+    disabled                        ? 'grayscale(0.6) brightness(0.65)' : '',
+    active                          ? 'brightness(1.2) saturate(1.3) drop-shadow(0 0 10px rgba(201,162,39,0.7))' : '',
     !disabled && !active && hovered ? 'brightness(1.1)' : '',
   ].filter(Boolean).join(' ') || undefined;
 
@@ -43,16 +42,18 @@ export function HexButton({
     }
   }, [disabled, onClick]);
 
+  const tooltipText = title ?? label;
+
   return (
     <div
       role="button"
       tabIndex={disabled ? -1 : 0}
-      aria-label={title ?? label}
+      aria-label={tooltipText}
       aria-disabled={disabled}
       className="relative select-none"
       style={{
-        width: 74,
-        height: 74,
+        width: SIZE,
+        height: SIZE,
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.65 : 1,
         transform: scale,
@@ -63,9 +64,8 @@ export function HexButton({
       onMouseEnter={() => { if (!disabled) setHovered(true); }}
       onMouseLeave={() => setHovered(false)}
       onKeyDown={handleKeyDown}
-      title={title}
     >
-      {/* Imagem do botão hexagonal de madeira */}
+      {/* Imagem do botão */}
       <div
         className="absolute inset-0"
         style={{ filter: imgFilter, transition: 'filter 0.15s ease' }}
@@ -80,26 +80,25 @@ export function HexButton({
         />
       </div>
 
-      {/* Ícone — leve offset pra cima para alinhar com o interior do hex
-          (as folhas da decoração ficam na base e deslocam o centro visual) */}
+      {/* Ícone */}
       <div
-        className="absolute inset-0 flex items-center justify-center z-10 text-[24px]"
+        className="absolute inset-0 flex items-center justify-center z-10 text-[36px]"
         style={{
           paddingBottom: '10%',
-          filter: 'drop-shadow(0 1px 5px rgba(0,0,0,0.9))',
+          filter: 'drop-shadow(0 1px 6px rgba(0,0,0,0.9))',
         }}
       >
         {icon}
       </div>
 
-      {/* Badge (contagem / cooldown) */}
+      {/* Badge */}
       {badge !== undefined && (
         <div
-          className="absolute top-0 right-0 z-20 min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center text-[9px] font-bold"
+          className="absolute top-1 right-1 z-20 min-w-[22px] h-[22px] px-1.5 rounded-full flex items-center justify-center text-[10px] font-bold"
           style={{
             background: 'var(--color-badge-bg, #3a7a2a)',
             color: 'var(--color-badge-text, #d4f0b0)',
-            border: '1.5px solid rgba(8,14,5,0.9)',
+            border: '2px solid rgba(8,14,5,0.9)',
             fontFamily: 'var(--font-display)',
           }}
         >
@@ -107,21 +106,40 @@ export function HexButton({
         </div>
       )}
 
-      {/* Label */}
-      <div
-        className="absolute whitespace-nowrap text-[9px]"
-        style={{
-          bottom: '-18px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          fontFamily: 'var(--font-display)',
-          color: 'var(--color-wood-light)',
-          letterSpacing: '0.5px',
-          textShadow: '0 1px 4px rgba(0,0,0,0.9)',
-        }}
-      >
-        {label}
-      </div>
+      {/* Tooltip — aparece acima no hover */}
+      {hovered && tooltipText && (
+        <div
+          className="absolute left-1/2 z-30 pointer-events-none whitespace-nowrap"
+          style={{
+            bottom: `calc(100% + 6px)`,
+            transform: 'translateX(-50%)',
+            background: 'rgba(8,14,5,0.9)',
+            color: 'var(--color-text-light)',
+            fontFamily: 'var(--font-display)',
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            padding: '4px 10px',
+            borderRadius: 8,
+            border: '1px solid rgba(201,162,39,0.3)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+            textTransform: 'uppercase',
+          }}
+        >
+          {tooltipText}
+          {/* seta apontando pra baixo */}
+          <span
+            className="absolute left-1/2 -translate-x-1/2"
+            style={{
+              bottom: -6,
+              width: 0, height: 0,
+              borderLeft: '5px solid transparent',
+              borderRight: '5px solid transparent',
+              borderTop: '6px solid rgba(8,14,5,0.9)',
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
