@@ -32,6 +32,8 @@ export function HexPot({
   isSelected,
   isStressed = false,
   moveMode = false,
+  isWaterTarget = false,
+  isMoveTarget = false,
   onClick,
   onPointerDown,
   onDigComplete,
@@ -40,6 +42,8 @@ export function HexPot({
   isSelected: boolean;
   isStressed?: boolean;
   moveMode?: boolean;
+  isWaterTarget?: boolean;
+  isMoveTarget?: boolean;
   onClick: (e: React.MouseEvent) => void;
   onPointerDown?: (e: React.PointerEvent) => void;
   onDigComplete?: () => void;
@@ -77,6 +81,15 @@ export function HexPot({
   // BALLOON_BOTTOM = 48%: balão flutua logo acima do topo do canteiro
   const BALLOON_BOTTOM = '48%';
 
+  // Glow seguindo a silhueta real das imagens (drop-shadow respeita o alpha do PNG).
+  // Aplicado tanto ao canteiro quanto à planta para realçar o hitbox exato.
+  const waterGlow = 'drop-shadow(0 0 4px rgba(59,130,246,0.95)) drop-shadow(0 0 9px rgba(59,130,246,0.85))';
+  const moveGlow  = 'drop-shadow(0 0 4px rgba(251,191,36,0.95)) drop-shadow(0 0 9px rgba(251,191,36,0.85))';
+  const selectGlow = 'drop-shadow(0 0 10px rgba(201,162,39,0.85))';
+  const targetGlow = isWaterTarget ? waterGlow : isMoveTarget ? moveGlow : undefined;
+  // Glow do canteiro: alvo (água/mover) tem prioridade sobre seleção
+  const potGlow = targetGlow ?? (isSelected ? selectGlow : undefined);
+
   return (
     <div
       className="relative w-full h-full select-none"
@@ -91,7 +104,10 @@ export function HexPot({
           className="absolute left-0 right-0 top-0 pointer-events-none z-10"
           style={{ bottom: PLANT_BOTTOM }}
         >
-          <div className="hex-plant-img relative w-full h-full">
+          <div
+            className="hex-plant-img relative w-full h-full"
+            style={{ filter: targetGlow, transition: 'filter 0.12s ease' }}
+          >
             {latestVersion?.image_url ? (
               <RarityEffect rarity={plant?.dna.rarity ?? 'comum'} alwaysVisible={false}>
                 <Image
@@ -141,9 +157,8 @@ export function HexPot({
         className="absolute bottom-0 left-0 right-0 pointer-events-none z-0"
         style={{
           height: POT_HEIGHT,
-          filter: isSelected
-            ? 'drop-shadow(0 0 10px rgba(201,162,39,0.85))'
-            : undefined,
+          filter: potGlow,
+          transition: 'filter 0.12s ease',
         }}
       >
         <div style={{ position: 'absolute', inset: 0 }}>

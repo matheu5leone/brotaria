@@ -657,6 +657,8 @@ export default function Garden() {
                 isSelected={selectedPotId === pot.id}
                 isStressed={stressedPotIds.has(pot.id)}
                 moveMode={moveMode}
+                isWaterTarget={wateringDrag && wateringTargetPotId === pot.id}
+                isMoveTarget={moveMode && moveTargetPotId === pot.id}
                 onClick={handlePotClick(pot)}
                 onPointerDown={moveMode && pot.plant_id ? handleMovePotPointerDown(pot) : undefined}
                 onDigComplete={handleDigComplete}
@@ -706,35 +708,8 @@ export default function Garden() {
           </div>
         )}
 
-        {/* ── Move target highlight ────────────────────────────────────── */}
-        {moveMode && moveTargetPotId && (() => {
-          const pot = pots.find(p => p.id === moveTargetPotId);
-          if (!pot) return null;
-          return (
-            <div className="absolute pointer-events-none z-10" style={{ left: `${pot.pos_x ?? 50}%`, top: `${pot.pos_y ?? 50}%`, width: '12%', aspectRatio: '1/1.65', transform: 'translate(-50%,-50%)', background: 'rgba(251,191,36,0.3)', clipPath: 'polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)', filter: 'drop-shadow(0 0 8px rgba(251,191,36,0.8))' }} />
-          );
-        })()}
-
-        {/* ── Watering target highlight ─────────────────────────────────── */}
-        {wateringDrag && wateringTargetPotId && (() => {
-          const pot = pots.find(p => p.id === wateringTargetPotId);
-          if (!pot) return null;
-          return (
-            <div
-              className="absolute pointer-events-none z-10"
-              style={{
-                left: `${pot.pos_x ?? 50}%`,
-                top: `${pot.pos_y ?? 50}%`,
-                width: '12%',
-                aspectRatio: '1 / 1.65',
-                transform: 'translate(-50%, -50%)',
-                background: 'rgba(59,130,246,0.25)',
-                clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-                filter: 'drop-shadow(0 0 8px rgba(59,130,246,0.8))',
-              }}
-            />
-          );
-        })()}
+        {/* Highlights de alvo (água/mover) agora são glow na silhueta das
+            imagens, aplicados dentro do HexPot via isWaterTarget/isMoveTarget. */}
 
         {/* ── Plant action menu ────────────────────────────────────────── */}
         {showActionMenu && selectedPlantId && selectedPot && (
