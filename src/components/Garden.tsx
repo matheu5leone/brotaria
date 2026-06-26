@@ -22,6 +22,20 @@ const BackpackIcon = ({ open }: { open: boolean }) => (
     <Image src={open ? '/imgs/backpack-open.png' : '/imgs/backpack.png'} alt="mochila" fill className="object-contain" draggable={false} />
   </span>
 );
+const WheelbarrowIcon = ({ carriedImageUrl }: { carriedImageUrl: string | null }) => (
+  <span className="relative inline-block" style={{ width: '2.2em', height: '2.2em' }}>
+    <Image src="/imgs/wheelbarrow.png" alt="carrinho" fill className="object-contain" draggable={false} />
+    {/* Miniatura da planta recolhida sobreposta ao carrinho */}
+    {carriedImageUrl && (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={carriedImageUrl}
+        alt="planta"
+        style={{ position: 'absolute', left: '50%', top: '-0.45em', transform: 'translateX(-50%)', width: '1.3em', height: '1.3em', objectFit: 'contain', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.55))' }}
+      />
+    )}
+  </span>
+);
 const SpinnerIcon = () => (
   <Loader2 className="animate-spin text-amber-200" style={{ width: '1.4em', height: '1.4em' }} />
 );
@@ -134,12 +148,12 @@ export default function Garden() {
   // Remove spot mode
   const [removeMode, setRemoveMode]                 = useState(false);
   const [removeError, setRemoveError]               = useState<string | null>(null);
-  // Move plant drag
-  const [moveMode, setMoveMode]                     = useState(false);
-  const [moveSrcPotId, setMoveSrcPotId]             = useState<string | null>(null);
-  const [moveDragPos, setMoveDragPos]               = useState<{ x: number; y: number } | null>(null);
-  const [moveTargetPotId, setMoveTargetPotId]       = useState<string | null>(null);
-  const [moveDragImageUrl, setMoveDragImageUrl]     = useState<string | null>(null);
+  // Carrinho de mão (mover plantas) — drag-and-drop estilo regador
+  // carried = planta atualmente "no carrinho" (recolhida, aguardando replante)
+  const [carried, setCarried]                       = useState<{ plantId: string; fromPotId: string; imageUrl: string | null } | null>(null);
+  const [barrowDrag, setBarrowDrag]                 = useState(false);
+  const [barrowDragPos, setBarrowDragPos]           = useState<{ x: number; y: number } | null>(null);
+  const [barrowTargetPotId, setBarrowTargetPotId]   = useState<string | null>(null);
   const [moveError, setMoveError]                   = useState<string | null>(null);
   // Stressed pots (sad face after move)
   const [stressedPotIds, setStressedPotIds]         = useState<Set<string>>(new Set());
@@ -321,61 +335,83 @@ export default function Garden() {
   }, [removePotMutation]);
 
   // Move plant drag via Pointer Events
-  const handleMovePotPointerDown = useCallback((pot: Pot) => (e: React.PointerEvent) => {
-    if (!moveMode || !pot.plant_id || movePlantMutation.isPending) return;
-    e.preventDefault(); e.stopPropagation();
+  // Drag do carrinho de mão (inicia no pointerdown do botão), estilo regador.
+  // - Carrinho vazio + solta em pot COM planta  → recolhe a planta (carried)
+  // - Carrinho cheio  + solta em pot SEM planta  → replanta (movePlant)
+  const handleBarrowPointerDown = useCallback((e: React.PointerEvent) => {
+    if (movePlantMutation.isPending) return;
+    e.preventDefault();
+    e.stopPropagation();
 
-    // Pega imagem do cache do React Query
-    const cachedVersion = qc.getQueryData<{ image_url: string | null }>(['plant', pot.plant_id, 'version']);
-    setMoveSrcPotId(pot.id);
-    setMoveDragPos({ x: e.clientX, y: e.clientY });
-    setMoveDragImageUrl(cachedVersion?.image_url ?? null);
-    setMoveTargetPotId(null);
+    const captureEl = e.currentTarget as HTMLElement;
+    const pointerId = e.pointerId;
+    try { captureEl.setPointerCapture(pointerId); } catch {}
+
+    setBarrowDrag(true);
+    setBarrowDragPos({ x: e.clientX, y: e.clientY });
+    setBarrowTargetPotId(null);
     setMoveError(null);
+    setShovelActive(false);
 
+    const loaded = !!carried; // tem planta no carrinho?
     let active = true;
 
     const onMove = (ev: PointerEvent) => {
       if (!active) return;
-      setMoveDragPos({ x: ev.clientX, y: ev.clientY });
-      const target = findPotAtPoint(ev.clientX, ev.clientY);
-      setMoveTargetPotId(target && !target.plant_id ? target.id : null);
+      setBarrowDragPos({ x: ev.clientX, y: ev.clientY });
+      const pot = findPotAtPoint(ev.clientX, ev.clientY);
+      // Alvo válido: vazio se carregado (replante), com planta se vazio (recolher)
+      const valid = pot && (loaded ? !pot.plant_id : !!pot.plant_id);
+      setBarrowTargetPotId(valid ? pot!.id : null);
     };
 
     const onUp = async (ev: PointerEvent) => {
       active = false;
-      document.removeEventListener('pointermove', onMove);
-      document.removeEventListener('pointerup', onUp);
-      setMoveDragPos(null);
-      setMoveDragImageUrl(null);
+      setBarrowDrag(false);
+      setBarrowDragPos(null);
+      setBarrowTargetPotId(null);
+      captureEl.removeEventListener('pointermove', onMove);
+      captureEl.removeEventListener('pointerup', onUp);
+      captureEl.removeEventListener('pointercancel', onUp);
+      try { captureEl.releasePointerCapture(pointerId); } catch {}
 
-      const target = findPotAtPoint(ev.clientX, ev.clientY);
-      setMoveTargetPotId(null);
-      setMoveSrcPotId(null);
+      const pot = findPotAtPoint(ev.clientX, ev.clientY);
+      if (!pot) return;
+      suppressClickRef.current = true;
+      setTimeout(() => { suppressClickRef.current = false; }, 400);
 
-      if (!target || target.plant_id || target.id === pot.id) return;
-
-      try {
-        const result = await movePlantMutation.mutateAsync({ fromPotId: pot.id, toPotId: target.id });
-        if (result.stressed) {
-          setStressedPotIds(prev => new Set([...prev, target.id]));
-          setTimeout(() => {
-            setStressedPotIds(prev => { const s = new Set(prev); s.delete(target.id); return s; });
-          }, 6000);
+      if (!loaded) {
+        // Recolher: planta sai do pot (otimista) e vai para o carrinho
+        if (!pot.plant_id) return;
+        const cachedVersion = qc.getQueryData<{ image_url: string | null }>(['plant', pot.plant_id, 'version']);
+        setCarried({ plantId: pot.plant_id, fromPotId: pot.id, imageUrl: cachedVersion?.image_url ?? null });
+      } else {
+        // Replantar: move do pot de origem para o pot vazio escolhido
+        if (pot.plant_id || pot.id === carried!.fromPotId) { setCarried(null); return; }
+        try {
+          const result = await movePlantMutation.mutateAsync({ fromPotId: carried!.fromPotId, toPotId: pot.id });
+          if (result.stressed) {
+            setStressedPotIds(prev => new Set([...prev, pot.id]));
+            setTimeout(() => {
+              setStressedPotIds(prev => { const s = new Set(prev); s.delete(pot.id); return s; });
+            }, 6000);
+          }
+          setCarried(null);
+        } catch (err: unknown) {
+          setMoveError((err as Error).message);
         }
-      } catch (err: unknown) {
-        setMoveError((err as Error).message);
       }
     };
 
-    document.addEventListener('pointermove', onMove);
-    document.addEventListener('pointerup', onUp);
-  }, [moveMode, movePlantMutation, findPotAtPoint, qc]);
+    captureEl.addEventListener('pointermove', onMove);
+    captureEl.addEventListener('pointerup', onUp);
+    captureEl.addEventListener('pointercancel', onUp);
+  }, [movePlantMutation, findPotAtPoint, qc, carried]);
 
   const handlePotClick = (pot: Pot) => async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (suppressClickRef.current) return; // ignora clique sintético pós-rega
-    if (wateringDrag || moveMode) return; // drag cuida da rega/move
+    if (wateringDrag || barrowDrag) return; // drag cuida da rega/carrinho
 
     if (removeMode) { await handleRemovePot(pot); return; }
 
@@ -425,7 +461,7 @@ export default function Garden() {
   };
 
   const closeAllModes = () => {
-    setShovelActive(false); setRemoveMode(false); setMoveMode(false); setInventoryOpen(false);
+    setShovelActive(false); setRemoveMode(false); setInventoryOpen(false);
   };
 
   const toggleShovel = (e: React.MouseEvent) => {
@@ -443,13 +479,6 @@ export default function Garden() {
     setRemoveError(null);
   };
 
-  const toggleMoveMode = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const next = !moveMode;
-    closeAllModes(); setMoveMode(next);
-    setMoveError(null);
-  };
-
   const toggleInventory = (e: React.MouseEvent) => {
     e.stopPropagation();
     setInventoryOpen(v => !v);
@@ -461,11 +490,11 @@ export default function Garden() {
     activePointers.current.add(e.pointerId);
     // Cancela pan se 2º dedo entrar (será pinch)
     if (activePointers.current.size > 1) { panPointer.current = null; return; }
-    if (shovelActive || wateringDrag || moveMode || removeMode || wrappingMode) return;
+    if (shovelActive || wateringDrag || barrowDrag || removeMode || wrappingMode) return;
     panPointer.current = { id: e.pointerId, startX: e.clientX, startY: e.clientY, panX: panRef.current.x, panY: panRef.current.y };
     hasPanned.current = false;
     (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
-  }, [shovelActive, wateringDrag, moveMode, removeMode, wrappingMode]);
+  }, [shovelActive, wateringDrag, barrowDrag, removeMode, wrappingMode]);
 
   const handleCanvasPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!panPointer.current || panPointer.current.id !== e.pointerId) return;
@@ -639,6 +668,10 @@ export default function Garden() {
         {pots.map((pot) => {
           const x = pot.pos_x ?? 50;
           const y = pot.pos_y ?? 50;
+          // Pot de origem da planta recolhida aparece vazio (otimista)
+          const displayPot = carried?.fromPotId === pot.id
+            ? { ...pot, plant_id: null, digging_started_at: null }
+            : pot;
           return (
             <div
               key={pot.id}
@@ -653,14 +686,12 @@ export default function Garden() {
               }}
             >
               <HexPot
-                pot={pot}
+                pot={displayPot}
                 isSelected={selectedPotId === pot.id}
                 isStressed={stressedPotIds.has(pot.id)}
-                moveMode={moveMode}
                 isWaterTarget={wateringDrag && wateringTargetPotId === pot.id}
-                isMoveTarget={moveMode && moveTargetPotId === pot.id}
+                isMoveTarget={barrowDrag && barrowTargetPotId === pot.id}
                 onClick={handlePotClick(pot)}
-                onPointerDown={moveMode && pot.plant_id ? handleMovePotPointerDown(pot) : undefined}
                 onDigComplete={handleDigComplete}
               />
             </div>
@@ -735,17 +766,20 @@ export default function Garden() {
         />
       )}
 
-      {/* ── Move plant drag cursor (fixed) ──────────────────────────────── */}
-      {moveMode && moveDragPos && moveSrcPotId && (
+      {/* ── Carrinho de mão drag cursor (fixed) — carrinho + miniatura ──── */}
+      {barrowDrag && barrowDragPos && (
         <div
           className="fixed pointer-events-none z-[9999]"
-          style={{ left: moveDragPos.x - 24, top: moveDragPos.y - 36, width: 48, height: 48 }}
+          style={{ left: barrowDragPos.x - 28, top: barrowDragPos.y - 32, width: 56, height: 56, filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.55))' }}
         >
-          {moveDragImageUrl ? (
+          <Image src="/imgs/wheelbarrow.png" alt="carrinho" width={56} height={56} className="object-contain" draggable={false} />
+          {carried?.imageUrl && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={moveDragImageUrl} alt="planta" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.6)) brightness(1.1)' }} />
-          ) : (
-            <span style={{ fontSize: 36 }}>🌱</span>
+            <img
+              src={carried.imageUrl}
+              alt="planta"
+              style={{ position: 'absolute', left: '50%', top: '-30%', transform: 'translateX(-50%)', width: 34, height: 34, objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5)) brightness(1.05)' }}
+            />
           )}
         </div>
       )}
@@ -789,7 +823,7 @@ export default function Garden() {
           )}
           {shovelActive  && <div className="text-xs px-3 py-1 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: 'var(--color-text-light)', border: '1px solid rgba(92,58,30,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>Clique no jardim para cavar</div>}
           {removeMode    && <div className="text-xs px-3 py-1 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>Clique num canteiro vazio para removê-lo</div>}
-          {moveMode      && <div className="text-xs px-3 py-1 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: '#fde68a', border: '1px solid rgba(251,191,36,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>Arraste uma planta para outro canteiro</div>}
+          {carried       && <div className="text-xs px-3 py-1 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: '#fde68a', border: '1px solid rgba(251,191,36,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>Arraste o carrinho até um canteiro vazio para replantar</div>}
         </div>
 
         <div className="hub-toolbar">
@@ -822,14 +856,14 @@ export default function Garden() {
             label="Regador"
             title={canWaterToday ? 'Arraste até uma planta para regar' : 'Limite diário atingido'}
           />
-          {/* 4 — Mover planta */}
+          {/* 4 — Carrinho de mão (mover planta) */}
           <HexButton
-            icon={movePlantMutation.isPending ? <SpinnerIcon /> : '🔀'}
+            icon={movePlantMutation.isPending ? <SpinnerIcon /> : <WheelbarrowIcon carriedImageUrl={carried?.imageUrl ?? null} />}
             disabled={movePlantMutation.isPending}
-            active={moveMode}
-            onClick={toggleMoveMode}
-            label="Mover"
-            title="Arrastar planta para outro canteiro"
+            active={barrowDrag || !!carried}
+            onPointerDown={handleBarrowPointerDown}
+            label="Carrinho"
+            title={carried ? 'Arraste até um canteiro vazio para replantar' : 'Arraste até uma planta para recolhê-la'}
           />
           {/* 5 — Excluir canteiro */}
           <HexButton
