@@ -20,11 +20,11 @@ export function AppShell({
 }) {
   return (
     <div
-      className="flex flex-col md:flex-row overflow-hidden"
+      className="app-shell flex overflow-hidden"
       style={{ height: '100dvh', background: 'var(--color-garden-deep)' }}
     >
-      {/* Sidebar — somente desktop */}
-      <div className="hidden md:flex flex-shrink-0">
+      {/* Sidebar — somente desktop real (largura E altura) */}
+      <div className="shell-sidebar flex-shrink-0">
         <Sidebar />
       </div>
 
@@ -33,8 +33,8 @@ export function AppShell({
         {children}
       </main>
 
-      {/* BottomNav — somente mobile */}
-      <div className="flex-shrink-0 md:hidden">
+      {/* BottomNav — mobile (inclui celular deitado) */}
+      <div className="shell-bottomnav flex-shrink-0">
         <BottomNav />
       </div>
     </div>

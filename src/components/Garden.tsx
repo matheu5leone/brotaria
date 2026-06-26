@@ -881,7 +881,7 @@ export default function Garden() {
 
       {/* ── HUD Toolbar unificado ─────────────────────────────────────────── */}
       <div
-        className="absolute right-4 z-20 bottom-6 md:bottom-1"
+        className="hud-pos absolute right-4 z-20"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="absolute bottom-full right-0 mb-2 flex flex-col items-end gap-1.5">

@@ -177,6 +177,24 @@ html, body {
   100% { transform: translateY(108vh) rotate(320deg) translateX(6px);   opacity: 0; }
 }
 
+/* ---------- Layout shell — sidebar só no desktop real ----------
+   Celular deitado (largura > 768 mas altura baixa) usa BottomNav, não sidebar. */
+.app-shell { flex-direction: column; }
+.shell-sidebar { display: none; }
+.shell-bottomnav { display: flex; }
+@media (min-width: 768px) and (min-height: 600px) {
+  .app-shell { flex-direction: row; }
+  .shell-sidebar { display: flex; }
+  .shell-bottomnav { display: none; }
+}
+
+/* Posição vertical do HUD: levantado no mobile (acima do BottomNav),
+   rente ao rodapé só no desktop real. */
+.hud-pos { bottom: 1.5rem; }
+@media (min-width: 768px) and (min-height: 600px) {
+  .hud-pos { bottom: 0.25rem; }
+}
+
 /* ---------- HUD Toolbar — direção responsiva ---------- */
 
 /*
@@ -197,9 +215,11 @@ html, body {
   }
 }
 
-/* Botão âncora (toggle): 20% maior que os demais */
+/* Botão âncora (toggle): 20% maior que os demais.
+   "desktop real" = largura E altura suficientes — celular deitado (altura baixa)
+   NÃO conta como desktop, então mantém o tamanho mobile. */
 .hub-toolbar .hex-button--anchor { width: 98px; height: 98px; font-size: 26px; }
-@media (min-width: 768px) {
+@media (min-width: 768px) and (min-height: 600px) {
   .hub-toolbar .hex-button--anchor { width: 197px; height: 197px; font-size: 48px; }
 }
 
@@ -239,18 +259,30 @@ html, body {
     flex-direction: row;
     align-items: center;
   }
-  .hud-group-inner .hex-button + .hex-button { margin-bottom: 0; margin-left: -56px; }
+  /* overlap em linha: -28px no mobile deitado (botões 82px) … */
+  .hud-group-inner .hex-button + .hex-button { margin-bottom: 0; margin-left: -28px; }
+}
+/* … e -56px só no desktop real (botões 164px) */
+@media (min-width: 768px) and (min-height: 600px) {
+  .hud-group-inner .hex-button + .hex-button { margin-left: -56px; }
 }
 
 /* ---------- Canteiro — tamanho responsivo ---------- */
 
-/* Mobile portrait: 36% (50% maior que os 24% anteriores) */
+/* Mobile portrait: 36% */
 .hex-pot {
   width: 36%;
 }
 
-/* Desktop / landscape: 12% */
-@media (min-width: 768px), (orientation: landscape) {
+/* Celular deitado: 18% (largura grande, mas evita pots pequenos demais) */
+@media (orientation: landscape) and (max-height: 600px) {
+  .hex-pot {
+    width: 18%;
+  }
+}
+
+/* Desktop real (largura E altura): 12% */
+@media (min-width: 768px) and (min-height: 600px) {
   .hex-pot {
     width: 12%;
   }
@@ -269,8 +301,9 @@ html, body {
   font-size: 22px; /* drive dos ícones (emoji + PNGs em unidades em) */
 }
 
-/* Desktop: dobra o tamanho dos botões (+100%) */
-@media (min-width: 768px) {
+/* Desktop real (largura E altura): dobra o tamanho dos botões.
+   Celular deitado fica de fora (altura < 600px) e mantém 82px. */
+@media (min-width: 768px) and (min-height: 600px) {
   .hex-button {
     width: 164px;
     height: 164px;
