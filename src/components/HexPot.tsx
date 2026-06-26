@@ -218,7 +218,7 @@ export function HexPot({
       {/* ── Level badge ── */}
       {state === 'planted' && level !== null && (
         <div
-          className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[40%] px-1.5 py-0.5 rounded-full z-20 whitespace-nowrap pointer-events-none"
+          className="absolute bottom-[6%] left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full z-20 whitespace-nowrap pointer-events-none"
           style={{
             background: 'rgba(8,14,5,0.92)',
             color: 'var(--color-text-light)',

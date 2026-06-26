@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Pot } from '@/types';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 
 // Ícones PNG dimensionados em `em` para escalar com o tamanho do botão (.hex-button)
 const WateringCanIcon = () => (
@@ -39,6 +39,21 @@ const WheelbarrowIcon = ({ carriedImageUrl }: { carriedImageUrl: string | null }
 const SpinnerIcon = () => (
   <Loader2 className="animate-spin text-amber-200" style={{ width: '1.4em', height: '1.4em' }} />
 );
+// Chevron do toggle do HUD: vertical em portrait, horizontal em landscape/desktop.
+// (mesma quebra do .hub-toolbar: row quando md OU landscape)
+const HudToggleIcon = ({ expanded }: { expanded: boolean }) => {
+  const sz = { width: '1.6em', height: '1.6em' } as const;
+  return (
+    <>
+      <span className="inline-flex landscape:hidden md:hidden">
+        {expanded ? <ChevronDown style={sz} /> : <ChevronUp style={sz} />}
+      </span>
+      <span className="hidden landscape:inline-flex md:inline-flex">
+        {expanded ? <ChevronRight style={sz} /> : <ChevronLeft style={sz} />}
+      </span>
+    </>
+  );
+};
 import CoinPurchaseModal from './CoinPurchaseModal';
 import { usePots, useShovelStatus, useWateringStatus } from '@/hooks/useGardenData';
 import { usePlant } from '@/hooks/usePlantData';
@@ -56,7 +71,6 @@ import { InventoryPanel } from '@/components/InventoryPanel';
 import { useWrapPlant } from '@/hooks/useInventory';
 import { HexButton } from '@/components/HexButton';
 import { HexPot, getPotState } from '@/components/HexPot';
-import { PlantActionMenu } from '@/components/PlantActionMenu';
 import { PlantDetailModal } from '@/components/PlantDetailModal';
 import { usePendingGifts } from '@/hooks/useGifts';
 import { GiftReceiveModal } from '@/components/GiftReceiveModal';
@@ -162,6 +176,7 @@ export default function Garden() {
   const [wrapError, setWrapError]                   = useState<string | null>(null);
   const [activeGift, setActiveGift]                 = useState<PendingGift | null>(null);
   const [inventoryOpen, setInventoryOpen]           = useState(false);
+  const [hudExpanded, setHudExpanded]               = useState(true); // HUD recolhível
 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef    = useRef<HTMLDivElement>(null);
@@ -600,7 +615,6 @@ export default function Garden() {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  const showActionMenu = !!(selectedPot?.plant_id && !wrappingMode);
   const showDetailModal = !!(selectedPlantId && !wrappingMode);
 
   return (
@@ -742,19 +756,7 @@ export default function Garden() {
         {/* Highlights de alvo (água/mover) agora são glow na silhueta das
             imagens, aplicados dentro do HexPot via isWaterTarget/isMoveTarget. */}
 
-        {/* ── Plant action menu ────────────────────────────────────────── */}
-        {showActionMenu && selectedPlantId && selectedPot && (
-          <SelectedPlantStatus
-            plantId={selectedPlantId}
-            potX={selectedPot.pos_x ?? 50}
-            potY={selectedPot.pos_y ?? 50}
-            isWaterPending={waterMutation.isPending}
-            isDeletePending={deleteMutation.isPending}
-            onRegar={handleRegar}
-            onHistorico={() => setHistoryPlantId(selectedPlantId)}
-            onRemover={handleRemover}
-          />
-        )}
+        {/* Popup de ações (Regar/Remover) removido — tudo via HUD agora. */}
       </div>
       {/* ══ fim do canvas ═════════════════════════════════════════════════ */}
 
@@ -827,62 +829,75 @@ export default function Garden() {
         </div>
 
         <div className="hub-toolbar">
-          {/* 1 — Mochila */}
+          {/* 0 — Toggle recolher/expandir (ocupa a posição-âncora) */}
           <HexButton
-            icon={<BackpackIcon open={inventoryOpen} />}
-            label="Mochila"
-            badge={undefined}
-            active={inventoryOpen}
-            onClick={toggleInventory}
-            title="Abrir mochila"
+            icon={<HudToggleIcon expanded={hudExpanded} />}
+            label={hudExpanded ? 'Recolher' : 'Menu'}
+            active={false}
+            onClick={(e) => { e.stopPropagation(); setHudExpanded(v => !v); }}
+            title={hudExpanded ? 'Recolher menu' : 'Abrir menu'}
           />
-          {/* 2 — Pá */}
-          <HexButton
-            icon={digMutation.isPending ? <SpinnerIcon /> : <ShovelIcon />}
-            badge={!shovelReady ? formatCooldown(shovelCooldownMs) : undefined}
-            disabled={!shovelReady || digMutation.isPending}
-            active={shovelActive}
-            onClick={toggleShovel}
-            label="Pá"
-            title={shovelReady ? 'Usar pá para cavar' : `Recarregando: ${formatCooldown(shovelCooldownMs)}`}
-          />
-          {/* 3 — Regador */}
-          <HexButton
-            icon={waterMutation.isPending ? <SpinnerIcon /> : <WateringCanIcon />}
-            badge={watersRemaining}
-            disabled={!canWaterToday || waterMutation.isPending}
-            active={wateringDrag}
-            onPointerDown={handleWateringPointerDown}
-            label="Regador"
-            title={canWaterToday ? 'Arraste até uma planta para regar' : 'Limite diário atingido'}
-          />
-          {/* 4 — Carrinho de mão (mover planta) */}
-          <HexButton
-            icon={movePlantMutation.isPending ? <SpinnerIcon /> : <WheelbarrowIcon carriedImageUrl={carried?.imageUrl ?? null} />}
-            disabled={movePlantMutation.isPending}
-            active={barrowDrag || !!carried}
-            onPointerDown={handleBarrowPointerDown}
-            label="Carrinho"
-            title={carried ? 'Arraste até um canteiro vazio para replantar' : 'Arraste até uma planta para recolhê-la'}
-          />
-          {/* 5 — Excluir canteiro */}
-          <HexButton
-            icon="🕳️"
-            disabled={removePotMutation.isPending}
-            active={removeMode}
-            onClick={toggleRemoveMode}
-            label="Excluir"
-            title="Remover canteiro vazio do jardim"
-          />
-          {/* SEMPRE ÚLTIMO — Presente */}
-          {pendingGifts.length > 0 && (
-            <HexButton
-              icon={<span style={{ animation: 'gift-shake 1.2s ease-in-out infinite', display: 'inline-block' }}>🎁</span>}
-              badge={pendingGifts.length}
-              onClick={(e) => { e.stopPropagation(); setActiveGift(pendingGifts[0]); }}
-              label="Presente"
-              title={`${pendingGifts.length} presente(s) aguardando`}
-            />
+
+          {hudExpanded && (
+            <>
+              {/* 1 — Mochila */}
+              <HexButton
+                icon={<BackpackIcon open={inventoryOpen} />}
+                label="Mochila"
+                badge={undefined}
+                active={inventoryOpen}
+                onClick={toggleInventory}
+                title="Abrir mochila"
+              />
+              {/* 2 — Pá */}
+              <HexButton
+                icon={digMutation.isPending ? <SpinnerIcon /> : <ShovelIcon />}
+                badge={!shovelReady ? formatCooldown(shovelCooldownMs) : undefined}
+                disabled={!shovelReady || digMutation.isPending}
+                active={shovelActive}
+                onClick={toggleShovel}
+                label="Pá"
+                title={shovelReady ? 'Usar pá para cavar' : `Recarregando: ${formatCooldown(shovelCooldownMs)}`}
+              />
+              {/* 3 — Regador */}
+              <HexButton
+                icon={waterMutation.isPending ? <SpinnerIcon /> : <WateringCanIcon />}
+                badge={watersRemaining}
+                disabled={!canWaterToday || waterMutation.isPending}
+                active={wateringDrag}
+                onPointerDown={handleWateringPointerDown}
+                label="Regador"
+                title={canWaterToday ? 'Arraste até uma planta para regar' : 'Limite diário atingido'}
+              />
+              {/* 4 — Carrinho de mão (mover planta) */}
+              <HexButton
+                icon={movePlantMutation.isPending ? <SpinnerIcon /> : <WheelbarrowIcon carriedImageUrl={carried?.imageUrl ?? null} />}
+                disabled={movePlantMutation.isPending}
+                active={barrowDrag || !!carried}
+                onPointerDown={handleBarrowPointerDown}
+                label="Carrinho"
+                title={carried ? 'Arraste até um canteiro vazio para replantar' : 'Arraste até uma planta para recolhê-la'}
+              />
+              {/* 5 — Excluir canteiro */}
+              <HexButton
+                icon="🕳️"
+                disabled={removePotMutation.isPending}
+                active={removeMode}
+                onClick={toggleRemoveMode}
+                label="Excluir"
+                title="Remover canteiro vazio do jardim"
+              />
+              {/* SEMPRE ÚLTIMO — Presente */}
+              {pendingGifts.length > 0 && (
+                <HexButton
+                  icon={<span style={{ animation: 'gift-shake 1.2s ease-in-out infinite', display: 'inline-block' }}>🎁</span>}
+                  badge={pendingGifts.length}
+                  onClick={(e) => { e.stopPropagation(); setActiveGift(pendingGifts[0]); }}
+                  label="Presente"
+                  title={`${pendingGifts.length} presente(s) aguardando`}
+                />
+              )}
+            </>
           )}
         </div>
       </div>
@@ -955,29 +970,3 @@ export default function Garden() {
   );
 }
 
-// Resolve canWater from the selected plant and re-renders PlantActionMenu with correct value.
-// Separated to avoid prop-drilling hydration_status through Garden's root state.
-function SelectedPlantStatus({
-  plantId, potX, potY,
-  isWaterPending, isDeletePending,
-  onRegar, onHistorico, onRemover,
-}: {
-  plantId: string;
-  potX: number; potY: number;
-  isWaterPending: boolean; isDeletePending: boolean;
-  onRegar: () => void; onHistorico: () => void; onRemover: () => void;
-}) {
-  const { data: plant } = usePlant(plantId);
-  const canWater = plant?.hydration_status === 'waiting_water';
-  return (
-    <PlantActionMenu
-      potX={potX} potY={potY}
-      canWater={canWater}
-      isWaterPending={isWaterPending}
-      isDeletePending={isDeletePending}
-      onRegar={onRegar}
-      onHistorico={onHistorico}
-      onRemover={onRemover}
-    />
-  );
-}
