@@ -7,12 +7,12 @@ import { Pot } from '@/types';
 import { X, Loader2 } from 'lucide-react';
 
 const WateringCanIcon = () => (
-  <Image src="/imgs/watering-can.png" alt="regador" width={58} height={58} className="object-contain" draggable={false} />
+  <Image src="/imgs/watering-can.png" alt="regador" width={44} height={44} className="object-contain" draggable={false} />
 );
 const ShovelIcon = () => (
-  <Image src="/imgs/shovel.png" alt="pá" width={52} height={58} className="object-contain" draggable={false} style={{ transform: 'rotate(-35deg)' }} />
+  <Image src="/imgs/shovel.png" alt="pá" width={36} height={44} className="object-contain" draggable={false} style={{ transform: 'rotate(-35deg)' }} />
 );
-const SpinnerIcon = () => <Loader2 className="w-9 h-9 animate-spin text-amber-200" />;
+const SpinnerIcon = () => <Loader2 className="w-6 h-6 animate-spin text-amber-200" />;
 import CoinPurchaseModal from './CoinPurchaseModal';
 import { usePots, useShovelStatus, useWateringStatus } from '@/hooks/useGardenData';
 import { usePlant } from '@/hooks/usePlantData';

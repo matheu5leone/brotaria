@@ -14,7 +14,7 @@ interface HexButtonProps {
   title?: string;
 }
 
-const SIZE = 130; // 74 × 1.75 ≈ 130px
+const SIZE = 82;
 
 export function HexButton({
   icon, label, badge, disabled = false, active = false, onClick, onPointerDown, title,
@@ -80,12 +80,13 @@ export function HexButton({
         />
       </div>
 
-      {/* Ícone */}
+      {/* Ícone — mix-blend-mode:multiply remove fundos brancos dos PNGs */}
       <div
-        className="absolute inset-0 flex items-center justify-center z-10 text-[36px]"
+        className="absolute inset-0 flex items-center justify-center z-10 text-[22px]"
         style={{
           paddingBottom: '10%',
-          filter: 'drop-shadow(0 1px 6px rgba(0,0,0,0.9))',
+          mixBlendMode: 'multiply',
+          filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.7))',
         }}
       >
         {icon}
