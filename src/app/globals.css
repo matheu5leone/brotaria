@@ -197,9 +197,9 @@ html, body {
   }
 }
 
-/* Portrait: overlap leve para ~16px de gap visual entre hexágonos */
+/* Portrait: gap pequeno entre os botões */
 .hub-toolbar .hex-button + .hex-button {
-  margin-top: -14px;
+  margin-top: -40px;
 }
 
 /* Desktop / landscape: lado a lado */
@@ -207,6 +207,20 @@ html, body {
   .hub-toolbar .hex-button + .hex-button {
     margin-top: 0;
     margin-left: -56px;
+  }
+}
+
+/* ---------- Canteiro — tamanho responsivo ---------- */
+
+/* Mobile portrait: 24% (dobro do desktop para compensar tela menor) */
+.hex-pot {
+  width: 24%;
+}
+
+/* Desktop / landscape: 12% */
+@media (min-width: 768px), (orientation: landscape) {
+  .hex-pot {
+    width: 12%;
   }
 }
 

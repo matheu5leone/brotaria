@@ -70,10 +70,11 @@ export function HexPot({
     return () => clearInterval(id);
   }, [state, pot.digging_started_at, onDigComplete]);
 
-  // Altura que o canteiro hexagonal ocupa no container
-  const POT_HEIGHT = '82%';
-  // Base da planta alinhada à superfície de terra do canteiro hex
-  const PLANT_BOTTOM = '56%';
+  // Canteiro hexagonal — imagem landscape em container portrait
+  // object-contain restringe pela largura: solo fica em ~73% do topo do container
+  const POT_HEIGHT = '80%';
+  // PLANT_BOTTOM = 27%: base da planta em 73% do topo ≈ superfície de terra do hex
+  const PLANT_BOTTOM = '27%';
 
   return (
     <div
@@ -100,8 +101,8 @@ export function HexPot({
                   className="object-contain object-bottom"
                 />
               </RarityEffect>
-            ) : plant && plant.current_stage.order_index > 0 ? (
-              // Só mostra loading se não é o estágio inicial (enterrada não gera imagem)
+            ) : plant && plant.current_stage.order_index > 2 ? (
+              // Loading só a partir do 4º estágio (broto em diante gera imagem via IA)
               <div className="flex items-end justify-center w-full h-full pb-1">
                 <Loader variant="inline" spin size={22} />
               </div>

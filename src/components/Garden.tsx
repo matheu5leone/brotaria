@@ -625,9 +625,8 @@ export default function Garden() {
             <div
               key={pot.id}
               data-pot-id={pot.id}
-              className="absolute"
+              className="absolute hex-pot"
               style={{
-                width: '12%',
                 aspectRatio: '1 / 1.65',
                 left: `${x}%`,
                 top: `${y}%`,
@@ -656,11 +655,10 @@ export default function Garden() {
           return (
             <div
               key={`wrap-${pot.id}`}
-              className="absolute flex items-end justify-center cursor-pointer z-10 pb-[5%]"
+              className="absolute hex-pot flex items-end justify-center cursor-pointer z-10 pb-[5%]"
               style={{
                 left: `${x}%`,
                 top: `${y}%`,
-                width: '12%',
                 aspectRatio: '1 / 1.65',
                 transform: 'translate(-50%, -50%)',
                 background: 'rgba(136,19,55,0.45)',
