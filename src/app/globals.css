@@ -188,13 +188,25 @@ html, body {
   display: flex;
   flex-direction: column-reverse; /* portrait: primeiro item embaixo */
   align-items: center;
-  gap: 20px;
 }
 
 @media (min-width: 768px), (orientation: landscape) {
   .hub-toolbar {
     flex-direction: row; /* landscape/desktop: primeiro item à esquerda */
     align-items: flex-end;
+  }
+}
+
+/* Gap entre botões — portrait: empilhados */
+.hub-toolbar .hex-button + .hex-button {
+  margin-top: 16px;
+}
+
+/* Desktop / landscape: lado a lado */
+@media (min-width: 768px), (orientation: landscape) {
+  .hub-toolbar .hex-button + .hex-button {
+    margin-top: 0;
+    margin-left: -56px;
   }
 }
 

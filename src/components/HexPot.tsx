@@ -132,12 +132,6 @@ export function HexPot({
       )}
 
       {/* ── Canteiro (imagem PNG) — aparece em todos os estados ── */}
-      {/*
-        mix-blend-mode:multiply no div interno remove o fundo branco do PNG:
-        branco × verde-escuro do jardim ≈ transparente, madeira fica visível.
-        drop-shadow no wrapper externo cria o glow dourado de seleção SEM sofrer
-        o efeito multiply (ficaria escurecido).
-      */}
       <div
         className="absolute bottom-0 left-0 right-0 pointer-events-none"
         style={{
@@ -147,8 +141,7 @@ export function HexPot({
             : undefined,
         }}
       >
-        {/* Camada multiply para remover fundo branco */}
-        <div style={{ position: 'absolute', inset: 0, mixBlendMode: 'multiply' }}>
+        <div style={{ position: 'absolute', inset: 0 }}>
           <Image
             src="/imgs/empty-pot.png"
             alt="canteiro"
@@ -157,7 +150,6 @@ export function HexPot({
             draggable={false}
             priority
             style={{
-              // Escurece levemente quando desabilitado para modo de seleção
               filter: isSelected ? 'brightness(1.2) saturate(1.3)' : undefined,
             }}
           />

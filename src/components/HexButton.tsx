@@ -137,13 +137,12 @@ export function HexButton({
         </div>
       )}
 
-      {/* Tooltip — aparece acima no hover */}
+      {/* Tooltip — aparece acima, ancorado à direita do botão para não vazar */}
       {hovered && tooltipText && (
         <div
-          className="absolute left-1/2 z-30 pointer-events-none whitespace-nowrap"
+          className="absolute right-0 z-30 pointer-events-none whitespace-nowrap"
           style={{
-            bottom: `calc(100% + 6px)`,
-            transform: 'translateX(-50%)',
+            bottom: `calc(100% + 2px)`,
             background: 'rgba(8,14,5,0.9)',
             color: 'var(--color-text-light)',
             fontFamily: 'var(--font-display)',
@@ -158,9 +157,9 @@ export function HexButton({
           }}
         >
           {tooltipText}
-          {/* seta apontando pra baixo */}
+          {/* seta apontando pra baixo, alinhada ao centro do botão */}
           <span
-            className="absolute left-1/2 -translate-x-1/2"
+            className="absolute right-[calc(50%-5px)]"
             style={{
               bottom: -6,
               width: 0, height: 0,

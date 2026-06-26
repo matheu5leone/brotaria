@@ -65,6 +65,7 @@ export function usePlant(plantId: string | null | undefined) {
     queryFn: () => fetchPlant(plantId!),
     enabled: !!plantId,
     staleTime: 30_000,
+    refetchInterval: 60_000,
   });
 }
 
