@@ -34,8 +34,13 @@ function RarityBadge({ rarity }: { rarity: Rarity }) {
   };
   return (
     <span
-      className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border"
-      style={{ color: `var(--rarity-${rarity})`, borderColor: `var(--rarity-${rarity})` }}
+      className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+      style={{
+        color: `var(--rarity-${rarity})`,
+        border: `1px solid color-mix(in srgb, var(--rarity-${rarity}) 45%, transparent)`,
+        background: 'rgba(0,0,0,0.3)',
+        fontFamily: 'var(--font-display)',
+      }}
     >
       {labels[rarity]}
     </span>
@@ -46,10 +51,18 @@ function RankingCard({ entry, onOpen }: { entry: RankingEntry; onOpen: () => voi
   return (
     <button
       onClick={onOpen}
-      className="w-full flex items-center gap-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-4 transition-all text-left active:scale-[0.99]"
+      className="w-full flex items-center gap-4 rounded-2xl p-4 transition-all text-left active:scale-[0.99] hover:brightness-110"
+      style={{
+        background: 'linear-gradient(160deg, rgba(28,45,16,0.75), rgba(15,26,8,0.75))',
+        border: '1px solid rgba(201,162,39,0.25)',
+        boxShadow: 'inset 0 1px 0 rgba(201,162,39,0.1)',
+      }}
     >
       {/* Posição */}
-      <span className={`text-3xl font-black w-10 text-center flex-shrink-0 ${RANK_COLORS[entry.rank - 1]}`}>
+      <span
+        className={`text-3xl font-black w-10 text-center flex-shrink-0 ${RANK_COLORS[entry.rank - 1]}`}
+        style={{ fontFamily: 'var(--font-display)' }}
+      >
         #{entry.rank}
       </span>
 
@@ -62,7 +75,7 @@ function RankingCard({ entry, onOpen }: { entry: RankingEntry; onOpen: () => voi
             </div>
           </RarityEffect>
         ) : (
-          <div className="w-16 h-16 rounded-full bg-stone-700/40 animate-pulse" />
+          <div className="w-16 h-16 rounded-full animate-pulse" style={{ background: 'rgba(92,58,30,0.3)' }} />
         )}
       </div>
 
@@ -73,20 +86,21 @@ function RankingCard({ entry, onOpen }: { entry: RankingEntry; onOpen: () => voi
             <Link
               href={`/jardim/${entry.nickname}`}
               onClick={(e) => e.stopPropagation()}
-              className="font-bold text-amber-400 hover:text-amber-300 hover:underline truncate transition-colors"
+              className="font-bold hover:underline truncate transition-colors"
+              style={{ color: 'var(--color-gold)', fontFamily: 'var(--font-display)' }}
             >
               @{entry.nickname}
             </Link>
           ) : (
-            <span className="font-bold text-white truncate">{entry.owner_name}</span>
+            <span className="font-bold truncate" style={{ color: 'var(--color-text-light)', fontFamily: 'var(--font-display)' }}>{entry.owner_name}</span>
           )}
           <RarityBadge rarity={entry.rarity} />
         </div>
-        <p className="text-white/50 text-sm mt-0.5">{entry.stage_name}</p>
+        <p className="text-sm mt-0.5" style={{ color: 'rgba(232,213,160,0.5)', fontFamily: 'var(--font-caption)' }}>{entry.stage_name}</p>
       </div>
 
       {/* Score */}
-      <div className="flex items-center gap-1.5 text-amber-400 font-black text-lg flex-shrink-0">
+      <div className="flex items-center gap-1.5 font-black text-lg flex-shrink-0" style={{ color: 'var(--color-gold)', fontFamily: 'var(--font-display)' }}>
         <CoinIcon size={16} />
         {entry.score.toLocaleString('pt-BR')}
       </div>
@@ -100,23 +114,23 @@ export default function RankingPage() {
 
   return (
     <AppShell>
-      <div className="max-w-2xl mx-auto px-6 py-8 text-white">
+      <div className="max-w-2xl mx-auto px-6 py-8">
         <div className="flex items-center gap-3 mb-8">
-          <Trophy className="w-8 h-8 text-amber-400" />
+          <Trophy className="w-8 h-8" style={{ color: 'var(--color-gold)' }} />
           <div>
-            <h1 className="text-3xl font-black">Ranking</h1>
-            <p className="text-white/40 text-sm">As 5 plantas mais valiosas do jardim</p>
+            <h1 className="text-3xl font-black" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-light)' }}>Ranking</h1>
+            <p className="text-sm" style={{ color: 'rgba(232,213,160,0.45)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>As 5 plantas mais valiosas do jardim</p>
           </div>
         </div>
 
         {isPending ? (
           <div className="flex flex-col gap-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-24 rounded-2xl bg-white/5 animate-pulse" />
+              <div key={i} className="h-24 rounded-2xl animate-pulse" style={{ background: 'rgba(28,45,16,0.5)' }} />
             ))}
           </div>
         ) : ranking.length === 0 ? (
-          <p className="text-white/30 text-center py-20">Nenhuma planta evoluída ainda.</p>
+          <p className="text-center py-20" style={{ color: 'rgba(232,213,160,0.35)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>Nenhuma planta evoluída ainda.</p>
         ) : (
           <div className="flex flex-col gap-3">
             {ranking.map((entry) => (

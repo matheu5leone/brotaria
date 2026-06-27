@@ -166,7 +166,12 @@ fecha ao clicar fora), desatrelado da posição do botão. As **mensagens de err
 
 ### 4.5 PlantDetailModal — Painel de Detalhes
 
-Abre junto ao menu de ação; mostra informações completas da planta selecionada.
+Abre ao clicar numa planta; mostra informações completas da planta selecionada.
+
+> **Atualização 2026-06-27:** padronizado no **tema grimório escuro** (era pergaminho
+> claro). Mesma linguagem do PlantHistoryModal/ConfirmDeleteModal: fundo
+> `linear-gradient(160deg,#1c2d10,#0f1a08,#0a1205)`, borda `rgba(201,162,39,0.35)`,
+> texto `--color-text-light`, chips `rgba(255,255,255,0.05)`, badge de raridade colorido.
 
 **Layout responsivo:**
 - **Mobile** (`< md`): `fixed inset-0` — tela inteira com backdrop

@@ -143,14 +143,17 @@ function PlantSlot({ item }: { item: InventoryItem }) {
   const rarity: Rarity = (plant?.dna?.rarity as Rarity) ?? 'comum';
 
   return (
-    <div className="relative flex flex-col items-center justify-center w-full h-full bg-stone-800/40 border border-stone-600/30 rounded-xl overflow-hidden">
+    <div
+      className="relative flex flex-col items-center justify-center w-full h-full rounded-xl overflow-hidden"
+      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(201,162,39,0.2)' }}
+    >
       <RarityEffect rarity={rarity} alwaysVisible>
         {version?.image_url ? (
           <div className="relative w-full h-full">
             <Image src={version.image_url} alt="Planta" fill className="object-contain p-1" />
           </div>
         ) : (
-          <div className="w-6 h-6 rounded-full bg-stone-600/40 animate-pulse" />
+          <div className="w-6 h-6 rounded-full animate-pulse" style={{ background: 'rgba(201,162,39,0.2)' }} />
         )}
       </RarityEffect>
     </div>
@@ -216,7 +219,7 @@ function SlotContent({
 }) {
   if (animPhase !== 'idle') return <AnimatingSlot phase={animPhase} rarity={animRarity} />;
 
-  if (!item) return <div className="w-full h-full border-2 border-dashed border-stone-600/30 rounded-xl" />;
+  if (!item) return <div className="w-full h-full border-2 border-dashed rounded-xl" style={{ borderColor: 'rgba(201,162,39,0.22)' }} />;
 
   if (item.item_type === 'seed') {
     return (
