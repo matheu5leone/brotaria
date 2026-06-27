@@ -94,11 +94,12 @@ export default function LojaPage() {
           {/* Banner de retorno do Stripe */}
           {banner && (
             <div
-              className={`mb-6 flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-sm font-medium ${
+              className="mb-6 flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-sm font-medium"
+              style={
                 banner.type === 'success'
-                  ? 'bg-green-50 border border-green-200 text-green-700'
-                  : 'bg-stone-100 border border-stone-200 text-stone-600'
-              }`}
+                  ? { background: 'rgba(42,90,30,0.14)', border: '1px solid rgba(42,90,30,0.3)', color: '#2a5a1e' }
+                  : { background: 'rgba(92,58,30,0.1)', border: '1px solid rgba(92,58,30,0.25)', color: 'var(--color-text-muted)' }
+              }
             >
               <span>{banner.type === 'success' ? '✅ ' : 'ℹ️ '}{banner.text}</span>
               <button onClick={() => setBanner(null)} className="opacity-60 hover:opacity-100">✕</button>
@@ -108,17 +109,24 @@ export default function LojaPage() {
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-black text-stone-800">Loja</h1>
-              <p className="text-stone-500">Use suas moedas para fazer seu jardim crescer.</p>
+              <h1 className="text-3xl font-black" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-light)' }}>Loja</h1>
+              <p className="text-sm" style={{ color: 'rgba(232,213,160,0.45)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>Use suas moedas para fazer seu jardim crescer.</p>
             </div>
             <button
               onClick={() => setModalOpen(true)}
-              className="flex items-center gap-2 bg-amber-400 hover:bg-amber-500 text-white font-bold px-4 py-2.5 rounded-xl shadow-lg hover:shadow-xl active:scale-95 transition-all"
+              className="flex items-center gap-2 font-bold px-4 py-2.5 rounded-xl active:scale-95 transition-all"
+              style={{
+                fontFamily: 'var(--font-display)',
+                background: 'linear-gradient(180deg, var(--color-parch-light), var(--color-parch-dark))',
+                color: 'var(--color-text-dark)',
+                border: '1.5px solid var(--color-wood-light)',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.3)',
+              }}
             >
               <CoinIcon size={20} />
               <span className="font-black">{coins}</span>
-              <span className="opacity-80">moedas</span>
-              <Plus className="w-4 h-4 ml-1" />
+              <span className="opacity-70">moedas</span>
+              <Plus className="w-4 h-4 ml-1" style={{ color: 'var(--color-wood-mid)' }} />
             </button>
           </div>
 
@@ -130,26 +138,36 @@ export default function LojaPage() {
               return (
                 <div
                   key={product.id}
-                  className="bg-white rounded-3xl border border-stone-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col"
+                  className="relative rounded-3xl overflow-hidden flex flex-col"
+                  style={{
+                    background: 'linear-gradient(180deg, var(--color-parch-light) 0%, var(--color-parch-dark) 100%)',
+                    border: '1.5px solid var(--color-wood-light)',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.3), inset 0 1px 1px rgba(242,232,213,0.8)',
+                  }}
                 >
-                  <div className="bg-gradient-to-br from-green-50 to-green-100 p-8 flex items-center justify-center relative">
+                  {/* Acento dourado no topo */}
+                  <div
+                    className="absolute top-0 left-6 right-6 h-px pointer-events-none z-10"
+                    style={{ background: 'linear-gradient(90deg, transparent, var(--color-gold), transparent)' }}
+                  />
+                  <div className="p-8 flex items-center justify-center relative" style={{ background: 'rgba(42,90,30,0.08)' }}>
                     {product.id === 'skip_time' && (
                       <span className="absolute top-2 left-2 text-[10px] font-black bg-red-500 text-white px-1.5 py-0.5 rounded">
                         DEV
                       </span>
                     )}
-                    <div className="bg-white rounded-2xl p-5 shadow-inner">
-                      <Sprout className="w-12 h-12 text-green-600" />
+                    <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.5)', boxShadow: 'inset 0 2px 6px rgba(92,58,30,0.15)' }}>
+                      <Sprout className="w-12 h-12" style={{ color: '#2a5a1e' }} />
                     </div>
                   </div>
                   <div className="p-5 flex flex-col flex-1">
-                    <h3 className="font-black text-lg text-stone-800">{product.name}</h3>
-                    <p className="text-sm text-stone-500 flex-1 mt-1">{product.description}</p>
+                    <h3 className="font-black text-lg" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}>{product.name}</h3>
+                    <p className="text-sm flex-1 mt-1" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)' }}>{product.description}</p>
 
                     <div className="flex items-center justify-between mt-4">
-                      <span className="flex items-center gap-1.5 font-black text-amber-600">
+                      <span className="flex items-center gap-1.5 font-black" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-wood-dark)' }}>
                         {product.cost_coins === 0 ? (
-                          <span className="text-green-600">Grátis</span>
+                          <span style={{ color: '#2a5a1e' }}>Grátis</span>
                         ) : (
                           <>
                             <CoinIcon size={20} />
@@ -160,11 +178,12 @@ export default function LojaPage() {
                       <button
                         onClick={() => buyProduct(product.id, product.cost_coins)}
                         disabled={isBuying}
-                        className={`px-4 py-2 rounded-xl font-bold text-sm transition-all active:scale-95 ${
+                        className="px-4 py-2 rounded-xl font-bold text-sm transition-all active:scale-95"
+                        style={
                           affordable
-                            ? 'bg-green-600 hover:bg-green-700 text-white shadow'
-                            : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                        }`}
+                            ? { fontFamily: 'var(--font-display)', background: 'linear-gradient(135deg, #2a5a1e, #1e4014)', color: 'var(--color-parch-light)', border: '1px solid rgba(201,162,39,0.3)' }
+                            : { fontFamily: 'var(--font-display)', background: 'rgba(201,162,39,0.15)', color: 'var(--color-wood-dark)', border: '1px solid rgba(201,162,39,0.35)' }
+                        }
                       >
                         {isBuying ? (
                           <Loader2 className="w-4 h-4 animate-spin" />

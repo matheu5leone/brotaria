@@ -198,9 +198,18 @@ Cor: `rgba(201,162,39,0.9)` (ouro/dourado). Não interativas (`pointer-events-no
 
 ### 4.7 PlantHistoryModal — Card de Histórico de Evolução
 
-Modal de histórico/detalhe da planta. Usa **tema escuro do jardim** (não pergaminho) para permanecer imersivo no contexto do garden.
+Modal de histórico/detalhe da planta — **tema pergaminho (padrão login)**, card central
+dividido ao meio (esquerda = infos, direita = foto). **Somente visualização**: os botões
+Regar/Remover foram removidos.
 
-**Diferença de estilo intencional:** O fundo dark-green do card contrasta com os painéis de parchment. É o único componente com tema escuro, justificado pela imersão no jardim.
+**Navegação entre estágios/versões:**
+- Setas ◀ ▶ + dots de paginação (cor da raridade ativa).
+- **Swipe** (toque): arrastar p/ esquerda → próximo, p/ direita → anterior (≥40px).
+- **Scroll do mouse** (desktop) com o card ativo: deltaY/deltaX troca de versão (throttle 250ms).
+  Fica no overlay acima do jardim, então não colide com o zoom do jardim.
+
+> **Atualização 2026-06-27:** migrado do tema escuro grimório para o **pergaminho** do
+> login/cadastro (referência de design). Loja, CoinPurchaseModal e ConfirmDeleteModal também.
 
 **Card:**
 - Fundo: `linear-gradient(160deg, #1c2d10, #0f1a08, #0a1205)`

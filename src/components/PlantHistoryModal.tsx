@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Image from 'next/image';
-import { X, ChevronLeft, ChevronRight, Droplets, Trash2, Leaf, Star, Flame, Zap, Sprout } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Droplets, Leaf, Star, Flame, Zap, Sprout } from 'lucide-react';
 import { GAME } from '@/config/economy';
 import { calcPlantScore } from '@/lib/scoring';
 import { PlantRow, PlantVersionHistoryRow, usePlantHistory } from '@/hooks/usePlantData';
@@ -85,18 +85,10 @@ function VersionCard({
   version,
   plant,
   isLast,
-  onRegar,
-  onRemover,
-  isWaterPending,
-  isDeletePending,
 }: {
   version: PlantVersionHistoryRow;
   plant: PlantRow;
   isLast: boolean;
-  onRegar?: () => void;
-  onRemover?: () => void;
-  isWaterPending?: boolean;
-  isDeletePending?: boolean;
 }) {
   const rarity = (version.dna_snapshot?.rarity ?? 'comum') as Rarity;
   const level = (version.stage?.order_index ?? 0) + 1;
@@ -115,13 +107,13 @@ function VersionCard({
       <div className="flex-1 flex flex-col min-w-0">
         <h2
           className="text-lg font-black mb-1 leading-tight"
-          style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-light)' }}
+          style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
         >
           {version.stage?.name ?? 'Planta'} {level}
         </h2>
         <p
           className="text-xs leading-relaxed mb-3"
-          style={{ fontFamily: 'var(--font-caption)', fontStyle: 'italic', color: 'rgba(232,213,160,0.6)' }}
+          style={{ fontFamily: 'var(--font-caption)', fontStyle: 'italic', color: 'var(--color-text-muted)' }}
         >
           {description}
         </p>
@@ -136,17 +128,17 @@ function VersionCard({
             <div
               key={label}
               className="flex items-center justify-between rounded-lg px-2.5 py-1.5"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+              style={{ background: 'rgba(92,58,30,0.07)', border: '1px solid rgba(92,58,30,0.12)' }}
             >
               <span
                 className="text-[8px] font-black uppercase tracking-widest"
-                style={{ fontFamily: 'var(--font-display)', color: 'rgba(232,213,160,0.45)' }}
+                style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-muted)' }}
               >
                 {label}
               </span>
               <span
                 className="text-[10px] font-bold truncate ml-2"
-                style={{ fontFamily: 'var(--font-body)', color: 'rgba(232,213,160,0.9)' }}
+                style={{ fontFamily: 'var(--font-body)', color: 'var(--color-text-dark)' }}
               >
                 {value}
               </span>
@@ -159,36 +151,36 @@ function VersionCard({
           <div className="flex items-center justify-between mb-1">
             <span
               className="text-[8px] font-black uppercase tracking-widest"
-              style={{ fontFamily: 'var(--font-display)', color: 'rgba(232,213,160,0.45)' }}
+              style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-muted)' }}
             >
               Crescimento
             </span>
             <span
               className="text-[9px] font-bold"
-              style={{ fontFamily: 'var(--font-display)', color: 'rgba(232,213,160,0.7)' }}
+              style={{ fontFamily: 'var(--font-display)', color: 'var(--color-wood-mid)' }}
             >
               Nível {level}
             </span>
           </div>
-          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(92,58,30,0.15)' }}>
             <div
               className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg, #2d7a2d, #4ade80)' }}
+              style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg, #2a7a2a, #4ade80)' }}
             />
           </div>
           <div className="mt-1 text-right">
             {isLast ? (
               canWater ? (
-                <span className="text-[8px] font-bold" style={{ color: '#fbbf24', fontFamily: 'var(--font-display)' }}>
+                <span className="text-[8px] font-bold" style={{ color: '#d97706', fontFamily: 'var(--font-display)' }}>
                   Pode regar agora! 💧
                 </span>
               ) : (
-                <span className="text-[8px]" style={{ color: 'rgba(232,213,160,0.4)', fontFamily: 'var(--font-caption)' }}>
+                <span className="text-[8px]" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)' }}>
                   Próximo nível em: {formatNextWater(plant.next_water_needed_at)}
                 </span>
               )
             ) : (
-              <span className="text-[8px]" style={{ color: 'rgba(232,213,160,0.4)', fontFamily: 'var(--font-caption)' }}>
+              <span className="text-[8px]" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)' }}>
                 Fase concluída ✓
               </span>
             )}
@@ -196,53 +188,26 @@ function VersionCard({
         </div>
 
         {/* Rewards */}
-        <div className="flex gap-2 mb-3">
+        <div className="flex gap-2 mt-auto">
           <div
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold"
-            style={{ background: 'rgba(201,162,39,0.12)', color: 'var(--color-gold)', border: '1px solid rgba(201,162,39,0.2)', fontFamily: 'var(--font-display)' }}
+            style={{ background: 'rgba(201,162,39,0.14)', color: 'var(--color-wood-dark)', border: '1px solid rgba(201,162,39,0.3)', fontFamily: 'var(--font-display)' }}
           >
             🍃 {calcPlantScore(version.dna_snapshot, version.stage?.order_index ?? 0)}
           </div>
           <div
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold"
-            style={{ background: 'rgba(59,130,246,0.1)', color: '#93c5fd', border: '1px solid rgba(59,130,246,0.15)', fontFamily: 'var(--font-display)' }}
+            style={{ background: 'rgba(42,90,30,0.12)', color: '#2a5a1e', border: '1px solid rgba(42,90,30,0.25)', fontFamily: 'var(--font-display)' }}
           >
             💧 +{GAME.XP_PER_EVOLUTION} XP
           </div>
-        </div>
-
-        {/* Action buttons */}
-        <div className="mt-auto flex gap-2">
-          <button
-            onClick={onRemover}
-            disabled={isDeletePending}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold text-xs transition-all active:scale-95 disabled:opacity-40"
-            style={{ fontFamily: 'var(--font-display)', background: 'rgba(127,29,29,0.3)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.25)' }}
-          >
-            <Trash2 className={`w-4 h-4 ${isDeletePending ? 'animate-spin' : ''}`} />
-            Remover
-          </button>
-          <button
-            onClick={onRegar}
-            disabled={isWaterPending || !canWater}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold text-xs transition-all active:scale-95 disabled:opacity-40"
-            style={{
-              fontFamily: 'var(--font-display)',
-              background: canWater ? 'linear-gradient(135deg, #166534, #15803d)' : 'rgba(255,255,255,0.05)',
-              color: canWater ? '#bbf7d0' : 'rgba(232,213,160,0.35)',
-              border: `1px solid ${canWater ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.08)'}`,
-            }}
-          >
-            <Droplets className={`w-4 h-4 ${isWaterPending ? 'animate-spin' : ''}`} />
-            Regar
-          </button>
         </div>
       </div>
 
       {/* Divisória dourada central */}
       <div
         className="w-px flex-shrink-0 self-stretch"
-        style={{ background: 'linear-gradient(180deg, transparent, rgba(201,162,39,0.4), transparent)' }}
+        style={{ background: 'linear-gradient(180deg, transparent, rgba(201,162,39,0.5), transparent)' }}
       />
 
       {/* ══ DIREITA — foto + algumas infos ══ */}
@@ -252,8 +217,8 @@ function VersionCard({
           className="relative w-full rounded-2xl overflow-hidden"
           style={{
             aspectRatio: '1',
-            background: 'radial-gradient(ellipse at 40% 30%, rgba(30,50,15,0.8), rgba(5,10,3,0.95))',
-            border: '1px solid rgba(92,58,30,0.3)',
+            background: 'radial-gradient(ellipse at 40% 30%, rgba(30,50,15,0.5), rgba(8,14,5,0.8))',
+            border: '2px solid rgba(92,58,30,0.3)',
           }}
         >
           {version.image_url ? (
@@ -268,13 +233,13 @@ function VersionCard({
             </RarityEffect>
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <div className="w-12 h-12 rounded-full animate-pulse" style={{ background: 'rgba(92,58,30,0.3)' }} />
+              <div className="w-12 h-12 rounded-full animate-pulse" style={{ background: 'rgba(92,58,30,0.2)' }} />
             </div>
           )}
         </div>
         <div
           className="mt-2 text-center text-[10px] font-bold leading-tight"
-          style={{ fontFamily: 'var(--font-display)', color: 'rgba(232,213,160,0.85)' }}
+          style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
         >
           {version.stage?.name ?? 'Planta'} {level}
         </div>
@@ -289,14 +254,11 @@ export function PlantHistoryModal({
   plant,
   open,
   onClose,
-  onRegar,
-  onRemover,
-  isWaterPending = false,
-  isDeletePending = false,
 }: {
   plant: PlantRow;
   open: boolean;
   onClose: () => void;
+  // (onRegar/onRemover removidos — o card é só de visualização/histórico)
   onRegar?: () => void;
   onRemover?: () => void;
   isWaterPending?: boolean;
@@ -304,6 +266,8 @@ export function PlantHistoryModal({
 }) {
   const { data: versions = [], isPending } = usePlantHistory(open ? plant.id : null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const wheelLock = useRef(0);
+  const touchStartX = useRef<number | null>(null);
 
   if (!open) return null;
 
@@ -315,17 +279,39 @@ export function PlantHistoryModal({
   const goLeft  = () => setActiveIndex(i => Math.max(0, i - 1));
   const goRight = () => setActiveIndex(i => Math.min(count - 1, i + 1));
 
+  // Scroll do mouse (desktop) navega entre estágios — throttle p/ não pular vários.
+  // Fica no card (overlay acima do jardim), então não colide com o zoom do jardim.
+  const handleWheel = (e: React.WheelEvent) => {
+    if (count <= 1) return;
+    const now = Date.now();
+    if (now - wheelLock.current < 250) return;
+    const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    if (Math.abs(d) < 8) return;
+    wheelLock.current = now;
+    if (d > 0) goRight(); else goLeft();
+  };
+
+  // Swipe (toque) navega entre estágios.
+  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(dx) < 40) return;
+    if (dx < 0) goRight(); else goLeft(); // arrasta p/ esquerda → próximo
+  };
+
   return (
     <div
       className="fixed inset-0 z-[10000] flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)' }}
+      style={{ background: 'rgba(5,8,3,0.55)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
       {/* Left arrow */}
       {count > 1 && activeIndex > 0 && (
         <button
           className="absolute left-3 z-10 p-2 rounded-full transition-all active:scale-90"
-          style={{ background: 'rgba(0,0,0,0.4)', color: 'rgba(232,213,160,0.7)', border: '1px solid rgba(201,162,39,0.2)' }}
+          style={{ background: 'var(--color-parch-light)', color: 'var(--color-wood-mid)', border: '1.5px solid var(--color-wood-light)' }}
           onClick={(e) => { e.stopPropagation(); goLeft(); }}
         >
           <ChevronLeft className="w-6 h-6" />
@@ -336,25 +322,28 @@ export function PlantHistoryModal({
       {count > 1 && activeIndex < count - 1 && (
         <button
           className="absolute right-3 z-10 p-2 rounded-full transition-all active:scale-90"
-          style={{ background: 'rgba(0,0,0,0.4)', color: 'rgba(232,213,160,0.7)', border: '1px solid rgba(201,162,39,0.2)' }}
+          style={{ background: 'var(--color-parch-light)', color: 'var(--color-wood-mid)', border: '1.5px solid var(--color-wood-light)' }}
           onClick={(e) => { e.stopPropagation(); goRight(); }}
         >
           <ChevronRight className="w-6 h-6" />
         </button>
       )}
 
-      {/* Card — modal central dividido ao meio */}
+      {/* Card — modal central dividido ao meio (pergaminho) */}
       <div
         className="relative flex flex-col mx-8 p-5 pt-10 rounded-3xl overflow-hidden"
         style={{
           width: 'min(94vw, 600px)',
           maxHeight: '92vh',
           overflowY: 'auto',
-          background: 'linear-gradient(160deg, #1c2d10 0%, #0f1a08 60%, #0a1205 100%)',
-          border: '1.5px solid rgba(201,162,39,0.35)',
-          boxShadow: '0 32px 80px rgba(0,0,0,0.7), inset 0 1px 0 rgba(201,162,39,0.12)',
+          background: 'linear-gradient(180deg, var(--color-parch-light) 0%, var(--color-parch-dark) 100%)',
+          border: '1.5px solid var(--color-wood-light)',
+          boxShadow: '0 32px 80px rgba(0,0,0,0.5), inset 0 1px 1px rgba(242,232,213,0.9)',
         }}
         onClick={(e) => e.stopPropagation()}
+        onWheel={handleWheel}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         {/* Gold top accent */}
         <div
@@ -365,8 +354,8 @@ export function PlantHistoryModal({
         {/* Close button — canto superior direito */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 z-10 p-1.5 rounded-full transition-all active:scale-90 hover:bg-white/10"
-          style={{ color: 'rgba(232,213,160,0.5)' }}
+          className="absolute top-3 right-3 z-10 p-1.5 rounded-full transition-all active:scale-90 hover:bg-black/10"
+          style={{ color: 'var(--color-text-muted)' }}
         >
           <X className="w-5 h-5" />
         </button>
@@ -374,27 +363,19 @@ export function PlantHistoryModal({
         {/* Content */}
         {isPending ? (
           <div className="flex items-center justify-center py-16">
-            <div className="w-8 h-8 rounded-full animate-pulse" style={{ background: 'rgba(92,58,30,0.4)' }} />
+            <div className="w-8 h-8 rounded-full animate-pulse" style={{ background: 'rgba(92,58,30,0.25)' }} />
           </div>
         ) : count === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
             <p
               className="text-sm text-center"
-              style={{ fontFamily: 'var(--font-caption)', fontStyle: 'italic', color: 'rgba(232,213,160,0.4)' }}
+              style={{ fontFamily: 'var(--font-caption)', fontStyle: 'italic', color: 'var(--color-text-muted)' }}
             >
               Esta planta ainda não possui registros de evolução.
             </p>
           </div>
         ) : active ? (
-          <VersionCard
-            version={active}
-            plant={plant}
-            isLast={isLast}
-            onRegar={onRegar}
-            onRemover={onRemover}
-            isWaterPending={isWaterPending}
-            isDeletePending={isDeletePending}
-          />
+          <VersionCard version={active} plant={plant} isLast={isLast} />
         ) : null}
 
         {/* Pagination dots */}
@@ -408,7 +389,7 @@ export function PlantHistoryModal({
                 style={{
                   width: i === activeIndex ? 16 : 6,
                   height: 6,
-                  background: i === activeIndex ? RARITY_CONFIG[activeRarity]?.color : 'rgba(255,255,255,0.2)',
+                  background: i === activeIndex ? RARITY_CONFIG[activeRarity]?.color : 'rgba(92,58,30,0.25)',
                 }}
               />
             ))}

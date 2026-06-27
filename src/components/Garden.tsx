@@ -1099,7 +1099,7 @@ export default function Garden() {
   );
 }
 
-// Diálogo de confirmação de exclusão — tema grimório escuro (design.md §4.7)
+// Diálogo de confirmação de exclusão — tema pergaminho (padrão login)
 function ConfirmDeleteModal({
   isPending, onConfirm, onCancel,
 }: {
@@ -1110,36 +1110,42 @@ function ConfirmDeleteModal({
   return (
     <div
       className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
-      style={{ background: 'rgba(5,8,3,0.62)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'rgba(5,8,3,0.55)', backdropFilter: 'blur(4px)' }}
       onClick={onCancel}
     >
       <div
         className="relative flex flex-col items-center text-center px-6 py-6"
         style={{
           width: 'min(88vw, 340px)',
-          background: 'linear-gradient(160deg, #1c2d10, #0f1a08, #0a1205)',
-          border: '1.5px solid rgba(201,162,39,0.35)',
-          boxShadow: '0 18px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(201,162,39,0.12)',
-          borderRadius: 24,
+          background: 'linear-gradient(180deg, var(--color-parch-light) 0%, var(--color-parch-dark) 100%)',
+          border: '1.5px solid var(--color-wood-light)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.5), inset 0 1px 1px rgba(242,232,213,0.9)',
+          borderRadius: 16,
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Acento dourado no topo */}
+        <div
+          className="absolute top-0 left-6 right-6 h-px pointer-events-none"
+          style={{ background: 'linear-gradient(90deg, transparent, var(--color-gold), transparent)' }}
+        />
+
         <div
           className="flex items-center justify-center mb-3"
-          style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.4)' }}
+          style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(139,40,40,0.12)', border: '1px solid rgba(139,40,40,0.3)' }}
         >
-          <Trash2 className="w-7 h-7" style={{ color: '#f87171' }} />
+          <Trash2 className="w-7 h-7" style={{ color: '#8b2828' }} />
         </div>
 
         <h3
           className="mb-1.5"
-          style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 900, color: 'var(--color-text-light)', letterSpacing: '0.02em' }}
+          style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 900, color: 'var(--color-text-dark)', letterSpacing: '0.02em' }}
         >
           Remover planta?
         </h3>
         <p
           className="mb-5"
-          style={{ fontFamily: 'var(--font-body)', fontSize: 13.5, lineHeight: 1.45, color: 'rgba(232,213,160,0.7)' }}
+          style={{ fontFamily: 'var(--font-body)', fontSize: 13.5, lineHeight: 1.45, color: 'var(--color-text-muted)' }}
         >
           Esta ação não pode ser desfeita. Você perderá o DNA único desta planta para sempre.
         </p>
@@ -1149,7 +1155,7 @@ function ConfirmDeleteModal({
             onClick={onCancel}
             disabled={isPending}
             className="flex-1 py-2.5 rounded-xl font-bold transition-all active:scale-95 disabled:opacity-50"
-            style={{ fontFamily: 'var(--font-display)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-light)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(201,162,39,0.25)' }}
+            style={{ fontFamily: 'var(--font-display)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-dark)', background: 'rgba(255,255,255,0.45)', border: '1.5px solid rgba(139,99,70,0.35)' }}
           >
             Cancelar
           </button>
@@ -1157,7 +1163,7 @@ function ConfirmDeleteModal({
             onClick={onConfirm}
             disabled={isPending}
             className="flex-1 py-2.5 rounded-xl font-bold transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
-            style={{ fontFamily: 'var(--font-display)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#fecaca', background: 'rgba(185,28,28,0.45)', border: '1px solid rgba(239,68,68,0.55)' }}
+            style={{ fontFamily: 'var(--font-display)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-parch-light)', background: 'linear-gradient(135deg, #8b2828, #5a0d0d)', border: '1px solid rgba(139,40,40,0.5)' }}
           >
             {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
             Remover

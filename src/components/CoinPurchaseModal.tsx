@@ -110,29 +110,43 @@ export default function CoinPurchaseModal({
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-stone-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+      style={{ background: 'rgba(5,8,3,0.55)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden animate-in zoom-in-95 duration-200"
+        className="relative w-full max-w-md overflow-hidden"
+        style={{
+          background: 'linear-gradient(180deg, var(--color-parch-light) 0%, var(--color-parch-dark) 100%)',
+          border: '1.5px solid var(--color-wood-light)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.5), inset 0 1px 1px rgba(242,232,213,0.9)',
+          borderRadius: 16,
+        }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Acento dourado no topo */}
+        <div
+          className="absolute top-0 left-6 right-6 h-px pointer-events-none z-10"
+          style={{ background: 'linear-gradient(90deg, transparent, var(--color-gold), transparent)' }}
+        />
+
         {/* Header */}
-        <div className="relative bg-gradient-to-br from-amber-400 to-amber-500 p-6 text-white">
+        <div className="relative p-6">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-white/20 transition-colors"
+            className="absolute top-4 right-4 p-1.5 rounded-full transition-all active:scale-90 hover:bg-black/10"
+            style={{ color: 'var(--color-text-muted)' }}
             title="Fechar"
           >
             <X className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-3">
-            <div className="bg-white/20 p-2.5 rounded-2xl">
+            <div className="p-2.5 rounded-2xl" style={{ background: 'rgba(201,162,39,0.15)', border: '1px solid rgba(201,162,39,0.3)' }}>
               <CoinIcon size={28} />
             </div>
             <div>
-              <h2 className="text-xl font-black leading-tight">Comprar Moedas</h2>
-              <p className="text-amber-50 text-sm">
+              <h2 className="text-xl font-black leading-tight" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}>Comprar Moedas</h2>
+              <p className="text-sm" style={{ fontFamily: 'var(--font-caption)', fontStyle: 'italic', color: 'var(--color-text-muted)' }}>
                 Saldo atual: <span className="font-bold">{coins}</span> moedas
               </p>
             </div>
@@ -140,9 +154,9 @@ export default function CoinPurchaseModal({
         </div>
 
         {/* Body */}
-        <div className="p-6 space-y-3">
+        <div className="px-6 pb-6 space-y-3">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2.5 rounded-xl text-sm">
+            <div className="px-4 py-2.5 rounded-xl text-sm" style={{ background: 'rgba(139,40,40,0.12)', border: '1px solid rgba(139,40,40,0.25)', color: '#8b2828' }}>
               {error}
             </div>
           )}
@@ -154,23 +168,24 @@ export default function CoinPurchaseModal({
                 key={pkg.id}
                 onClick={() => handleBuyPackage(pkg.id)}
                 disabled={!!busyPackage}
-                className="w-full flex items-center justify-between p-4 rounded-2xl border-2 border-stone-100 hover:border-amber-300 hover:bg-amber-50 transition-all disabled:opacity-50 group"
+                className="w-full flex items-center justify-between p-4 rounded-2xl transition-all disabled:opacity-50 group hover:brightness-[1.03]"
+                style={{ background: 'rgba(255,255,255,0.4)', border: '1.5px solid rgba(139,99,70,0.35)' }}
               >
                 <div className="flex items-center gap-3">
-                  <div className="bg-amber-100 text-amber-600 p-2 rounded-xl group-hover:scale-110 transition-transform">
+                  <div className="p-2 rounded-xl group-hover:scale-110 transition-transform" style={{ background: 'rgba(201,162,39,0.15)' }}>
                     <CoinIcon size={20} />
                   </div>
                   <div className="text-left">
-                    <p className="font-black text-stone-800 text-lg leading-none">
-                      {pkg.coins} <span className="text-sm font-bold text-stone-400">moedas</span>
+                    <p className="font-black text-lg leading-none" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}>
+                      {pkg.coins} <span className="text-sm font-bold" style={{ color: 'var(--color-text-muted)' }}>moedas</span>
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-green-700 bg-green-50 px-3 py-1.5 rounded-lg">
+                  <span className="font-bold px-3 py-1.5 rounded-lg" style={{ fontFamily: 'var(--font-display)', color: '#2a5a1e', background: 'rgba(42,90,30,0.1)', border: '1px solid rgba(42,90,30,0.2)' }}>
                     R$ {pkg.price_brl}
                   </span>
-                  {isBusy && <Loader2 className="w-5 h-5 animate-spin text-amber-500" />}
+                  {isBusy && <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--color-wood-mid)' }} />}
                 </div>
               </button>
             );
@@ -181,11 +196,14 @@ export default function CoinPurchaseModal({
             <button
               onClick={handleBuySeed}
               disabled={!canBuySeed || buyingSeed}
-              className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold transition-all ${
-                canBuySeed
-                  ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl active:scale-95'
-                  : 'bg-stone-100 text-stone-400 cursor-not-allowed'
-              }`}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+              style={{
+                fontFamily: 'var(--font-display)',
+                background: canBuySeed ? 'linear-gradient(135deg, #2a5a1e, #1e4014)' : 'rgba(92,58,30,0.1)',
+                color: canBuySeed ? 'var(--color-parch-light)' : 'var(--color-text-muted)',
+                border: `1px solid ${canBuySeed ? 'rgba(201,162,39,0.3)' : 'rgba(92,58,30,0.2)'}`,
+                boxShadow: canBuySeed ? '0 4px 16px rgba(0,0,0,0.3)' : 'none',
+              }}
             >
               {buyingSeed ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -199,7 +217,7 @@ export default function CoinPurchaseModal({
               )}
             </button>
             {!canBuySeed && (
-              <p className="text-center text-xs text-stone-400 mt-2">
+              <p className="text-center text-xs mt-2" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
                 Compre um pacote acima para liberar a semente.
               </p>
             )}
