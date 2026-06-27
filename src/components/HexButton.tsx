@@ -128,8 +128,10 @@ export function HexButton({
         style={{
           paddingBottom: '10%',
           filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.7))',
-          // ícone ampliado só no visual (transform não causa reflow/empurra nada)
+          // ícone ampliado só no visual; pointer-events none → o ícone escalado
+          // NÃO captura clique (senão a área transbordaria sobre o botão vizinho)
           transform: 'scale(2.275)',
+          pointerEvents: 'none',
         }}
       >
         {icon}

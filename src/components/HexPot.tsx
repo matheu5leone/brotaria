@@ -119,7 +119,9 @@ export function HexPot({
           cursor: moveMode && state === 'planted' ? 'grab' : 'pointer',
         }}
         onClick={onClick}
-        onPointerDown={onPointerDown}
+        // Impede o canvas (ancestral) de capturar o ponteiro e "roubar" o clique
+        // no desktop (mouse + setPointerCapture manda o click pro canvas).
+        onPointerDown={(e) => { e.stopPropagation(); onPointerDown?.(e); }}
       />
 
       {/* ── Plant image — fica NA FRENTE do canteiro (z-10) ── */}
