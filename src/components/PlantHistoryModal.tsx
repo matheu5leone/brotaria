@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { X, ChevronLeft, ChevronRight, Droplets, Leaf, Star, Flame, Zap, Sprout } from 'lucide-react';
 import { GAME } from '@/config/economy';
@@ -254,33 +254,47 @@ export function PlantHistoryModal({
   plant,
   open,
   onClose,
+  plantIds = [],
+  onSelectPlant,
 }: {
   plant: PlantRow;
   open: boolean;
   onClose: () => void;
-  // (onRegar/onRemover removidos — o card é só de visualização/histórico)
-  onRegar?: () => void;
-  onRemover?: () => void;
-  isWaterPending?: boolean;
-  isDeletePending?: boolean;
+  /** Lista de plant_ids plantados (para swipe trocar de planta). */
+  plantIds?: string[];
+  /** Troca a planta selecionada (swipe). */
+  onSelectPlant?: (plantId: string) => void;
 }) {
   const { data: versions = [], isPending } = usePlantHistory(open ? plant.id : null);
-  const [activeIndex, setActiveIndex] = useState(0);
+  // null = "estágio mais recente"; muda só quando o usuário toca.
+  const [stageIndex, setStageIndex] = useState<number | null>(null);
   const wheelLock = useRef(0);
-  const touchStartX = useRef<number | null>(null);
+  const touchStart = useRef<{ x: number; y: number; t: number } | null>(null);
+
+  // Trocou de planta → volta pro estágio mais recente
+  useEffect(() => { setStageIndex(null); }, [plant.id]);
 
   if (!open) return null;
 
   const count = versions.length;
-  const active = versions[activeIndex];
+  const idx = stageIndex ?? Math.max(0, count - 1);
+  const active = versions[idx];
   const activeRarity = (active?.dna_snapshot?.rarity ?? plant.dna.rarity ?? 'comum') as Rarity;
-  const isLast = activeIndex === count - 1;
+  const isLast = idx === count - 1;
 
-  const goLeft  = () => setActiveIndex(i => Math.max(0, i - 1));
-  const goRight = () => setActiveIndex(i => Math.min(count - 1, i + 1));
+  // Estágios em loop (toque na lateral / setas / scroll)
+  const prevStage = () => { if (count > 1) setStageIndex((idx - 1 + count) % count); };
+  const nextStage = () => { if (count > 1) setStageIndex((idx + 1) % count); };
 
-  // Scroll do mouse (desktop) navega entre estágios — throttle p/ não pular vários.
-  // Fica no card (overlay acima do jardim), então não colide com o zoom do jardim.
+  // Plantas em loop (swipe)
+  const changePlant = (dir: 1 | -1) => {
+    if (!onSelectPlant || plantIds.length < 2) return;
+    const i = plantIds.indexOf(plant.id);
+    if (i < 0) return;
+    onSelectPlant(plantIds[(i + dir + plantIds.length) % plantIds.length]);
+  };
+
+  // Scroll do mouse (desktop) → estágio (throttle). Overlay acima do jardim, sem colidir com o zoom.
   const handleWheel = (e: React.WheelEvent) => {
     if (count <= 1) return;
     const now = Date.now();
@@ -288,17 +302,29 @@ export function PlantHistoryModal({
     const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
     if (Math.abs(d) < 8) return;
     wheelLock.current = now;
-    if (d > 0) goRight(); else goLeft();
+    if (d > 0) nextStage(); else prevStage();
   };
 
-  // Swipe (toque) navega entre estágios.
-  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
+  // Estilo "story do Instagram": TOQUE na lateral = troca estágio; SWIPE = troca planta.
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStart.current = { x: t.clientX, y: t.clientY, t: Date.now() };
+  };
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    touchStartX.current = null;
-    if (Math.abs(dx) < 40) return;
-    if (dx < 0) goRight(); else goLeft(); // arrasta p/ esquerda → próximo
+    const s = touchStart.current;
+    touchStart.current = null;
+    if (!s) return;
+    if ((e.target as HTMLElement).closest('button')) return; // deixa botões (setas/X/dots) agirem
+    const t = e.changedTouches[0];
+    const dx = t.clientX - s.x;
+    const dy = t.clientY - s.y;
+    const dt = Date.now() - s.t;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+      changePlant(dx < 0 ? 1 : -1);          // swipe → troca planta
+    } else if (Math.abs(dx) < 12 && Math.abs(dy) < 12 && dt < 350) {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      if (t.clientX - rect.left < rect.width / 2) prevStage(); else nextStage(); // toque → estágio
+    }
   };
 
   return (
@@ -307,23 +333,21 @@ export function PlantHistoryModal({
       style={{ background: 'rgba(5,8,3,0.55)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
-      {/* Left arrow */}
-      {count > 1 && activeIndex > 0 && (
+      {/* Setas de estágio (loop) — desktop principalmente */}
+      {count > 1 && (
         <button
           className="absolute left-3 z-10 p-2 rounded-full transition-all active:scale-90"
           style={{ background: 'var(--color-parch-light)', color: 'var(--color-wood-mid)', border: '1.5px solid var(--color-wood-light)' }}
-          onClick={(e) => { e.stopPropagation(); goLeft(); }}
+          onClick={(e) => { e.stopPropagation(); prevStage(); }}
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
       )}
-
-      {/* Right arrow */}
-      {count > 1 && activeIndex < count - 1 && (
+      {count > 1 && (
         <button
           className="absolute right-3 z-10 p-2 rounded-full transition-all active:scale-90"
           style={{ background: 'var(--color-parch-light)', color: 'var(--color-wood-mid)', border: '1.5px solid var(--color-wood-light)' }}
-          onClick={(e) => { e.stopPropagation(); goRight(); }}
+          onClick={(e) => { e.stopPropagation(); nextStage(); }}
         >
           <ChevronRight className="w-6 h-6" />
         </button>
@@ -360,6 +384,17 @@ export function PlantHistoryModal({
           <X className="w-5 h-5" />
         </button>
 
+        {/* Barra de progresso dos estágios (estilo story) */}
+        {count > 1 && (
+          <div className="flex gap-1 mb-3 flex-shrink-0">
+            {versions.map((_, i) => (
+              <div key={i} className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(92,58,30,0.18)' }}>
+                <div className="h-full rounded-full transition-all" style={{ width: i <= idx ? '100%' : '0%', background: RARITY_CONFIG[activeRarity]?.color }} />
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Content */}
         {isPending ? (
           <div className="flex items-center justify-center py-16">
@@ -378,22 +413,11 @@ export function PlantHistoryModal({
           <VersionCard version={active} plant={plant} isLast={isLast} />
         ) : null}
 
-        {/* Pagination dots */}
-        {count > 1 && (
-          <div className="flex gap-1.5 justify-center mt-4 flex-shrink-0">
-            {versions.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setActiveIndex(i)}
-                className="rounded-full transition-all"
-                style={{
-                  width: i === activeIndex ? 16 : 6,
-                  height: 6,
-                  background: i === activeIndex ? RARITY_CONFIG[activeRarity]?.color : 'rgba(92,58,30,0.25)',
-                }}
-              />
-            ))}
-          </div>
+        {/* Dica de navegação */}
+        {plantIds.length > 1 && (
+          <p className="text-center text-[9px] mt-3 flex-shrink-0" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
+            Toque nas laterais para mudar o estágio · deslize para trocar de planta
+          </p>
         )}
       </div>
     </div>

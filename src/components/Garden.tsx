@@ -76,7 +76,6 @@ import { InventoryPanel } from '@/components/InventoryPanel';
 import { useWrapPlant } from '@/hooks/useInventory';
 import { HexButton } from '@/components/HexButton';
 import { HexPot, getPotState } from '@/components/HexPot';
-import { PlantDetailModal } from '@/components/PlantDetailModal';
 import { usePendingGifts } from '@/hooks/useGifts';
 import { GiftReceiveModal } from '@/components/GiftReceiveModal';
 import type { PendingGift } from '@/hooks/useGifts';
@@ -109,16 +108,14 @@ function formatCooldown(ms: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
-// Wrapper para buscar plant e abrir o modal de histórico
+// Wrapper para buscar plant e abrir o card story (histórico + navegação)
 function HistoryWrapper({
-  plantId, onClose, onRegar, onRemover, isWaterPending, isDeletePending,
+  plantId, plantIds, onSelectPlant, onClose,
 }: {
   plantId: string;
+  plantIds: string[];
+  onSelectPlant: (plantId: string) => void;
   onClose: () => void;
-  onRegar: () => void;
-  onRemover: () => void;
-  isWaterPending: boolean;
-  isDeletePending: boolean;
 }) {
   const { data: plant } = usePlant(plantId);
   if (!plant) return null;
@@ -127,10 +124,8 @@ function HistoryWrapper({
       plant={plant}
       open
       onClose={onClose}
-      onRegar={onRegar}
-      onRemover={onRemover}
-      isWaterPending={isWaterPending}
-      isDeletePending={isDeletePending}
+      plantIds={plantIds}
+      onSelectPlant={onSelectPlant}
     />
   );
 }
@@ -162,7 +157,6 @@ export default function Garden() {
 
   // ── UI state ─────────────────────────────────────────────────────────────
   const [selectedPotId, setSelectedPotId]           = useState<string | null>(null);
-  const [historyPlantId, setHistoryPlantId]         = useState<string | null>(null);
   const [coinModalPotId, setCoinModalPotId]         = useState<string | null>(null);
   const [shovelActive, setShovelActive]             = useState(false);
   const [shovelError, setShovelError]               = useState<string | null>(null);
@@ -256,6 +250,12 @@ export default function Garden() {
   // ── Derived ──────────────────────────────────────────────────────────────
   const selectedPot    = pots.find(p => p.id === selectedPotId) ?? null;
   const selectedPlantId = selectedPot?.plant_id ?? null;
+  // Lista de plantas (para swipe trocar de planta no card story) + seletor
+  const plantedPlantIds = pots.filter(p => p.plant_id).map(p => p.plant_id as string);
+  const selectPlantById = useCallback((pid: string) => {
+    const pot = pots.find(p => p.plant_id === pid);
+    if (pot) setSelectedPotId(pot.id);
+  }, [pots]);
 
   // ── Callbacks ────────────────────────────────────────────────────────────
   const handleDigComplete = useCallback(
@@ -558,17 +558,7 @@ export default function Garden() {
     }
   };
 
-  const handleRegar = async () => {
-    if (!selectedPlantId) return;
-    try { await waterMutation.mutateAsync({ plantId: selectedPlantId }); } catch {}
-  };
-
-  const handleRemover = async () => {
-    if (!selectedPot?.plant_id) return;
-    setConfirmDeletePot(selectedPot); // usa o diálogo de confirmação estilizado
-  };
-
-  // Confirmação da lixeira / card: exclui a planta do pot pendente
+  // Confirmação da lixeira: exclui a planta do pot pendente
   const handleConfirmDelete = async () => {
     const pot = confirmDeletePot;
     if (!pot?.plant_id) { setConfirmDeletePot(null); return; }
@@ -1043,15 +1033,13 @@ export default function Garden() {
         </div>
       )}
 
-      {/* ── Plant detail modal ───────────────────────────────────────────── */}
+      {/* ── Card story da planta (clique abre; toque=estágio, swipe=planta) ── */}
       {showDetailModal && selectedPlantId && (
-        <PlantDetailModal
+        <HistoryWrapper
           plantId={selectedPlantId}
+          plantIds={plantedPlantIds}
+          onSelectPlant={selectPlantById}
           onClose={() => setSelectedPotId(null)}
-          onRegar={handleRegar}
-          onRemover={handleRemover}
-          isWaterPending={waterMutation.isPending}
-          isDeletePending={deleteMutation.isPending}
         />
       )}
 
@@ -1061,18 +1049,6 @@ export default function Garden() {
           userId={user.id}
           gift={activeGift}
           onClose={() => setActiveGift(null)}
-        />
-      )}
-
-      {/* ── History modal ────────────────────────────────────────────────── */}
-      {historyPlantId && (
-        <HistoryWrapper
-          plantId={historyPlantId}
-          onClose={() => setHistoryPlantId(null)}
-          onRegar={handleRegar}
-          onRemover={handleRemover}
-          isWaterPending={waterMutation.isPending}
-          isDeletePending={deleteMutation.isPending}
         />
       )}
 
