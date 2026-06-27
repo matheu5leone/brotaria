@@ -217,9 +217,11 @@ html, body {
     padding-left: 8px;
   }
 }
-.hud-in-footer .hex-button { width: 48px; height: 48px; font-size: 13px; }
-.hud-in-footer .hex-button--anchor { width: 56px; height: 56px; font-size: 16px; }
-.hud-in-footer .hud-group-inner .hex-button + .hex-button { margin-left: -16px; }
+/* Footer = 62px; botões ~58px (≈2px de folga em cima/embaixo) para "quase fit".
+   O anchor não usa o +20% aqui (estouraria a altura) — fica do mesmo tamanho. */
+.hud-in-footer .hex-button { width: 58px; height: 58px; font-size: 16px; }
+.hud-in-footer .hex-button--anchor { width: 58px; height: 58px; font-size: 16px; }
+.hud-in-footer .hud-group-inner .hex-button + .hex-button { margin-left: -18px; }
 
 /* ---------- HUD Toolbar — direção responsiva ---------- */
 
