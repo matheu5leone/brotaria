@@ -145,6 +145,8 @@ export function HexPot({
                   fill
                   draggable={false}
                   className="object-contain object-bottom"
+                  quality={90}
+                  sizes="(max-width: 768px) 60vw, 22vw"
                 />
               </RarityEffect>
             ) : plant && plant.current_stage.order_index > 2 ? (
@@ -198,6 +200,8 @@ export function HexPot({
             className="object-contain object-bottom"
             draggable={false}
             priority
+            quality={90}
+            sizes="(max-width: 768px) 60vw, 22vw"
             style={{
               filter: isSelected ? 'brightness(1.2) saturate(1.3)' : undefined,
             }}

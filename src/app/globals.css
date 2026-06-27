@@ -188,120 +188,103 @@ html, body {
   .shell-bottomnav { display: none; }
 }
 
-/* Posição vertical do HUD: levantado no mobile (acima do BottomNav),
-   rente ao rodapé só no desktop real. */
-.hud-pos { bottom: 1.5rem; }
-@media (min-width: 768px) and (min-height: 600px) {
-  .hud-pos { bottom: 0.25rem; }
-}
-
-/* ---------- HUD no footer (landscape mobile) ----------
-   No celular deitado as ferramentas vão pro slot do BottomNav (via portal),
-   aproveitando o espaço vazio à direita. Botões reduzidos pra caber. */
-.garden-tools-slot { display: none; }
-.garden-tools-divider { display: none; }
-@media (orientation: landscape) and (max-height: 600px) {
-  /* footer 50/50: nav à esquerda, metade direita reservada (vazia) */
-  .nav-routes-group {
-    flex: 0 0 50%;
-    max-width: 50%;
-  }
-  .garden-tools-slot {
-    display: block;
-    flex: 0 0 50%;
-    max-width: 50%;
-    align-self: stretch;
-    border-left: 2px solid rgba(92,58,30,0.45);
-  }
-}
-
-/* HUD fixo sobrepondo a metade direita do footer (z acima), botões grandes.
-   Desprende do footer → pode crescer e "estourar" pra cima sem ser cortado.
-   `.hex-button.hex-button--anchor` mantém o anchor do mesmo tamanho dos outros. */
-.hud-in-footer {
-  right: 10px;
-  bottom: 2px;
+/* ══════════════════════════════════════════════════════════════════════════
+   PAINEL de ferramentas — canto inferior direito, âncora fixa + grupo colapsável
+   - Portrait (base): coluna, expande pra cima, 10px acima da navbar (62px)
+   - Desktop/Landscape: linha, expande pra esquerda, encostado no bottom
+   ══════════════════════════════════════════════════════════════════════════ */
+.painel {
+  position: fixed;
+  right: 0;
+  bottom: 72px;                 /* portrait: 10px acima da navbar de 62px */
   z-index: 60;
-  align-items: flex-end;
-}
-.hud-in-footer .hex-button,
-.hud-in-footer .hex-button.hex-button--anchor {
-  width: 74px;
-  height: 74px;
-  font-size: 20px;
-}
-.hud-in-footer .hud-group-inner .hex-button + .hex-button { margin-left: -24px; }
-
-/* ---------- HUD Toolbar — direção responsiva ---------- */
-
-/*
- * Portrait mobile  → coluna (de baixo pra cima: flex-col-reverse)
- * Landscape mobile → linha (flex-row)
- * Desktop (md+)   → linha (flex-row)
- */
-.hub-toolbar {
   display: flex;
-  flex-direction: column-reverse; /* portrait: primeiro item embaixo */
+  flex-direction: column-reverse; /* âncora (1º DOM) embaixo, fixa */
   align-items: center;
+  gap: 0;                       /* gap âncora↔grupo vem do padding do inner */
 }
-
-@media (min-width: 768px), (orientation: landscape) {
-  .hub-toolbar {
-    flex-direction: row; /* landscape/desktop: primeiro item à esquerda */
-    align-items: center; /* centraliza no eixo (anchor maior fica alinhado) */
+@media (min-width: 768px) and (min-height: 600px),
+       (orientation: landscape) and (max-height: 600px) {
+  .painel {
+    bottom: 0;                  /* encostado no bottom da tela */
+    flex-direction: row-reverse; /* âncora à direita, fixa; grupo expande p/ esquerda */
   }
 }
 
-/* Botão âncora (toggle): 20% maior que os demais.
-   "desktop real" = largura E altura suficientes — celular deitado (altura baixa)
-   NÃO conta como desktop, então mantém o tamanho mobile. */
-.hub-toolbar .hex-button--anchor { width: 98px; height: 98px; font-size: 26px; }
+/* Tamanho dos botões do painel: só a ALTURA é definida. A largura sai da própria
+   imagem do hexágono (img em fluxo, width auto) → a caixa == hexágono exatamente,
+   sem área transparente; badge/tooltip ancoram no hexágono real.
+   Altura = 100px base / 120px desktop. */
+.painel .painel-btn { height: 100px; font-size: 26px; }
 @media (min-width: 768px) and (min-height: 600px) {
-  .hub-toolbar .hex-button--anchor { width: 197px; height: 197px; font-size: 48px; }
+  .painel .painel-btn { height: 120px; font-size: 30px; }
 }
 
-/* ---------- HUD colapsável — animação via grid 0fr/1fr (≤0.3s) ---------- */
-.hud-group {
+/* Grupo colapsável — animação via grid 0fr/1fr (≤0.3s) */
+.painel-group {
   display: grid;
-  grid-template-rows: 1fr;                 /* portrait: colapsa a altura */
-  transition: grid-template-rows 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease;
+  grid-template-rows: 1fr;       /* portrait: colapsa a altura */
+  transition: grid-template-rows 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
 }
-.hud-group[data-expanded="false"] {
+.painel-group[data-expanded="false"] {
   grid-template-rows: 0fr;
   opacity: 0;
   pointer-events: none;
 }
-.hud-group-inner {
+.painel-group-inner {
   min-height: 0;
-  overflow: hidden;
+  /* sem overflow:hidden → badges/tooltips podem "sair" do botão sem corte;
+     o estado recolhido é escondido por opacity/pointer-events no .painel-group */
   display: flex;
   flex-direction: column-reverse;
   align-items: center;
+  gap: 10px;                     /* gap entre os tools */
+  padding-bottom: 10px;          /* gap âncora↔1º botão (some quando colapsado) */
 }
-/* overlap uniforme entre os tools (margin-bottom funciona em column-reverse) */
-.hud-group-inner .hex-button + .hex-button { margin-bottom: -28px; }
 
-@media (min-width: 768px), (orientation: landscape) {
-  .hud-group {
+@media (min-width: 768px) and (min-height: 600px),
+       (orientation: landscape) and (max-height: 600px) {
+  .painel-group {
     grid-template-rows: none;
-    grid-template-columns: 1fr;            /* landscape/desktop: colapsa a largura */
-    transition: grid-template-columns 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease;
+    grid-template-columns: 1fr;  /* horizontal: colapsa a largura */
+    transition: grid-template-columns 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
   }
-  .hud-group[data-expanded="false"] {
+  .painel-group[data-expanded="false"] {
     grid-template-columns: 0fr;
     grid-template-rows: none;
   }
-  .hud-group-inner {
-    min-width: 0;
+  .painel-group-inner {
     flex-direction: row;
     align-items: center;
+    padding-bottom: 0;
+    padding-right: 10px;         /* gap âncora↔1º botão na horizontal */
   }
-  /* overlap em linha: -28px no mobile deitado (botões 82px) … */
-  .hud-group-inner .hex-button + .hex-button { margin-bottom: 0; margin-left: -28px; }
 }
-/* … e -56px só no desktop real (botões 164px) */
-@media (min-width: 768px) and (min-height: 600px) {
-  .hud-group-inner .hex-button + .hex-button { margin-left: -56px; }
+
+/* Cooldown radial (estilo MOBA) — overlay dentro do botão + número central.
+   O ângulo da varredura vem inline (React) via --cd-deg. */
+.painel-cooldown {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  pointer-events: none;
+  /* recorta a varredura no formato do hexágono flat-top */
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  background: conic-gradient(rgba(8,14,5,0.62) var(--cd-deg, 0deg), transparent 0);
+}
+.painel-cooldown-num {
+  position: absolute;
+  inset: 0;
+  z-index: 16;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 0.7em;
+  color: var(--color-text-light);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
 }
 
 /* ---------- Canteiro — tamanho responsivo ---------- */
@@ -330,22 +313,10 @@ html, body {
   transform-origin: bottom center;
 }
 
-/* ---------- HexButton — tamanho responsivo ---------- */
+/* ---------- HexButton — base (tamanho vem de .painel-btn) ---------- */
 
 .hex-button {
-  width: 82px;
-  height: 82px;
-  font-size: 22px; /* drive dos ícones (emoji + PNGs em unidades em) */
-}
-
-/* Desktop real (largura E altura): dobra o tamanho dos botões.
-   Celular deitado fica de fora (altura < 600px) e mantém 82px. */
-@media (min-width: 768px) and (min-height: 600px) {
-  .hex-button {
-    width: 164px;
-    height: 164px;
-    font-size: 40px;
-  }
+  font-size: 22px; /* fallback do drive dos ícones; .painel .painel-btn sobrescreve */
 }
 
 @media (prefers-reduced-motion: reduce) {

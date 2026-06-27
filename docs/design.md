@@ -118,31 +118,51 @@ Usado para **Pá** e **Mochila** — os dois controles principais do jardim.
 **Tipografia:** Cinzel Decorative para labels, Crimson Text para itens de nav  
 **Itens ativos:** `border-left: 2px solid #5c3a1e; background: rgba(201,162,39,0.12)`
 
-### 4.4 HUD de Ferramentas — Barra Hexagonal (`Garden.tsx` + `HexButton.tsx`)
+### 4.4 Painel de Ferramentas (`Garden.tsx` + `HexButton.tsx`)
 
-> **Atualização 2026-06-26:** o antigo `PlantActionMenu` flutuante (popup Regar/Histórico/Remover ao clicar na planta) foi **removido**. Todas as ações são agora pelas ferramentas do HUD, a maioria via **drag-and-drop**.
+> **Atualização 2026-06-26 (refatoração):** o antigo HUD/HUB (portal pro footer, slot 50/50,
+> classes `hud-*`/`hub-*`/`garden-tools-*`) foi **substituído** por um único componente **"painel"**.
+> O `PlantActionMenu` flutuante já havia sido removido; ações via botões do painel (drag-and-drop).
 
-**Botões (ordem do array):** `[âncora, mochila, pá, regador, carrinho, lixeira, presente]`
+**Botões (ordem):** `[âncora, mochila, pá, regador, carrinho, lixeira]` — o botão de **presente foi
+removido do painel** (lógica de gifts permanece dormente, a tratar depois).
 
-**Layout responsivo (`.hub-toolbar`):**
-- **Portrait** (`< 768px`, retrato): coluna `flex-direction: column-reverse` — primeiro item embaixo
-- **Landscape / Desktop** (`≥ 768px` ou `orientation: landscape`): linha `flex-row`, `align-items: center`
-- Overlap entre botões: `margin-bottom: -28px` (portrait) / `margin-left: -56px` (desktop) para ~16px de gap visual (o PNG do hexágono tem padding transparente)
+**Estrutura:** `.painel` (wrapper `position: fixed; right:0; z-index:60`) → âncora (fixa) +
+`.painel-group` (colapsável) → `.painel-group-inner` (flex com os 5 tools). Botões = `.painel-btn`.
 
-**Botão âncora (recolher/expandir):**
-- Ocupa o primeiro slot; **20% maior** que os demais (`.hex-button--anchor`: 98px mobile / 197px desktop)
-- Ícone de chevron: ↑/↓ em portrait, ←/→ em landscape/desktop, conforme o estado
-- Recolhe/expande o `.hud-group` com animação **grid `0fr → 1fr`** (`transition` de `grid-template-rows`/`columns`, `0.28s`, `cubic-bezier(0.4,0,0.2,1)`) + fade
-- Press feedback: `scale(0.88)` ao clicar/tocar (todos os HexButton), `transition` com easing `cubic-bezier(0.34,1.56,0.64,1)`
+**3 versões (CSS por media query; sem JS de detecção):**
+| | Posição | Expande | Banda/bottom | Botão |
+|---|---|---|---|---|
+| **Desktop** (`min-width:768 and min-height:600`) | `bottom:0` | horizontal p/ esquerda (`row-reverse`) | 120px | **120px** |
+| **Landscape** (`orientation:landscape and max-height:600`) | `bottom:0`, sobre o footer (não é filho dele) | horizontal p/ esquerda | 100px | **100px** |
+| **Portrait** (base) | `bottom:72px` (10px acima da navbar de 62px) | vertical p/ cima (`column-reverse`) | — | **100px** |
+
+- Âncora **fixa** durante toda a animação (fica na borda do canto; o grupo expande "saindo de trás").
+- Âncora = **mesmo tamanho** dos outros botões. Ícone chevron: ↑/↓ (portrait), ←/→ (horizontal).
+- **gap 10px** sempre (entre botões e âncora↔1º botão; o gap âncora↔grupo vem do `padding` do
+  `.painel-group-inner`, que some quando colapsado via `overflow: hidden`).
+- Animação recolher/expandir: **grid `0fr → 1fr`** (`grid-template-rows` portrait /
+  `grid-template-columns` horizontal), `0.26s cubic-bezier(0.4,0,0.2,1)` + fade.
+- Press feedback: `scale(0.88)` ao clicar/tocar.
+
+**Notificações nos botões:**
+- **Regador:** badge numérico (regas restantes) sobreposto no canto (notificação padrão).
+- **Pá:** **cooldown radial estilo MOBA** — overlay `conic-gradient` (`.painel-cooldown`) que
+  esvazia em sentido horário conforme o tempo, com o número (`formatCooldown`) no centro
+  (`.painel-cooldown-num`). Ângulo = `remaining/SHOVEL_COOLDOWN_MS*360`, atualizado por timer
+  local de 1s (não depende do refetch). Prop `cooldown` do `HexButton`; bloqueia o clique enquanto ativo.
 
 **Ferramentas drag-and-drop** (estilo unificado, `setPointerCapture` para funcionar no toque):
 | Ferramenta | Asset | Ação | Glow do alvo |
 |-----------|-------|------|--------------|
 | Regador   | `watering-can.png` | arrasta até a planta → rega | azul |
-| Carrinho  | `wheelbarrow.png`  | arrasta até planta (recolhe) → arrasta até pot vazio (replanta); miniatura da planta no botão enquanto carrega | âmbar |
-| Lixeira   | `trash.png`        | arrasta até planta → abre confirmação; até pot vazio → remove canteiro | vermelho |
+| Carrinho  | `wheelbarrow.png`  | arrasta até planta (recolhe) → arrasta até pot vazio (replanta); miniatura no botão | âmbar |
+| Lixeira   | `trash.png`        | arrasta até planta → confirmação; até pot vazio → remove canteiro | vermelho |
 
-O **glow do alvo** segue a silhueta real via `drop-shadow` (respeita o alpha do PNG), aplicado no HexPot (`isWaterTarget`/`isMoveTarget`/`isTrashTarget`), não em overlays retangulares.
+O **glow do alvo** segue a silhueta via `drop-shadow` no HexPot (`isWaterTarget`/`isMoveTarget`/`isTrashTarget`).
+
+**Mochila:** abre um **modal centralizado** na tela (`InventoryPanel`, tema grimório, backdrop +
+fecha ao clicar fora), desatrelado da posição do botão. As **mensagens de erro/dica** do painel foram removidas.
 
 ### 4.5 PlantDetailModal — Painel de Detalhes
 

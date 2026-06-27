@@ -315,52 +315,77 @@ export function InventoryPanel({
     patchLabelMutation.mutate({ itemId: item.id, label });
   };
 
+  if (!open) return null;
+
   return (
-    <>
-      {/* Painel */}
-      {open && (
-        <div
-          className="absolute bottom-4 right-[92px] z-30 w-72 bg-stone-900/95 backdrop-blur-sm border border-stone-700/50 rounded-2xl p-4 shadow-2xl"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="font-black text-white text-sm">🎒 Mochila</span>
-            <button onClick={() => onClose()} className="text-stone-400 hover:text-white transition-colors">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Grade 5×2 */}
-          <div className="grid grid-cols-5 gap-2">
-            {slots.map((item, i) => (
-              <div key={i} className="aspect-square">
-                <SlotContent
-                  item={item}
-                  userId={userId ?? ''}
-                  animPhase={animatingSlot === i ? animPhase : 'idle'}
-                  animRarity={animRarity}
-                  onOpenGift={() => item && handleOpenGift(item)}
-                  onLabelSave={(label) => item && handleLabelSave(item, label)}
-                />
-              </div>
-            ))}
-          </div>
-
-          {/* Botão embrulhar */}
-          {hasKits && (
-            <button
-              onClick={() => { onClose(); onWrapMode(); }}
-              className="mt-3 w-full py-2 bg-rose-700 hover:bg-rose-600 text-white text-sm font-bold rounded-xl transition-all active:scale-95"
-            >
-              🎁 Embrulhar planta
-            </button>
-          )}
-
-          {items.length === 0 && (
-            <p className="text-stone-500 text-xs text-center mt-2">Inventário vazio</p>
-          )}
+    // Modal centralizado (desatrelado do botão da mochila) — tema grimório
+    <div
+      className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+      style={{ background: 'rgba(5,8,3,0.62)', backdropFilter: 'blur(4px)' }}
+      onClick={() => onClose()}
+    >
+      <div
+        className="relative p-5"
+        style={{
+          width: 'min(92vw, 420px)',
+          maxHeight: '88vh',
+          overflowY: 'auto',
+          background: 'linear-gradient(160deg, #1c2d10 0%, #0f1a08 60%, #0a1205 100%)',
+          border: '1.5px solid rgba(201,162,39,0.35)',
+          boxShadow: '0 28px 70px rgba(0,0,0,0.65), inset 0 1px 0 rgba(201,162,39,0.12)',
+          borderRadius: 24,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <span
+            className="font-black text-base"
+            style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-light)', letterSpacing: '0.02em' }}
+          >
+            🎒 Mochila
+          </span>
+          <button
+            onClick={() => onClose()}
+            className="p-1.5 rounded-full transition-all active:scale-90 hover:bg-white/10"
+            style={{ color: 'rgba(232,213,160,0.55)' }}
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-      )}
-    </>
+
+        {/* Grade 5×2 */}
+        <div className="grid grid-cols-5 gap-2">
+          {slots.map((item, i) => (
+            <div key={i} className="aspect-square">
+              <SlotContent
+                item={item}
+                userId={userId ?? ''}
+                animPhase={animatingSlot === i ? animPhase : 'idle'}
+                animRarity={animRarity}
+                onOpenGift={() => item && handleOpenGift(item)}
+                onLabelSave={(label) => item && handleLabelSave(item, label)}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Botão embrulhar */}
+        {hasKits && (
+          <button
+            onClick={() => { onClose(); onWrapMode(); }}
+            className="mt-4 w-full py-2.5 text-white text-sm font-bold rounded-xl transition-all active:scale-95"
+            style={{ fontFamily: 'var(--font-display)', background: 'rgba(185,28,28,0.5)', border: '1px solid rgba(239,68,68,0.5)' }}
+          >
+            🎁 Embrulhar planta
+          </button>
+        )}
+
+        {items.length === 0 && (
+          <p className="text-center text-xs mt-3" style={{ color: 'rgba(232,213,160,0.4)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
+            Inventário vazio
+          </p>
+        )}
+      </div>
+    </div>
   );
 }

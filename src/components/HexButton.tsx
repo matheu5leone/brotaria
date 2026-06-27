@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { useState, useCallback } from 'react';
 
 interface HexButtonProps {
@@ -10,6 +9,9 @@ interface HexButtonProps {
   disabled?: boolean;
   active?: boolean;
   anchor?: boolean;
+  className?: string;
+  /** Cooldown radial (estilo MOBA): varredura escura + número no centro. */
+  cooldown?: { remainingMs: number; totalMs: number; label: string };
   onClick?: (e: React.MouseEvent) => void;
   onPointerDown?: (e: React.PointerEvent) => void;
   title?: string;
@@ -29,13 +31,17 @@ const ACTIVE_PARTICLES = Array.from({ length: 6 }, (_, i) => {
 });
 
 export function HexButton({
-  icon, label, badge, disabled = false, active = false, anchor = false, onClick, onPointerDown, title,
+  icon, label, badge, disabled = false, active = false, anchor = false, className, cooldown, onClick, onPointerDown, title,
 }: HexButtonProps) {
   const [hovered, setHovered] = useState(false);
   const [pressed, setPressed] = useState(false);
 
+  // Em cooldown: bloqueia interação (sem deixar o ícone cinza — varredura por cima)
+  const cooling = !!cooldown && cooldown.remainingMs > 0;
+  const blocked = disabled || cooling;
+
   // Press scale tem prioridade — feedback tátil rápido ao clicar/tocar
-  const scale = disabled
+  const scale = blocked
     ? 'scale(1)'
     : pressed            ? 'scale(0.88)'
     : active && hovered ? 'scale(1.12)'
@@ -46,7 +52,7 @@ export function HexButton({
   const imgFilter = [
     disabled                        ? 'grayscale(0.6) brightness(0.65)' : '',
     active                          ? 'brightness(1.2) saturate(1.3) drop-shadow(0 0 10px rgba(201,162,39,0.7))' : '',
-    !disabled && !active && hovered ? 'brightness(1.1)' : '',
+    !blocked && !active && hovered ? 'brightness(1.1)' : '',
   ].filter(Boolean).join(' ') || undefined;
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -57,6 +63,7 @@ export function HexButton({
     }
   }, [disabled, onClick]);
 
+  const cdDeg = cooling ? `${Math.min(360, (cooldown!.remainingMs / cooldown!.totalMs) * 360)}deg` : '0deg';
   const tooltipText = title ?? label;
 
   return (
@@ -65,36 +72,33 @@ export function HexButton({
       tabIndex={disabled ? -1 : 0}
       aria-label={tooltipText}
       aria-disabled={disabled}
-      className={`hex-button relative select-none${anchor ? ' hex-button--anchor' : ''}`}
+      className={`hex-button relative select-none${anchor ? ' hex-button--anchor' : ''}${className ? ` ${className}` : ''}`}
       style={{
-        cursor: disabled ? 'not-allowed' : 'pointer',
+        cursor: blocked ? (cooling ? 'default' : 'not-allowed') : 'pointer',
         opacity: disabled ? 0.65 : 1,
         transform: scale,
         transition: 'transform 0.18s cubic-bezier(0.34,1.56,0.64,1)',
         touchAction: 'none', // permite drag por toque sem o navegador cancelar (scroll)
       }}
-      onClick={disabled ? undefined : onClick}
-      onPointerDown={disabled ? undefined : (e) => { setPressed(true); onPointerDown?.(e); }}
+      onClick={blocked ? undefined : onClick}
+      onPointerDown={blocked ? undefined : (e) => { setPressed(true); onPointerDown?.(e); }}
       onPointerUp={() => setPressed(false)}
       onPointerCancel={() => setPressed(false)}
-      onMouseEnter={() => { if (!disabled) setHovered(true); }}
+      onMouseEnter={() => { if (!blocked) setHovered(true); }}
       onMouseLeave={() => { setHovered(false); setPressed(false); }}
       onKeyDown={handleKeyDown}
     >
-      {/* Imagem do botão */}
-      <div
-        className="absolute inset-0"
+      {/* Imagem do botão — EM FLUXO: define o tamanho da caixa.
+          Altura vem do CSS (.painel-btn); largura = auto (proporção da imagem).
+          Assim a caixa == hexágono exatamente; badge/tooltip ancoram certo. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/imgs/hex-button.png"
+        alt=""
+        draggable={false}
+        className="block h-full w-auto select-none"
         style={{ filter: imgFilter, transition: 'filter 0.15s ease' }}
-      >
-        <Image
-          src="/imgs/hex-button.png"
-          alt=""
-          fill
-          className="object-contain"
-          draggable={false}
-          priority
-        />
-      </div>
+      />
 
       {/* Partículas douradas quando ativo (igual às plantas) */}
       {active && (
@@ -129,11 +133,22 @@ export function HexButton({
         {icon}
       </div>
 
-      {/* Badge */}
+      {/* Cooldown radial (estilo MOBA) — varredura escura + número central */}
+      {cooling && (
+        <>
+          <div className="painel-cooldown" style={{ ['--cd-deg' as string]: cdDeg }} />
+          <span className="painel-cooldown-num">{cooldown!.label}</span>
+        </>
+      )}
+
+      {/* Badge — ancorada no topo-direita do hexágono flat-top (o canto da caixa
+          é a área cortada do hexágono, por isso o recuo lateral) */}
       {badge !== undefined && (
         <div
-          className="absolute top-1 right-1 z-20 min-w-[22px] h-[22px] px-1.5 rounded-full flex items-center justify-center text-[10px] font-bold"
+          className="absolute z-20 min-w-[22px] h-[22px] px-1.5 rounded-full flex items-center justify-center text-[10px] font-bold"
           style={{
+            top: '-6px',
+            right: '18%',
             background: 'var(--color-badge-bg, #3a7a2a)',
             color: 'var(--color-badge-text, #d4f0b0)',
             border: '2px solid rgba(8,14,5,0.9)',
@@ -144,12 +159,13 @@ export function HexButton({
         </div>
       )}
 
-      {/* Tooltip — aparece acima, ancorado à direita do botão para não vazar */}
+      {/* Tooltip — centralizada sobre o botão, encostada no topo do hexágono */}
       {hovered && tooltipText && (
         <div
-          className="absolute right-0 z-30 pointer-events-none whitespace-nowrap"
+          className="absolute left-1/2 z-30 pointer-events-none whitespace-nowrap"
           style={{
-            bottom: `calc(100% + 2px)`,
+            bottom: `calc(100% - 0.6em)`, // encosta no topo do hexágono
+            transform: 'translateX(-50%)',
             background: 'rgba(8,14,5,0.9)',
             color: 'var(--color-text-light)',
             fontFamily: 'var(--font-display)',
@@ -164,9 +180,9 @@ export function HexButton({
           }}
         >
           {tooltipText}
-          {/* seta apontando pra baixo, alinhada ao centro do botão */}
+          {/* seta apontando pra baixo, no centro */}
           <span
-            className="absolute right-[calc(50%-5px)]"
+            className="absolute left-1/2 -translate-x-1/2"
             style={{
               bottom: -6,
               width: 0, height: 0,

@@ -59,62 +59,55 @@ export function BottomNav() {
         boxShadow: '0 -4px 20px rgba(0,0,0,0.35)',
       }}
     >
-      {/* Grupo da navegação (rotas) — flex-1 (portrait) / 50% fixo (landscape) */}
-      <div className="nav-routes-group flex items-center gap-1 flex-1 min-w-0">
-        {/* Coins */}
-        <NavLink
-          href="/loja"
-          className="flex flex-col items-center justify-center flex-none px-2 py-1.5 rounded-xl"
-          style={{ background: 'rgba(201,162,39,0.1)', border: '1px solid rgba(201,162,39,0.35)' }}
+      {/* Coins */}
+      <NavLink
+        href="/loja"
+        className="flex flex-col items-center justify-center flex-none px-2 py-1.5 rounded-xl"
+        style={{ background: 'rgba(201,162,39,0.1)', border: '1px solid rgba(201,162,39,0.35)' }}
+      >
+        <span
+          className="text-sm font-black leading-none"
+          style={{ fontFamily: 'var(--font-display)', color: 'var(--color-gold)' }}
         >
-          <span
-            className="text-sm font-black leading-none"
-            style={{ fontFamily: 'var(--font-display)', color: 'var(--color-gold)' }}
-          >
-            <CoinIcon size={16} className="inline-block mr-1" />{coins} · 🍃 {herbo}
-          </span>
-        </NavLink>
+          <CoinIcon size={16} className="inline-block mr-1" />{coins} · 🍃 {herbo}
+        </span>
+      </NavLink>
 
-        <NavItem href="/" label="Jardim" active={pathname === '/'}>
-          <LayoutDashboard className="w-5 h-5" />
-        </NavItem>
-        <NavItem href="/loja" label="Loja" active={pathname === '/loja'}>
-          <Store className="w-5 h-5" />
-        </NavItem>
-        <NavItem href="/ranking" label="Ranking" active={pathname === '/ranking'}>
-          <Trophy className="w-5 h-5" />
-        </NavItem>
+      <NavItem href="/" label="Jardim" active={pathname === '/'}>
+        <LayoutDashboard className="w-5 h-5" />
+      </NavItem>
+      <NavItem href="/loja" label="Loja" active={pathname === '/loja'}>
+        <Store className="w-5 h-5" />
+      </NavItem>
+      <NavItem href="/ranking" label="Ranking" active={pathname === '/ranking'}>
+        <Trophy className="w-5 h-5" />
+      </NavItem>
 
-        {/* User avatar + logout */}
-        <button
-          onClick={signOut}
-          className="flex flex-col items-center justify-center gap-0.5 flex-none px-2 py-1.5 rounded-xl transition-all hover:bg-[rgba(139,64,64,0.1)] active:scale-90"
+      {/* User avatar + logout */}
+      <button
+        onClick={signOut}
+        className="flex flex-col items-center justify-center gap-0.5 flex-none px-2 py-1.5 rounded-xl transition-all hover:bg-[rgba(139,64,64,0.1)] active:scale-90"
+      >
+        <div
+          className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+          style={{
+            background: 'linear-gradient(135deg, #2a4a1e, #1a2f10)',
+            color: 'var(--color-wood-light)',
+            border: '1px solid var(--color-wood-light)',
+            fontFamily: 'var(--font-display)',
+            fontSize: 12,
+          }}
+          title={user?.email ?? ''}
         >
-          <div
-            className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
-            style={{
-              background: 'linear-gradient(135deg, #2a4a1e, #1a2f10)',
-              color: 'var(--color-wood-light)',
-              border: '1px solid var(--color-wood-light)',
-              fontFamily: 'var(--font-display)',
-              fontSize: 12,
-            }}
-            title={user?.email ?? ''}
-          >
-            {user?.email?.[0].toUpperCase()}
-          </div>
-          <span
-            className="text-[8px] uppercase tracking-wide font-black"
-            style={{ fontFamily: 'var(--font-display)', color: '#8b4040' }}
-          >
-            Sair
-          </span>
-        </button>
-      </div>
-
-      {/* Divisória + slot das ferramentas do HUD (landscape mobile, via portal) */}
-      <div className="garden-tools-divider" />
-      <div id="garden-tools-slot" className="garden-tools-slot" />
+          {user?.email?.[0].toUpperCase()}
+        </div>
+        <span
+          className="text-[8px] uppercase tracking-wide font-black"
+          style={{ fontFamily: 'var(--font-display)', color: '#8b4040' }}
+        >
+          Sair
+        </span>
+      </button>
     </nav>
   );
 }

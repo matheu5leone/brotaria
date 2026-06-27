@@ -44,9 +44,8 @@ const TrashIcon = () => (
 const SpinnerIcon = () => (
   <Loader2 className="animate-spin text-amber-200" style={{ width: '1.4em', height: '1.4em' }} />
 );
-// Chevron do toggle do HUD: vertical em portrait, horizontal em landscape/desktop.
-// (mesma quebra do .hub-toolbar: row quando md OU landscape)
-const HudToggleIcon = ({ expanded }: { expanded: boolean }) => {
+// Chevron do toggle do painel: vertical em portrait, horizontal em landscape/desktop.
+const PainelToggleIcon = ({ expanded }: { expanded: boolean }) => {
   const sz = { width: '1.6em', height: '1.6em' } as const;
   return (
     <>
@@ -61,6 +60,7 @@ const HudToggleIcon = ({ expanded }: { expanded: boolean }) => {
 };
 import CoinPurchaseModal from './CoinPurchaseModal';
 import { usePots, useShovelStatus, useWateringStatus } from '@/hooks/useGardenData';
+import { SHOVEL_COOLDOWN_MS } from '@/config/economy';
 import { usePlant } from '@/hooks/usePlantData';
 import {
   useDigMutation,
@@ -82,6 +82,11 @@ import { GiftReceiveModal } from '@/components/GiftReceiveModal';
 import type { PendingGift } from '@/hooks/useGifts';
 
 const HEX_CLIP = 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)';
+
+/** Fundo estendido (140% = 1.4) — usado no clamp de pan */
+const GARDEN_BG_EXTENT = 1.4;
+const GARDEN_ZOOM_MIN = 1;
+const GARDEN_ZOOM_MAX = 1.8;
 
 // Partículas decorativas — posições fixas para SSR-safe
 const PARTICLES = [
@@ -140,7 +145,9 @@ export default function Garden() {
   const { data: wateringStatus } = useWateringStatus(user?.id);
   const { data: pendingGifts = [] } = usePendingGifts(user?.id);
   const shovelCooldownMs = shovelStatus?.cooldownRemainingMs ?? 0;
-  const shovelReady = shovelCooldownMs === 0;
+  // Cooldown da pá com tick local (varredura/numero suaves, sem depender do refetch)
+  const [shovelCdMs, setShovelCdMs] = useState(0);
+  const shovelReady = shovelCdMs <= 0;
   const watersRemaining = wateringStatus?.watersRemaining ?? 10;
   const canWaterToday = watersRemaining > 0;
 
@@ -185,9 +192,7 @@ export default function Garden() {
   const [wrapError, setWrapError]                   = useState<string | null>(null);
   const [activeGift, setActiveGift]                 = useState<PendingGift | null>(null);
   const [inventoryOpen, setInventoryOpen]           = useState(false);
-  const [hudExpanded, setHudExpanded]               = useState(true); // HUD recolhível
-  // Landscape mobile: HUD vira barra fixa sobre o footer (z-index acima)
-  const [isLandscapeMobile, setIsLandscapeMobile]   = useState(false);
+  const [painelOpen, setPainelOpen]                 = useState(false); // painel recolhível (começa recolhido)
 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef    = useRef<HTMLDivElement>(null);
@@ -201,14 +206,45 @@ export default function Garden() {
   useEffect(() => { panRef.current  = pan;  }, [pan]);
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
 
-  // Clamp pan para que o fundo 120% sempre cubra o viewport
+  // `will-change: transform` deixa o pan/zoom fluido, MAS promove o canvas a
+  // uma camada GPU rasterizada em 1x → ao dar zoom in a imagem fica borrada.
+  // Solução: só usa will-change DURANTE a interação; parado, remove pra o
+  // navegador re-rasterizar na escala atual (nítido).
+  const [interacting, setInteracting] = useState(false);
+  const interactTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const markInteracting = useCallback(() => {
+    setInteracting(true);
+    if (interactTimer.current) clearTimeout(interactTimer.current);
+    interactTimer.current = setTimeout(() => setInteracting(false), 220);
+  }, []);
+
+  // Clamp pan para que o fundo 140% sempre cubra o viewport
   const clampPan = useCallback((x: number, y: number, z: number) => {
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return { x, y };
-    const maxX = rect.width  * (1.2 * z - 1) / 2;
-    const maxY = rect.height * (1.2 * z - 1) / 2;
+    const maxX = rect.width  * (GARDEN_BG_EXTENT * z - 1) / 2;
+    const maxY = rect.height * (GARDEN_BG_EXTENT * z - 1) / 2;
     return { x: Math.max(-maxX, Math.min(maxX, x)), y: Math.max(-maxY, Math.min(maxY, y)) };
   }, []);
+
+  const applyZoom = useCallback((next: number, focalX: number, focalY: number) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const clampedZoom = Math.max(GARDEN_ZOOM_MIN, Math.min(GARDEN_ZOOM_MAX, next));
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    const prevZoom = zoomRef.current;
+    const prevPan = panRef.current;
+    const canvasX = (focalX - cx - prevPan.x) / prevZoom + cx;
+    const canvasY = (focalY - cy - prevPan.y) / prevZoom + cy;
+    const newPanX = focalX - cx - (canvasX - cx) * clampedZoom;
+    const newPanY = focalY - cy - (canvasY - cy) * clampedZoom;
+    const clampedPan = clampPan(newPanX, newPanY, clampedZoom);
+    zoomRef.current = clampedZoom;
+    panRef.current = clampedPan;
+    setZoom(clampedZoom);
+    setPan(clampedPan);
+  }, [clampPan]);
 
   // Pan por pointer (mouse drag / 1 dedo)
   const panPointer    = useRef<{ id: number; startX: number; startY: number; panX: number; panY: number } | null>(null);
@@ -581,9 +617,10 @@ export default function Garden() {
     const dy = e.clientY - panPointer.current.startY;
     if (Math.abs(dx) > 4 || Math.abs(dy) > 4) hasPanned.current = true;
     if (!hasPanned.current) return;
+    markInteracting();
     const newPan = clampPan(panPointer.current.panX + dx, panPointer.current.panY + dy, zoomRef.current);
     setPan(newPan);
-  }, [clampPan]);
+  }, [clampPan, markInteracting]);
 
   const handleCanvasPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     activePointers.current.delete(e.pointerId);
@@ -591,32 +628,41 @@ export default function Garden() {
   }, []);
 
   // ── Wheel zoom ───────────────────────────────────────────────────────────
+  // Depende de `gardenReady`: o listener só pode ser registrado depois que o
+  // canvas monta (durante loading o containerRef ainda não existe).
+
+  const gardenReady = !potsLoading && !potsError;
 
   useEffect(() => {
-    const el = containerRef.current;
+    if (!gardenReady) return;
+    const el = canvasRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.06 : 0.06;
-      const next = Math.max(1, Math.min(1.3, zoomRef.current + delta));
-      zoomRef.current = next;
-      setZoom(next);
-      const clamped = clampPan(panRef.current.x, panRef.current.y, next);
-      panRef.current = clamped;
-      setPan(clamped);
+      e.stopPropagation();
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const focalX = e.clientX - rect.left;
+      const focalY = e.clientY - rect.top;
+      const next = zoomRef.current - e.deltaY * 0.001;
+      markInteracting();
+      applyZoom(next, focalX, focalY);
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
-  }, [clampPan]);
+  }, [gardenReady, applyZoom, markInteracting]);
 
   // ── Pinch zoom (touch) ───────────────────────────────────────────────────
 
   useEffect(() => {
-    const el = containerRef.current;
+    if (!gardenReady) return;
+    const el = canvasRef.current;
     if (!el) return;
     let startDist = 0;
     let startZoom = 1;
-    let startPan  = { x: 0, y: 0 };
+    let startPan = { x: 0, y: 0 };
+    let startFocalX = 0;
+    let startFocalY = 0;
 
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 2) {
@@ -625,7 +671,12 @@ export default function Garden() {
         const [a, b] = [e.touches[0], e.touches[1]];
         startDist = Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
         startZoom = zoomRef.current;
-        startPan  = { ...panRef.current };
+        startPan = { ...panRef.current };
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (rect) {
+          startFocalX = (a.clientX + b.clientX) / 2 - rect.left;
+          startFocalY = (a.clientY + b.clientY) / 2 - rect.top;
+        }
       }
     };
     const onTouchMove = (e: TouchEvent) => {
@@ -633,12 +684,21 @@ export default function Garden() {
       e.preventDefault();
       const [a, b] = [e.touches[0], e.touches[1]];
       const dist = Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
-      const next = Math.max(1, Math.min(1.3, startZoom * (dist / startDist)));
+      const next = Math.max(GARDEN_ZOOM_MIN, Math.min(GARDEN_ZOOM_MAX, startZoom * (dist / startDist)));
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+      const canvasX = (startFocalX - cx - startPan.x) / startZoom + cx;
+      const canvasY = (startFocalY - cy - startPan.y) / startZoom + cy;
+      const newPanX = startFocalX - cx - (canvasX - cx) * next;
+      const newPanY = startFocalY - cy - (canvasY - cy) * next;
+      const clampedPan = clampPan(newPanX, newPanY, next);
       zoomRef.current = next;
+      panRef.current = clampedPan;
+      markInteracting();
       setZoom(next);
-      const clamped = clampPan(startPan.x, startPan.y, next);
-      panRef.current = clamped;
-      setPan(clamped);
+      setPan(clampedPan);
     };
     const onTouchEnd = (e: TouchEvent) => {
       if (e.touches.length < 2) startDist = 0;
@@ -652,16 +712,17 @@ export default function Garden() {
       el.removeEventListener('touchmove',  onTouchMove);
       el.removeEventListener('touchend',   onTouchEnd);
     };
-  }, [clampPan]);
+  }, [gardenReady, clampPan, markInteracting]);
 
-  // ── Landscape mobile: detecta e localiza o slot do footer ─────────────────
+  // ── Cooldown da pá: timer local p/ varredura/numero suaves (sem refetch) ──
+  useEffect(() => { setShovelCdMs(shovelCooldownMs); }, [shovelCooldownMs]);
   useEffect(() => {
-    const mq = window.matchMedia('(orientation: landscape) and (max-height: 600px)');
-    const update = () => setIsLandscapeMobile(mq.matches);
-    update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, []);
+    if (shovelCdMs <= 0) return;
+    const id = setInterval(() => {
+      setShovelCdMs((ms) => Math.max(0, ms - 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [shovelCdMs > 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Early returns ─────────────────────────────────────────────────────────
 
@@ -700,7 +761,7 @@ export default function Garden() {
       onClick={handleGardenClick}
     >
       {/* ══════════════════════════════════════════════════════════════════
-          CANVAS — recebe pan + zoom. Fundo 120% fica aqui dentro.
+          CANVAS — recebe pan + zoom. Fundo 140% fica aqui dentro.
           HUD, cursores e modais ficam FORA para não serem afetados.
       ══════════════════════════════════════════════════════════════════ */}
       <div
@@ -710,7 +771,8 @@ export default function Garden() {
           inset: 0,
           transformOrigin: '50% 50%',
           transform: `translate(${pan.x}px,${pan.y}px) scale(${zoom})`,
-          willChange: 'transform',
+          // will-change só durante interação → parado, re-rasteriza nítido no zoom
+          willChange: interacting ? 'transform' : 'auto',
           touchAction: 'none',
         }}
         onPointerDown={handleCanvasPointerDown}
@@ -718,10 +780,10 @@ export default function Garden() {
         onPointerUp={handleCanvasPointerUp}
         onPointerCancel={handleCanvasPointerUp}
       >
-        {/* Fundo — estendido 10% além de cada borda para permitir pan */}
+        {/* Fundo — estendido 20% além de cada borda para permitir pan */}
         <div
           className="garden-bg absolute pointer-events-none"
-          style={{ top: '-10%', left: '-10%', width: '120%', height: '120%', zIndex: 0 }}
+          style={{ top: '-20%', left: '-20%', width: '140%', height: '140%', zIndex: 0 }}
         />
 
         {/* ── Partículas decorativas ──────────────────────────────────── */}
@@ -890,115 +952,75 @@ export default function Garden() {
         />
       )}
 
-      {/* ── HUD Toolbar unificado — flutuante OU no footer (landscape mobile) ── */}
-      {(() => {
-        const hudInner = (
-          <>
-        <div className="absolute bottom-full right-0 mb-2 flex flex-col items-end gap-1.5">
-          {(shovelError || wateringError || removeError || moveError) && (
-            <div
-              className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg shadow"
-              style={{ background: 'rgba(139,40,40,0.9)', color: '#fecaca', border: '1px solid rgba(220,80,80,0.4)', fontFamily: 'var(--font-body)' }}
-            >
-              <span>{shovelError ?? wateringError ?? removeError ?? moveError}</span>
-              <button onClick={() => { setShovelError(null); setWateringError(null); setRemoveError(null); setMoveError(null); }}>
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          )}
-          {shovelActive  && <div className="text-xs px-3 py-1 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: 'var(--color-text-light)', border: '1px solid rgba(92,58,30,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>Clique no jardim para cavar</div>}
-          {trashDrag     && <div className="text-xs px-3 py-1 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>Solte numa planta para removê-la</div>}
-          {carried       && <div className="text-xs px-3 py-1 rounded-lg backdrop-blur-sm" style={{ background: 'rgba(15,32,12,0.85)', color: '#fde68a', border: '1px solid rgba(251,191,36,0.3)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>Arraste o carrinho até um canteiro vazio para replantar</div>}
+      {/* ── Painel de ferramentas — canto inferior direito, âncora fixa ────── */}
+      <div className="painel" onClick={(e) => e.stopPropagation()}>
+        {/* Âncora (fixa) — recolhe/expande os demais botões */}
+        <HexButton
+          anchor
+          className="painel-btn"
+          icon={<PainelToggleIcon expanded={painelOpen} />}
+          label={painelOpen ? 'Recolher' : 'Menu'}
+          onClick={(e) => { e.stopPropagation(); setPainelOpen(v => !v); }}
+          title={painelOpen ? 'Recolher menu' : 'Abrir menu'}
+        />
+
+        {/* Grupo colapsável (animação grid 0fr/1fr) */}
+        <div className="painel-group" data-expanded={painelOpen}>
+          <div className="painel-group-inner">
+            {/* Mochila */}
+            <HexButton
+              className="painel-btn"
+              icon={<BackpackIcon open={inventoryOpen} />}
+              label="Mochila"
+              active={inventoryOpen}
+              onClick={toggleInventory}
+              title="Abrir mochila"
+            />
+            {/* Pá — cooldown radial */}
+            <HexButton
+              className="painel-btn"
+              icon={digMutation.isPending ? <SpinnerIcon /> : <ShovelIcon />}
+              disabled={digMutation.isPending}
+              cooldown={shovelCdMs > 0 ? { remainingMs: shovelCdMs, totalMs: SHOVEL_COOLDOWN_MS, label: formatCooldown(shovelCdMs) } : undefined}
+              active={shovelActive}
+              onClick={toggleShovel}
+              label="Pá"
+              title={shovelCdMs <= 0 ? 'Usar pá para cavar' : `Recarregando: ${formatCooldown(shovelCdMs)}`}
+            />
+            {/* Regador — badge com nº de regas */}
+            <HexButton
+              className="painel-btn"
+              icon={waterMutation.isPending ? <SpinnerIcon /> : <WateringCanIcon />}
+              badge={watersRemaining}
+              disabled={!canWaterToday || waterMutation.isPending}
+              active={wateringDrag}
+              onPointerDown={handleWateringPointerDown}
+              label="Regador"
+              title={canWaterToday ? 'Arraste até uma planta para regar' : 'Limite diário atingido'}
+            />
+            {/* Carrinho de mão (mover planta) */}
+            <HexButton
+              className="painel-btn"
+              icon={movePlantMutation.isPending ? <SpinnerIcon /> : <WheelbarrowIcon carriedImageUrl={carried?.imageUrl ?? null} />}
+              disabled={movePlantMutation.isPending}
+              active={barrowDrag || !!carried}
+              onPointerDown={handleBarrowPointerDown}
+              label="Carrinho"
+              title={carried ? 'Arraste até um canteiro vazio para replantar' : 'Arraste até uma planta para recolhê-la'}
+            />
+            {/* Lixeira (remover planta / canteiro) */}
+            <HexButton
+              className="painel-btn"
+              icon={deleteMutation.isPending || removePotMutation.isPending ? <SpinnerIcon /> : <TrashIcon />}
+              disabled={deleteMutation.isPending || removePotMutation.isPending}
+              active={trashDrag}
+              onPointerDown={handleTrashPointerDown}
+              label="Lixeira"
+              title="Arraste até uma planta para removê-la"
+            />
+          </div>
         </div>
-
-        <div className="hub-toolbar">
-          {/* 0 — Toggle recolher/expandir (ocupa a posição-âncora) */}
-          <HexButton
-            anchor
-            icon={<HudToggleIcon expanded={hudExpanded} />}
-            label={hudExpanded ? 'Recolher' : 'Menu'}
-            active={false}
-            onClick={(e) => { e.stopPropagation(); setHudExpanded(v => !v); }}
-            title={hudExpanded ? 'Recolher menu' : 'Abrir menu'}
-          />
-
-          {/* Grupo colapsável (animação grid 0fr/1fr) — sempre montado */}
-          <div className="hud-group" data-expanded={hudExpanded}>
-            <div className="hud-group-inner">
-              {/* 1 — Mochila */}
-              <HexButton
-                icon={<BackpackIcon open={inventoryOpen} />}
-                label="Mochila"
-                badge={undefined}
-                active={inventoryOpen}
-                onClick={toggleInventory}
-                title="Abrir mochila"
-              />
-              {/* 2 — Pá */}
-              <HexButton
-                icon={digMutation.isPending ? <SpinnerIcon /> : <ShovelIcon />}
-                badge={!shovelReady ? formatCooldown(shovelCooldownMs) : undefined}
-                disabled={!shovelReady || digMutation.isPending}
-                active={shovelActive}
-                onClick={toggleShovel}
-                label="Pá"
-                title={shovelReady ? 'Usar pá para cavar' : `Recarregando: ${formatCooldown(shovelCooldownMs)}`}
-              />
-              {/* 3 — Regador */}
-              <HexButton
-                icon={waterMutation.isPending ? <SpinnerIcon /> : <WateringCanIcon />}
-                badge={watersRemaining}
-                disabled={!canWaterToday || waterMutation.isPending}
-                active={wateringDrag}
-                onPointerDown={handleWateringPointerDown}
-                label="Regador"
-                title={canWaterToday ? 'Arraste até uma planta para regar' : 'Limite diário atingido'}
-              />
-              {/* 4 — Carrinho de mão (mover planta) */}
-              <HexButton
-                icon={movePlantMutation.isPending ? <SpinnerIcon /> : <WheelbarrowIcon carriedImageUrl={carried?.imageUrl ?? null} />}
-                disabled={movePlantMutation.isPending}
-                active={barrowDrag || !!carried}
-                onPointerDown={handleBarrowPointerDown}
-                label="Carrinho"
-                title={carried ? 'Arraste até um canteiro vazio para replantar' : 'Arraste até uma planta para recolhê-la'}
-              />
-              {/* 5 — Lixeira (remover planta / canteiro) */}
-              <HexButton
-                icon={deleteMutation.isPending || removePotMutation.isPending ? <SpinnerIcon /> : <TrashIcon />}
-                disabled={deleteMutation.isPending || removePotMutation.isPending}
-                active={trashDrag}
-                onPointerDown={handleTrashPointerDown}
-                label="Lixeira"
-                title="Arraste até uma planta para removê-la"
-              />
-              {/* SEMPRE ÚLTIMO — Presente */}
-              {pendingGifts.length > 0 && (
-                <HexButton
-                  icon={<span style={{ animation: 'gift-shake 1.2s ease-in-out infinite', display: 'inline-block' }}>🎁</span>}
-                  badge={pendingGifts.length}
-                  onClick={(e) => { e.stopPropagation(); setActiveGift(pendingGifts[0]); }}
-                  label="Presente"
-                  title={`${pendingGifts.length} presente(s) aguardando`}
-                />
-              )}
-            </div>
-          </div>
-          </div>
-          </>
-        );
-        return isLandscapeMobile
-          ? (
-            <div className="hud-in-footer fixed flex items-end justify-end" onClick={(e) => e.stopPropagation()}>
-              {hudInner}
-            </div>
-          )
-          : (
-            <div className="hud-pos absolute right-4 z-20" onClick={(e) => e.stopPropagation()}>
-              {hudInner}
-            </div>
-          );
-      })()}
+      </div>
 
       {/* ── Wrap mode toolbar ────────────────────────────────────────────── */}
       {wrappingMode && (
