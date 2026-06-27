@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Pot } from '@/types';
@@ -187,9 +186,8 @@ export default function Garden() {
   const [activeGift, setActiveGift]                 = useState<PendingGift | null>(null);
   const [inventoryOpen, setInventoryOpen]           = useState(false);
   const [hudExpanded, setHudExpanded]               = useState(true); // HUD recolhível
-  // Landscape mobile: HUD vai pro footer (portal) para aproveitar o espaço
+  // Landscape mobile: HUD vira barra fixa sobre o footer (z-index acima)
   const [isLandscapeMobile, setIsLandscapeMobile]   = useState(false);
-  const [toolsSlot, setToolsSlot]                   = useState<HTMLElement | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef    = useRef<HTMLDivElement>(null);
@@ -665,10 +663,6 @@ export default function Garden() {
     return () => mq.removeEventListener('change', update);
   }, []);
 
-  useEffect(() => {
-    setToolsSlot(isLandscapeMobile ? document.getElementById('garden-tools-slot') : null);
-  }, [isLandscapeMobile]);
-
   // ── Early returns ─────────────────────────────────────────────────────────
 
   if (potsError) {
@@ -993,13 +987,12 @@ export default function Garden() {
           </div>
           </>
         );
-        return isLandscapeMobile && toolsSlot
-          ? createPortal(
-              <div className="hud-in-footer relative flex items-end justify-end" onClick={(e) => e.stopPropagation()}>
-                {hudInner}
-              </div>,
-              toolsSlot,
-            )
+        return isLandscapeMobile
+          ? (
+            <div className="hud-in-footer fixed flex items-end justify-end" onClick={(e) => e.stopPropagation()}>
+              {hudInner}
+            </div>
+          )
           : (
             <div className="hud-pos absolute right-4 z-20" onClick={(e) => e.stopPropagation()}>
               {hudInner}
