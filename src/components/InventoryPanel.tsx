@@ -56,11 +56,11 @@ function WrappedPlantSlot({
 
   return (
     <div
-      className="relative flex flex-col items-center justify-center gap-0.5 w-full h-full bg-rose-950/40 border border-rose-700/40 rounded-xl transition-colors group"
+      className="relative flex flex-col items-center justify-center gap-0.5 w-full h-full bg-rose-200/50 border border-rose-400/50 rounded-xl transition-colors group"
       onClick={() => setShowActions(v => !v)}
     >
       <span className="text-2xl select-none">🎁</span>
-      <span className="text-rose-300 text-[8px] font-bold">{showActions ? 'Fechar' : 'Opções'}</span>
+      <span className="text-rose-700 text-[8px] font-bold">{showActions ? 'Fechar' : 'Opções'}</span>
 
       {/* Action overlay */}
       {showActions && (
@@ -96,7 +96,7 @@ function WrappedPlantSlot({
 
       {/* Ícone de info com label */}
       <button
-        className="absolute top-0.5 right-0.5 text-rose-400/60 hover:text-rose-300 transition-colors"
+        className="absolute top-0.5 right-0.5 text-rose-600/70 hover:text-rose-700 transition-colors"
         onClick={handleLabelClick}
         title={item.label || 'Sem etiqueta — clique para editar'}
       >
@@ -106,12 +106,14 @@ function WrappedPlantSlot({
       {/* Editor de label inline */}
       {editingLabel && (
         <div
-          className="absolute inset-0 bg-stone-900/95 rounded-xl flex flex-col items-center justify-center p-1 gap-1 z-10"
+          className="absolute inset-0 rounded-xl flex flex-col items-center justify-center p-1 gap-1 z-10"
+          style={{ background: 'var(--color-parch-light)', border: '1px solid var(--color-wood-light)' }}
           onClick={(e) => e.stopPropagation()}
         >
           <input
             ref={inputRef}
-            className="w-full text-[9px] bg-stone-700 text-white rounded px-1 py-0.5 outline-none text-center"
+            className="w-full text-[9px] rounded px-1 py-0.5 outline-none text-center"
+            style={{ background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(139,99,70,0.35)', color: 'var(--color-text-dark)' }}
             value={labelValue}
             maxLength={100}
             onChange={(e) => setLabelValue(e.target.value)}
@@ -145,7 +147,7 @@ function PlantSlot({ item }: { item: InventoryItem }) {
   return (
     <div
       className="relative flex flex-col items-center justify-center w-full h-full rounded-xl overflow-hidden"
-      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(201,162,39,0.2)' }}
+      style={{ background: 'rgba(92,58,30,0.08)', border: '1px solid rgba(92,58,30,0.22)' }}
     >
       <RarityEffect rarity={rarity} alwaysVisible>
         {version?.image_url ? (
@@ -153,7 +155,7 @@ function PlantSlot({ item }: { item: InventoryItem }) {
             <Image src={version.image_url} alt="Planta" fill className="object-contain p-1" />
           </div>
         ) : (
-          <div className="w-6 h-6 rounded-full animate-pulse" style={{ background: 'rgba(201,162,39,0.2)' }} />
+          <div className="w-6 h-6 rounded-full animate-pulse" style={{ background: 'rgba(92,58,30,0.25)' }} />
         )}
       </RarityEffect>
     </div>
@@ -166,7 +168,7 @@ function AnimatingSlot({ phase, rarity }: { phase: OpenPhase; rarity: Rarity }) 
   if (phase === 'shaking' || phase === 'exploding') {
     return (
       <div
-        className="relative flex items-center justify-center w-full h-full bg-rose-950/40 border border-rose-700/40 rounded-xl overflow-hidden"
+        className="relative flex items-center justify-center w-full h-full bg-rose-200/50 border border-rose-400/50 rounded-xl overflow-hidden"
         style={{
           animation: phase === 'shaking'
             ? 'gift-shake 0.8s ease-in-out forwards'
@@ -183,8 +185,9 @@ function AnimatingSlot({ phase, rarity }: { phase: OpenPhase; rarity: Rarity }) 
   if (phase === 'revealing') {
     return (
       <div
-        className="relative flex items-center justify-center w-full h-full bg-stone-800/40 border rounded-xl overflow-hidden"
+        className="relative flex items-center justify-center w-full h-full border rounded-xl overflow-hidden"
         style={{
+          background: 'rgba(92,58,30,0.08)',
           borderColor: `var(--rarity-${rarity})`,
           animation: 'gift-reveal 0.6s ease-out forwards',
         }}
@@ -219,21 +222,21 @@ function SlotContent({
 }) {
   if (animPhase !== 'idle') return <AnimatingSlot phase={animPhase} rarity={animRarity} />;
 
-  if (!item) return <div className="w-full h-full border-2 border-dashed rounded-xl" style={{ borderColor: 'rgba(201,162,39,0.22)' }} />;
+  if (!item) return <div className="w-full h-full border-2 border-dashed rounded-xl" style={{ borderColor: 'rgba(92,58,30,0.3)' }} />;
 
   if (item.item_type === 'seed') {
     return (
-      <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full bg-green-900/30 border border-green-700/30 rounded-xl">
-        <Sprout className="w-5 h-5 text-green-400" />
-        <span className="text-green-300 text-[9px] font-bold">×{item.quantity}</span>
+      <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full bg-green-200/50 border border-green-600/40 rounded-xl">
+        <Sprout className="w-5 h-5 text-green-700" />
+        <span className="text-green-800 text-[9px] font-bold">×{item.quantity}</span>
       </div>
     );
   }
   if (item.item_type === 'wrapping_kit') {
     return (
-      <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full bg-rose-900/30 border border-rose-700/30 rounded-xl">
-        <Gift className="w-5 h-5 text-rose-400" />
-        <span className="text-rose-300 text-[9px] font-bold">×{item.quantity}</span>
+      <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full bg-rose-200/50 border border-rose-400/50 rounded-xl">
+        <Gift className="w-5 h-5 text-rose-600" />
+        <span className="text-rose-700 text-[9px] font-bold">×{item.quantity}</span>
       </div>
     );
   }
@@ -321,10 +324,10 @@ export function InventoryPanel({
   if (!open) return null;
 
   return (
-    // Modal centralizado (desatrelado do botão da mochila) — tema grimório
+    // Modal centralizado (desatrelado do botão da mochila) — tema pergaminho (login)
     <div
       className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
-      style={{ background: 'rgba(5,8,3,0.62)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'rgba(5,8,3,0.55)', backdropFilter: 'blur(4px)' }}
       onClick={() => onClose()}
     >
       <div
@@ -333,24 +336,30 @@ export function InventoryPanel({
           width: 'min(92vw, 420px)',
           maxHeight: '88vh',
           overflowY: 'auto',
-          background: 'linear-gradient(160deg, #1c2d10 0%, #0f1a08 60%, #0a1205 100%)',
-          border: '1.5px solid rgba(201,162,39,0.35)',
-          boxShadow: '0 28px 70px rgba(0,0,0,0.65), inset 0 1px 0 rgba(201,162,39,0.12)',
-          borderRadius: 24,
+          background: 'linear-gradient(180deg, var(--color-parch-light) 0%, var(--color-parch-dark) 100%)',
+          border: '1.5px solid var(--color-wood-light)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.5), inset 0 1px 1px rgba(242,232,213,0.9)',
+          borderRadius: 16,
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Acento dourado no topo */}
+        <div
+          className="absolute top-0 left-6 right-6 h-px pointer-events-none"
+          style={{ background: 'linear-gradient(90deg, transparent, var(--color-gold), transparent)' }}
+        />
+
         <div className="flex items-center justify-between mb-4">
           <span
             className="font-black text-base"
-            style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-light)', letterSpacing: '0.02em' }}
+            style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)', letterSpacing: '0.02em' }}
           >
             🎒 Mochila
           </span>
           <button
             onClick={() => onClose()}
-            className="p-1.5 rounded-full transition-all active:scale-90 hover:bg-white/10"
-            style={{ color: 'rgba(232,213,160,0.55)' }}
+            className="p-1.5 rounded-full transition-all active:scale-90 hover:bg-black/10"
+            style={{ color: 'var(--color-text-muted)' }}
           >
             <X className="w-5 h-5" />
           </button>
@@ -372,19 +381,25 @@ export function InventoryPanel({
           ))}
         </div>
 
-        {/* Botão embrulhar */}
+        {/* Botão embrulhar — primário verde (padrão login) */}
         {hasKits && (
           <button
             onClick={() => { onClose(); onWrapMode(); }}
-            className="mt-4 w-full py-2.5 text-white text-sm font-bold rounded-xl transition-all active:scale-95"
-            style={{ fontFamily: 'var(--font-display)', background: 'rgba(185,28,28,0.5)', border: '1px solid rgba(239,68,68,0.5)' }}
+            className="mt-4 w-full py-2.5 text-sm font-bold rounded-xl transition-all active:scale-95"
+            style={{
+              fontFamily: 'var(--font-display)',
+              background: 'linear-gradient(135deg, #2a5a1e, #1e4014)',
+              color: 'var(--color-parch-light)',
+              border: '1px solid rgba(201,162,39,0.3)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+            }}
           >
             🎁 Embrulhar planta
           </button>
         )}
 
         {items.length === 0 && (
-          <p className="text-center text-xs mt-3" style={{ color: 'rgba(232,213,160,0.4)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
+          <p className="text-center text-xs mt-3" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
             Inventário vazio
           </p>
         )}
