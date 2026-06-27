@@ -62,13 +62,13 @@ export function PlantDetailModal({
     <>
       {/* Mobile backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 z-40 md:hidden"
+        className="fixed inset-0 bg-black/60 z-[9998] md:hidden"
         onClick={onClose}
       />
 
       {/* Panel */}
       <div
-        className="fixed inset-0 z-50 flex flex-col overflow-y-auto md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-80"
+        className="fixed inset-0 z-[9999] flex flex-col overflow-y-auto md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-80"
         style={{
           background: 'linear-gradient(180deg, var(--color-parch-light) 0%, var(--color-parch-dark) 100%)',
           borderLeft: '2px solid var(--color-wood-light)',
