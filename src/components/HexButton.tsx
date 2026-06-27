@@ -128,6 +128,8 @@ export function HexButton({
         style={{
           paddingBottom: '10%',
           filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.7))',
+          // ícone +75% só no visual (transform não causa reflow/empurra nada)
+          transform: 'scale(1.75)',
         }}
       >
         {icon}
