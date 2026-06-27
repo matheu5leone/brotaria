@@ -128,6 +128,34 @@ export async function evolvePlant(plantId: string) {
 
   const newDNA = mutateDNA(plant.dna);
 
+  // 1) Se o estágio gera imagem, GERA ANTES de avançar o estágio.
+  //    Se a geração falhar/der timeout, lançamos o erro e o estágio NÃO avança —
+  //    a planta continua no estágio atual (visível) e o usuário pode regar de novo.
+  //    Assim nunca ficamos com a planta num estágio sem imagem (invisível).
+  let evolution: { visualDescription: string; imageUrl: string; modelUsed: string } | null = null;
+  if (nextStage.generate_image) {
+    console.log(`[IA] Triggering evolution for stage ${nextStage.code} | MODO: ${MODO_IA}`);
+    if (MODO_IA === 'LLM') {
+      const { data: lastVersion } = await supabaseAdmin
+        .from('plant_versions')
+        .select('prompt_used')
+        .eq('plant_id', plantId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      evolution = await generatePlantEvolution(newDNA, nextStage.code, lastVersion?.prompt_used);
+    } else {
+      evolution = {
+        visualDescription: `[MOCK] Planta do bioma ${newDNA.biome} evoluída para ${nextStage.name}.`,
+        imageUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${plantId}-${nextStage.code}`,
+        modelUsed: 'MOCK-IMAGE-GENERATOR',
+      };
+      await new Promise(resolve => setTimeout(resolve, 800));
+    }
+  }
+
+  // 2) Avança o estágio (imagem já garantida quando o estágio gera imagem).
   const { error: updateError } = await supabaseAdmin
     .from('plants')
     .update({
@@ -142,53 +170,28 @@ export async function evolvePlant(plantId: string) {
 
   if (updateError) {
     console.error(`[Growth] Error evolving plant ${plantId}:`, updateError);
-    return { success: false, error: updateError };
+    throw new Error('Falha ao avançar o estágio da planta');
   }
 
-  // Recompensa em Herbo (🍃) — moeda orgânica baseada no score da planta
+  // 3) Salva a nova versão (imagem já pronta).
+  if (evolution) {
+    await supabaseAdmin.from('plant_versions').insert({
+      plant_id: plantId,
+      image_url: evolution.imageUrl,
+      prompt_used: evolution.visualDescription,
+      dna_snapshot: newDNA,
+      stage_id: nextStage.id,
+      model_used: evolution.modelUsed,
+    });
+    console.log(`[IA] Version saved for plant ${plantId}`);
+  }
+
+  // 4) Recompensa em Herbo (🍃) — moeda orgânica baseada no score da planta.
   const herboReward = calcPlantScore(newDNA, nextStage.order_index);
   if (herboReward > 0) {
     await supabaseAdmin.rpc('add_herbo', { p_user_id: plant.user_id, p_amount: herboReward });
     console.log(`[Growth] Granted ${herboReward} herbo to user ${plant.user_id} (stage ${nextStage.code})`);
   }
 
-  if (nextStage.generate_image) {
-    console.log(`[IA] Triggering evolution for stage ${nextStage.code} | MODO: ${MODO_IA}`);
-    try {
-      let evolution;
-      if (MODO_IA === 'LLM') {
-        const { data: lastVersion } = await supabaseAdmin
-          .from('plant_versions')
-          .select('prompt_used')
-          .eq('plant_id', plantId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        evolution = await generatePlantEvolution(newDNA, nextStage.code, lastVersion?.prompt_used);
-      } else {
-        evolution = {
-          visualDescription: `[MOCK] Planta do bioma ${newDNA.biome} evoluída para ${nextStage.name}.`,
-          imageUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${plantId}-${nextStage.code}`,
-          modelUsed: 'MOCK-IMAGE-GENERATOR',
-        };
-        await new Promise(resolve => setTimeout(resolve, 800));
-      }
-
-      await supabaseAdmin.from('plant_versions').insert({
-        plant_id: plantId,
-        image_url: evolution.imageUrl,
-        prompt_used: evolution.visualDescription,
-        dna_snapshot: newDNA,
-        stage_id: nextStage.id,
-        model_used: evolution.modelUsed,
-      });
-
-      console.log(`[IA] Version saved for plant ${plantId}`);
-    } catch (error) {
-      console.error(`[IA] Error in evolution for plant ${plantId}:`, error);
-    }
-  }
-
-  return { success: true, evolved: true, nextStage: nextStage.code };
+  return { success: true, evolved: true, nextStage: nextStage.code, stageName: nextStage.name, herbo: herboReward };
 }

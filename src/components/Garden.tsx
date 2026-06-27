@@ -187,6 +187,9 @@ export default function Garden() {
   const [activeGift, setActiveGift]                 = useState<PendingGift | null>(null);
   const [inventoryOpen, setInventoryOpen]           = useState(false);
   const [painelOpen, setPainelOpen]                 = useState(false); // painel recolhível (começa recolhido)
+  // Toast central de feedback (evolução de fase, erros de rega, etc.)
+  const [toast, setToast]                           = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef    = useRef<HTMLDivElement>(null);
@@ -311,20 +314,31 @@ export default function Garden() {
   };
 
   // Rega via drag: chamado pelo pointerup quando soltar sobre uma planta
+  const showToast = useCallback((text: string, kind: 'success' | 'error') => {
+    setToast({ text, kind });
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), kind === 'success' ? 3500 : 3000);
+  }, []);
+
   const handleWaterPot = useCallback(async (pot: Pot) => {
     if (!pot.plant_id || !canWaterToday || waterMutation.isPending) return;
     setWateringError(null);
     try {
-      await waterMutation.mutateAsync({ plantId: pot.plant_id });
+      const result = await waterMutation.mutateAsync({ plantId: pot.plant_id }) as
+        { evolved?: boolean; stageName?: string; herbo?: number } | undefined;
+      if (result?.evolved) {
+        const reward = result.herbo ? ` · +${result.herbo} 🍃` : '';
+        showToast(`🌱 Nova fase: ${result.stageName ?? 'planta evoluiu'}!${reward}`, 'success');
+      }
     } catch (err: unknown) {
       const e = err as { code?: string; message?: string };
       const msg =
         e.code === 'DAILY_LIMIT_REACHED' ? 'Limite diário atingido! Volte amanhã.' :
         e.code === 'NOT_READY' ? 'Esta planta ainda não precisa de água.' :
         (e.message ?? 'Erro ao regar.');
-      setWateringError(msg);
+      showToast(msg, 'error');
     }
-  }, [canWaterToday, waterMutation]);
+  }, [canWaterToday, waterMutation, showToast]);
 
   // Encontra o pot pelo ponto na tela usando data-pot-id
   const findPotAtPoint = useCallback((x: number, y: number): Pot | null => {
@@ -1030,6 +1044,23 @@ export default function Garden() {
           {wrapError && (
             <div className="text-xs bg-red-700 text-white px-3 py-1.5 rounded-lg">{wrapError}</div>
           )}
+        </div>
+      )}
+
+      {/* ── Toast de feedback (evolução / erros) ─────────────────────────── */}
+      {toast && (
+        <div
+          className="fixed left-1/2 top-6 z-[10001] -translate-x-1/2 px-5 py-3 rounded-2xl text-sm font-bold text-center pointer-events-none"
+          style={{
+            fontFamily: 'var(--font-display)',
+            maxWidth: '90vw',
+            background: 'linear-gradient(180deg, var(--color-parch-light) 0%, var(--color-parch-dark) 100%)',
+            border: `1.5px solid ${toast.kind === 'success' ? 'var(--color-wood-light)' : 'rgba(139,40,40,0.5)'}`,
+            color: toast.kind === 'success' ? 'var(--color-text-dark)' : '#8b2828',
+            boxShadow: '0 12px 36px rgba(0,0,0,0.4), inset 0 1px 1px rgba(242,232,213,0.9)',
+          }}
+        >
+          {toast.text}
         </div>
       )}
 
