@@ -289,11 +289,25 @@ html, body {
   text-shadow: 0 1px 3px rgba(0,0,0,0.8);
 }
 
-/* ---------- Canteiro — tamanho ---------- */
+/* ---------- Canteiro — tamanho responsivo ---------- */
 
-/* Tamanho único (estado original, antes dos ajustes responsivos) */
+/* Portrait (base): 36% */
 .hex-pot {
-  width: 12%;
+  width: 36%;
+}
+
+/* Celular deitado: 24% */
+@media (orientation: landscape) and (max-height: 600px) {
+  .hex-pot {
+    width: 24%;
+  }
+}
+
+/* Desktop real (largura E altura): 14% */
+@media (min-width: 768px) and (min-height: 600px) {
+  .hex-pot {
+    width: 14%;
+  }
 }
 
 /* Escala da planta é por estágio (inline em HexPot); aqui só a âncora da base */
