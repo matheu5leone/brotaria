@@ -995,7 +995,7 @@ export default function Garden() {
         );
         return isLandscapeMobile && toolsSlot
           ? createPortal(
-              <div className="hud-in-footer relative flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+              <div className="hud-in-footer relative flex items-end justify-end" onClick={(e) => e.stopPropagation()}>
                 {hudInner}
               </div>,
               toolsSlot,

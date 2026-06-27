@@ -210,18 +210,20 @@ html, body {
     display: flex;
     flex: 0 0 50%;
     max-width: 50%;
-    align-items: center;
+    align-items: flex-end; /* botões ancorados na base do footer */
     justify-content: flex-end;
     align-self: stretch;
     border-left: 2px solid rgba(92,58,30,0.45);
     padding-left: 8px;
+    overflow: visible; /* deixa os botões estourarem pra cima */
   }
 }
-/* Footer = 62px; botões ~58px (≈2px de folga em cima/embaixo) para "quase fit".
-   O anchor não usa o +20% aqui (estouraria a altura) — fica do mesmo tamanho. */
-.hud-in-footer .hex-button { width: 58px; height: 58px; font-size: 16px; }
-.hud-in-footer .hex-button--anchor { width: 58px; height: 58px; font-size: 16px; }
-.hud-in-footer .hud-group-inner .hex-button + .hex-button { margin-left: -18px; }
+/* Footer = 62px. Botões 65px ancorados à base com 2px de folga embaixo →
+   começam 2px do fundo e estouram ~5px acima do footer (estilo proposital). */
+.hud-in-footer { padding-bottom: 2px; align-items: flex-end; }
+.hud-in-footer .hex-button { width: 65px; height: 65px; font-size: 18px; }
+.hud-in-footer .hex-button--anchor { width: 65px; height: 65px; font-size: 18px; }
+.hud-in-footer .hud-group-inner .hex-button + .hex-button { margin-left: -20px; }
 
 /* ---------- HUD Toolbar — direção responsiva ---------- */
 
