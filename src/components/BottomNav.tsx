@@ -59,8 +59,8 @@ export function BottomNav() {
         boxShadow: '0 -4px 20px rgba(0,0,0,0.35)',
       }}
     >
-      {/* Grupo da navegação (rotas) — flex-1 preenche o footer (sem vão preto) */}
-      <div className="flex items-center gap-1 flex-1 min-w-0">
+      {/* Grupo da navegação (rotas) — flex-1 (portrait) / 50% fixo (landscape) */}
+      <div className="nav-routes-group flex items-center gap-1 flex-1 min-w-0">
         {/* Coins */}
         <NavLink
           href="/loja"

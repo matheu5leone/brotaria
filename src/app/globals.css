@@ -201,20 +201,20 @@ html, body {
 .garden-tools-slot { display: none; }
 .garden-tools-divider { display: none; }
 @media (orientation: landscape) and (max-height: 600px) {
-  /* footer = [nav routes (flex-1)] | divisória | [ferramentas do HUD] */
+  /* footer fixo 50% / 50% — expandir/recolher o HUD NÃO empurra a nav */
+  .nav-routes-group {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
   .garden-tools-slot {
     display: flex;
-    flex: none;
+    flex: 0 0 50%;
+    max-width: 50%;
     align-items: center;
     justify-content: flex-end;
-  }
-  .garden-tools-divider {
-    display: block;
-    width: 2px;
     align-self: stretch;
-    margin: 10px 8px;
-    border-radius: 1px;
-    background: rgba(92,58,30,0.45);
+    border-left: 2px solid rgba(92,58,30,0.45);
+    padding-left: 8px;
   }
 }
 .hud-in-footer .hex-button { width: 48px; height: 48px; font-size: 13px; }
