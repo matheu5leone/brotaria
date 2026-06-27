@@ -218,12 +218,18 @@ html, body {
     overflow: visible; /* deixa os botões estourarem pra cima */
   }
 }
-/* Footer = 62px. Botões 65px ancorados à base com 2px de folga embaixo →
-   começam 2px do fundo e estouram ~5px acima do footer (estilo proposital). */
+/* Footer = 62px. Hexágono enche a altura da caixa (PNG sem padding vertical).
+   Caixa 68px ancorada à base com 2px de folga → imagem começa 2px do fundo e
+   estoura ~5px acima do footer. `.hex-button.hex-button--anchor` (especificidade
+   maior) garante que o anchor fique do mesmo tamanho dos outros aqui. */
 .hud-in-footer { padding-bottom: 2px; align-items: flex-end; }
-.hud-in-footer .hex-button { width: 65px; height: 65px; font-size: 18px; }
-.hud-in-footer .hex-button--anchor { width: 65px; height: 65px; font-size: 18px; }
-.hud-in-footer .hud-group-inner .hex-button + .hex-button { margin-left: -20px; }
+.hud-in-footer .hex-button,
+.hud-in-footer .hex-button.hex-button--anchor {
+  width: 68px;
+  height: 68px;
+  font-size: 18px;
+}
+.hud-in-footer .hud-group-inner .hex-button + .hex-button { margin-left: -22px; }
 
 /* ---------- HUD Toolbar — direção responsiva ---------- */
 
