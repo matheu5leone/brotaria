@@ -215,7 +215,9 @@ html, body {
    imagem do hexágono (img em fluxo, width auto) → a caixa == hexágono exatamente,
    sem área transparente; badge/tooltip ancoram no hexágono real.
    Altura = 100px base / 120px desktop. */
-.painel .painel-btn { height: 100px; font-size: 26px; }
+/* Mobile (portrait + landscape): 50px (−50% do tamanho anterior de 100px) */
+.painel .painel-btn { height: 50px; font-size: 13px; }
+/* Desktop: mantém 120px */
 @media (min-width: 768px) and (min-height: 600px) {
   .painel .painel-btn { height: 120px; font-size: 30px; }
 }
