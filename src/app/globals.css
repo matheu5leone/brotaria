@@ -196,19 +196,21 @@ html, body {
 .painel {
   position: fixed;
   right: 0;
-  bottom: 72px;                 /* portrait: 10px acima da navbar de 62px */
+  bottom: 72px;                 /* mobile (portrait + landscape): 10px acima da navbar de 62px */
   z-index: 60;
   display: flex;
   flex-direction: column-reverse; /* âncora (1º DOM) embaixo, fixa */
   align-items: center;
   gap: 0;                       /* gap âncora↔grupo vem do padding do inner */
 }
+/* Desktop e landscape: linha (âncora à direita, expande p/ esquerda) */
 @media (min-width: 768px) and (min-height: 600px),
        (orientation: landscape) and (max-height: 600px) {
-  .painel {
-    bottom: 0;                  /* encostado no bottom da tela */
-    flex-direction: row-reverse; /* âncora à direita, fixa; grupo expande p/ esquerda */
-  }
+  .painel { flex-direction: row-reverse; }
+}
+/* Só desktop (sem navbar): encosta no fundo da tela */
+@media (min-width: 768px) and (min-height: 600px) {
+  .painel { bottom: 0; }
 }
 
 /* Tamanho dos botões do painel: só a ALTURA é definida. A largura sai da própria
@@ -291,9 +293,16 @@ html, body {
 
 /* ---------- Canteiro — tamanho responsivo ---------- */
 
-/* Mobile (portrait + landscape): 18% */
+/* Portrait: 18% */
 .hex-pot {
   width: 18%;
+}
+
+/* Celular deitado: 11% (tela larga → % menor evita colisão) */
+@media (orientation: landscape) and (max-height: 600px) {
+  .hex-pot {
+    width: 11%;
+  }
 }
 
 /* Desktop real (largura E altura): 14% */
