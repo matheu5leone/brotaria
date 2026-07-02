@@ -72,6 +72,8 @@ import {
 } from '@/hooks/useGardenMutations';
 import { useQueryClient } from '@tanstack/react-query';
 import { PlantHistoryModal } from '@/components/PlantHistoryModal';
+import { EvolutionLoader } from '@/components/EvolutionLoader';
+import type { PlantRow } from '@/hooks/usePlantData';
 import { InventoryPanel } from '@/components/InventoryPanel';
 import { useWrapPlant } from '@/hooks/useInventory';
 import { HexButton } from '@/components/HexButton';
@@ -165,6 +167,10 @@ export default function Garden() {
   const [wateringDragPos, setWateringDragPos]       = useState<{ x: number; y: number } | null>(null);
   const [wateringTargetPotId, setWateringTargetPotId] = useState<string | null>(null);
   const [wateringError, setWateringError]           = useState<string | null>(null);
+  // Tela de evolução (raios solares + logo) enquanto a IA gera a nova fase
+  const [evolvingPlant, setEvolvingPlant]           = useState(false);
+  const evoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (evoTimer.current) clearTimeout(evoTimer.current); }, []);
   // Remove spot mode
   const [removeError, setRemoveError]               = useState<string | null>(null);
   // Lixeira (remover planta / canteiro) — drag-and-drop estilo regador
@@ -323,6 +329,20 @@ export default function Garden() {
   const handleWaterPot = useCallback(async (pot: Pot) => {
     if (!pot.plant_id || !canWaterToday || waterMutation.isPending) return;
     setWateringError(null);
+
+    // Esta rega vai evoluir a planta? Se a planta está no cache, dá pra prever
+    // e mostrar a tela de evolução na hora; senão, um fallback por tempo cobre
+    // requisições lentas (geração de imagem) sem piscar nas regas normais.
+    const cached = qc.getQueryData<PlantRow>(['plant', pot.plant_id]);
+    const willEvolve = !!cached &&
+      cached.current_stage_waters + 1 >= cached.current_stage.waters_required;
+
+    if (willEvolve) {
+      setEvolvingPlant(true);
+    } else {
+      evoTimer.current = setTimeout(() => setEvolvingPlant(true), 700);
+    }
+
     try {
       const result = await waterMutation.mutateAsync({ plantId: pot.plant_id }) as
         { evolved?: boolean; stageName?: string; herbo?: number } | undefined;
@@ -337,8 +357,11 @@ export default function Garden() {
         e.code === 'NOT_READY' ? 'Esta planta ainda não precisa de água.' :
         (e.message ?? 'Erro ao regar.');
       showToast(msg, 'error');
+    } finally {
+      if (evoTimer.current) { clearTimeout(evoTimer.current); evoTimer.current = null; }
+      setEvolvingPlant(false);
     }
-  }, [canWaterToday, waterMutation, showToast]);
+  }, [canWaterToday, waterMutation, showToast, qc]);
 
   // Encontra o pot pelo ponto na tela usando data-pot-id
   const findPotAtPoint = useCallback((x: number, y: number): Pot | null => {
@@ -719,7 +742,13 @@ export default function Garden() {
   }, [gardenReady, clampPan, markInteracting]);
 
   // ── Cooldown da pá: timer local p/ varredura/numero suaves (sem refetch) ──
-  useEffect(() => { setShovelCdMs(shovelCooldownMs); }, [shovelCooldownMs]);
+  // Ressincroniza durante o render (padrão React p/ estado derivado de prop),
+  // sem o re-render em cascata que um useEffect causaria.
+  const [prevCooldownMs, setPrevCooldownMs] = useState(shovelCooldownMs);
+  if (prevCooldownMs !== shovelCooldownMs) {
+    setPrevCooldownMs(shovelCooldownMs);
+    setShovelCdMs(shovelCooldownMs);
+  }
   useEffect(() => {
     if (shovelCdMs <= 0) return;
     const id = setInterval(() => {
@@ -1082,6 +1111,9 @@ export default function Garden() {
           onClose={() => setActiveGift(null)}
         />
       )}
+
+      {/* ── Tela de evolução (raios solares + logo) durante a geração da IA ─ */}
+      <EvolutionLoader open={evolvingPlant} />
 
       {/* ── Coin purchase modal ──────────────────────────────────────────── */}
       <CoinPurchaseModal

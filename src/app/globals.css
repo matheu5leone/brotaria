@@ -529,3 +529,46 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .brota-carry { animation: none; transform: scale(1.08); }
 }
+
+/* ---------- Tela de evolução (raios solares + logo pulsando) ------------- */
+
+.evo-rays {
+  animation: evo-rays-spin 18s linear infinite;
+  will-change: transform;
+}
+.evo-rays--rev {
+  animation: evo-rays-spin 26s linear infinite reverse;
+  will-change: transform;
+}
+.evo-halo {
+  animation: evo-halo 3.2s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+.evo-logo {
+  animation: evo-logo-pulse 2.4s ease-in-out infinite;
+  will-change: transform;
+}
+.evo-dot { animation: evo-dot 1.4s ease-in-out infinite; }
+.evo-dot:nth-child(2) { animation-delay: 0.2s; }
+.evo-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes evo-rays-spin { to { transform: rotate(360deg); } }
+@keyframes evo-halo {
+  0%, 100% { transform: scale(1);    opacity: 0.45; }
+  50%      { transform: scale(1.14); opacity: 0.8;  }
+}
+@keyframes evo-logo-pulse {
+  0%, 100% { transform: scale(0.92); }
+  50%      { transform: scale(1.08); }
+}
+@keyframes evo-dot {
+  0%, 100% { opacity: 0.25; transform: translateY(0); }
+  50%      { opacity: 1;    transform: translateY(-2px); }
+}
+.evo-fade-in { animation: brota-fade-in 0.45s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .evo-rays, .evo-rays--rev { animation-duration: 60s; }
+  .evo-logo { animation-duration: 4s; }
+  .evo-halo { animation: none; opacity: 0.6; }
+}

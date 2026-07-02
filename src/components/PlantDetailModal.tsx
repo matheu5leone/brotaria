@@ -1,7 +1,7 @@
 'use client';
 
-import Image from 'next/image';
 import { X, Droplets, Trash2 } from 'lucide-react';
+import { PlantImage } from '@/components/PlantImage';
 import { usePlant, usePlantVersion } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
 import { GAME } from '@/config/economy';
@@ -112,19 +112,13 @@ export function PlantDetailModal({
               border: '2px solid rgba(92,58,30,0.3)',
             }}
           >
-            {version?.image_url ? (
-              <RarityEffect rarity={plant.dna.rarity} alwaysVisible>
-                <Image
-                  src={version.image_url}
-                  alt={stage.name}
-                  fill
-                  className="object-contain p-3"
-                  draggable={false}
-                />
-              </RarityEffect>
-            ) : (
-              <div className="w-full h-full animate-pulse" style={{ background: 'rgba(92,58,30,0.1)' }} />
-            )}
+            <RarityEffect rarity={plant.dna.rarity} alwaysVisible>
+              <PlantImage
+                src={version?.image_url}
+                alt={stage.name}
+                className="object-contain p-3"
+              />
+            </RarityEffect>
           </div>
         </div>
 

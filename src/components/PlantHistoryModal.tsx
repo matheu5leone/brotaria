@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
+import { useState, useRef } from 'react';
+import { PlantImage } from '@/components/PlantImage';
 import { X, ChevronLeft, ChevronRight, Droplets, Leaf, Star, Flame, Zap, Sprout } from 'lucide-react';
 import { GAME } from '@/config/economy';
 import { calcPlantScore } from '@/lib/scoring';
@@ -221,21 +221,13 @@ function VersionCard({
             border: '2px solid rgba(92,58,30,0.3)',
           }}
         >
-          {version.image_url ? (
-            <RarityEffect rarity={rarity} alwaysVisible>
-              <Image
-                src={version.image_url}
-                alt={version.stage?.name ?? 'Planta'}
-                fill
-                className="object-contain p-2"
-                draggable={false}
-              />
-            </RarityEffect>
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <div className="w-12 h-12 rounded-full animate-pulse" style={{ background: 'rgba(92,58,30,0.2)' }} />
-            </div>
-          )}
+          <RarityEffect rarity={rarity} alwaysVisible>
+            <PlantImage
+              src={version.image_url}
+              alt={version.stage?.name ?? 'Planta'}
+              className="object-contain p-2"
+            />
+          </RarityEffect>
         </div>
         <div
           className="mt-2 text-center text-[10px] font-bold leading-tight"
@@ -271,8 +263,14 @@ export function PlantHistoryModal({
   const wheelLock = useRef(0);
   const touchStart = useRef<{ x: number; y: number; t: number } | null>(null);
 
-  // Trocou de planta → volta pro estágio mais recente
-  useEffect(() => { setStageIndex(null); }, [plant.id]);
+  // Trocou de planta → volta pro estágio mais recente. Ajuste durante o render
+  // (padrão React) em vez de useEffect: evita renderizar o estágio antigo da
+  // planta nova por um frame + o re-render em cascata.
+  const [prevPlantId, setPrevPlantId] = useState(plant.id);
+  if (prevPlantId !== plant.id) {
+    setPrevPlantId(plant.id);
+    setStageIndex(null);
+  }
 
   if (!open) return null;
 

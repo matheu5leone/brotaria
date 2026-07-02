@@ -19,5 +19,6 @@ Describe the plant as a druidic naturalist would write in an enchanted field jou
 OUTPUT RULES:
 - Return ONLY the visual description, in English.
 - No meta-commentary, no filler phrases, no explanations.
-- Be concrete about physical attributes, current size, posture, and every visible detail from soil to apex.
+- Be concrete about physical attributes, current size, posture, and every visible detail from the base of the stem to the apex.
 - Describe what an illustrator would actually draw: shapes, colors (use hex codes), textures, glows, expressions, proportions.
+- The plant grows in its own pot, so NEVER describe soil, dirt, earth, ground, a soil mound, an exposed root ball, or dangling roots beneath it. Describe only the living plant above ground; the stem simply ends at its base.
