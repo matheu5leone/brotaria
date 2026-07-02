@@ -81,7 +81,17 @@ export async function waterPlant(plantId: string, userId: string) {
   const newWatersCount = plant.current_stage_waters + 1;
 
   if (newWatersCount >= plant.current_stage.waters_required) {
-    return await evolvePlant(plantId);
+    try {
+      return await evolvePlant(plantId);
+    } catch (err) {
+      // Evolução falhou (ex.: IA fora do ar) — devolve a rega do dia para o
+      // usuário poder tentar de novo sem ser penalizado.
+      await supabaseAdmin
+        .from('profiles')
+        .update({ daily_waters_used: watersUsed })
+        .eq('id', userId);
+      throw err;
+    }
   }
 
   const { error: updateError } = await supabaseAdmin
@@ -148,50 +158,34 @@ export async function evolvePlant(plantId: string) {
     } else {
       evolution = {
         visualDescription: `[MOCK] Planta do bioma ${newDNA.biome} evoluída para ${nextStage.name}.`,
-        imageUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${plantId}-${nextStage.code}`,
+        // Asset local: evita SVG remoto (dicebear) que o next/image bloqueia.
+        imageUrl: '/imgs/brotaria.png',
         modelUsed: 'MOCK-IMAGE-GENERATOR',
       };
       await new Promise(resolve => setTimeout(resolve, 800));
     }
   }
 
-  // 2) Avança o estágio (imagem já garantida quando o estágio gera imagem).
-  const { error: updateError } = await supabaseAdmin
-    .from('plants')
-    .update({
-      current_stage_id: nextStage.id,
-      current_stage_waters: 0,
-      dna: newDNA,
-      hydration_status: 'hydrated',
-      last_watered_at: new Date().toISOString(),
-      next_water_needed_at: new Date(Date.now() + WATER_COOLDOWN_MS).toISOString(),
-    })
-    .eq('id', plantId);
+  // 2) Avança estágio + versão + herbo numa transação única (RPC atômica):
+  //    ou tudo persiste, ou nada — sem estados parciais se algo falhar no meio.
+  const herboReward = calcPlantScore(newDNA, nextStage.order_index);
+  const { error: evolveError } = await supabaseAdmin.rpc('evolve_plant_tx', {
+    p_plant_id: plantId,
+    p_stage_id: nextStage.id,
+    p_dna: newDNA,
+    p_next_water: new Date(Date.now() + WATER_COOLDOWN_MS).toISOString(),
+    p_image_url: evolution?.imageUrl ?? null,
+    p_prompt: evolution?.visualDescription ?? null,
+    p_model: evolution?.modelUsed ?? null,
+    p_herbo: herboReward,
+  });
 
-  if (updateError) {
-    console.error(`[Growth] Error evolving plant ${plantId}:`, updateError);
+  if (evolveError) {
+    console.error(`[Growth] Error evolving plant ${plantId}:`, evolveError);
     throw new Error('Falha ao avançar o estágio da planta');
   }
 
-  // 3) Salva a nova versão (imagem já pronta).
-  if (evolution) {
-    await supabaseAdmin.from('plant_versions').insert({
-      plant_id: plantId,
-      image_url: evolution.imageUrl,
-      prompt_used: evolution.visualDescription,
-      dna_snapshot: newDNA,
-      stage_id: nextStage.id,
-      model_used: evolution.modelUsed,
-    });
-    console.log(`[IA] Version saved for plant ${plantId}`);
-  }
-
-  // 4) Recompensa em Herbo (🍃) — moeda orgânica baseada no score da planta.
-  const herboReward = calcPlantScore(newDNA, nextStage.order_index);
-  if (herboReward > 0) {
-    await supabaseAdmin.rpc('add_herbo', { p_user_id: plant.user_id, p_amount: herboReward });
-    console.log(`[Growth] Granted ${herboReward} herbo to user ${plant.user_id} (stage ${nextStage.code})`);
-  }
+  console.log(`[Growth] Plant ${plantId} evolved to ${nextStage.code} (+${herboReward} herbo)`);
 
   return { success: true, evolved: true, nextStage: nextStage.code, stageName: nextStage.name, herbo: herboReward };
 }

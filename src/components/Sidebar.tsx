@@ -8,7 +8,7 @@ import Inventory from '@/components/Inventory';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import {
-  LogOut, LayoutDashboard, Store, Settings,
+  LogOut, LayoutDashboard, Store,
   ChevronLeft, ChevronRight, Trophy,
 } from 'lucide-react';
 import { CoinIcon } from '@/components/CoinIcon';
@@ -213,6 +213,7 @@ export default function Sidebar() {
             </div>
 
             <div className={`flex ${isSidebarCollapsed ? 'flex-col items-center gap-2' : 'gap-1'}`}>
+              {/* Configurações — desabilitado até a página de Settings existir.
               <button
                 className={`flex items-center justify-center p-2 rounded-lg transition-colors hover:bg-[rgba(92,58,30,0.07)] ${
                   isSidebarCollapsed ? 'w-10 h-10' : 'flex-1'
@@ -222,6 +223,7 @@ export default function Sidebar() {
               >
                 <Settings className="w-4 h-4" />
               </button>
+              */}
               <button
                 onClick={signOut}
                 className={`flex items-center justify-center rounded-lg font-bold transition-colors hover:bg-[rgba(139,64,64,0.1)] ${

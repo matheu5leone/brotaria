@@ -59,7 +59,10 @@ export interface AIResponse {
 }
 
 function getApiKey() {
-  const key = process.env.OPENROUTER_API_KEY;
+  // Remove qualquer caractere fora do range Latin-1 (ex.: BOM U+FEFF / zero-width)
+  // e espaços/quebras. Uma key colada de arquivo UTF-8-BOM quebra o header
+  // Authorization com "Cannot convert argument to a ByteString ... value of 65279".
+  const key = process.env.OPENROUTER_API_KEY?.replace(/[^\x20-\x7E]/g, '').trim();
   if (!key) {
     console.error('[AI] CRITICAL: OPENROUTER_API_KEY is missing!');
     throw new Error('API Key configuration missing');
@@ -152,21 +155,35 @@ async function generateVisualDescription(dna: PlantDNA, stageCode: string, model
     temperature: 0.6
   };
 
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://brotaria.vercel.app',
-      'X-Title': 'Brotaria'
-    },
-    body: JSON.stringify(payload)
-  });
+  const startedAt = Date.now();
+  let response: Response;
+  try {
+    // Timeout: sem ele, um provedor travado prende o usuário na tela de
+    // evolução indefinidamente (a rega falha e pode ser tentada de novo).
+    response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://brotaria.vercel.app',
+        'X-Title': 'Brotaria'
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(60_000)
+    });
+  } catch (err) {
+    const msg = err instanceof Error && err.name === 'TimeoutError'
+      ? 'OpenRouter LLM timeout (60s)'
+      : `OpenRouter LLM network error: ${err instanceof Error ? err.message : String(err)}`;
+    logAIRequest('LLM', model, payload, '', 0, Date.now() - startedAt, msg);
+    throw new Error(msg);
+  }
+  const durationMs = Date.now() - startedAt;
 
   const text = await response.text();
 
   if (text.trim().startsWith('<!DOCTYPE html>') || text.trim().startsWith('<html')) {
-    logAIRequest('LLM', model, payload, text, response.status);
+    logAIRequest('LLM', model, payload, text, response.status, durationMs, 'HTML response');
     throw new Error(`OpenRouter returned HTML instead of JSON (Status ${response.status}).`);
   }
 
@@ -174,11 +191,11 @@ async function generateVisualDescription(dna: PlantDNA, stageCode: string, model
   try {
     data = JSON.parse(text);
   } catch (e) {
-    logAIRequest('LLM', model, payload, text, response.status);
+    logAIRequest('LLM', model, payload, text, response.status, durationMs, 'JSON parse failed');
     throw new Error(`Failed to parse OpenRouter response (Status ${response.status})`);
   }
 
-  logAIRequest('LLM', model, payload, data, response.status);
+  logAIRequest('LLM', model, payload, data, response.status, durationMs, response.ok ? undefined : data.error?.message);
 
   if (!response.ok) {
     throw new Error(`OpenRouter LLM Error: ${data.error?.message || response.statusText}`);
@@ -261,7 +278,7 @@ async function uploadToSupabase(dataString: string, fileName: string): Promise<s
   console.log(`[AI] Uploading image to Supabase Storage: ${fileName}`);
   try {
     let buffer: Buffer;
-    let contentType: string = 'image/png';
+    const contentType = 'image/png';
 
     if (dataString.startsWith('data:')) {
       // Base64 logic
@@ -326,21 +343,35 @@ async function generatePlantImage(description: string, model: string = IMAGE_OPT
     ]
   };
 
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://brotaria.vercel.app',
-      'X-Title': 'Brotaria'
-    },
-    body: JSON.stringify(payload)
-  });
+  const startedAt = Date.now();
+  let response: Response;
+  try {
+    // Geração de imagem é mais lenta que LLM — timeout maior (120s), ainda
+    // bem abaixo do limite da function, para o cliente receber erro tratável.
+    response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://brotaria.vercel.app',
+        'X-Title': 'Brotaria'
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(120_000)
+    });
+  } catch (err) {
+    const msg = err instanceof Error && err.name === 'TimeoutError'
+      ? 'OpenRouter IMAGE timeout (120s)'
+      : `OpenRouter IMAGE network error: ${err instanceof Error ? err.message : String(err)}`;
+    logAIRequest('IMAGE', model, payload, '', 0, Date.now() - startedAt, msg);
+    throw new Error(msg);
+  }
+  const durationMs = Date.now() - startedAt;
 
   const text = await response.text();
 
   if (text.trim().startsWith('<!DOCTYPE html>') || text.trim().startsWith('<html')) {
-    logAIRequest('IMAGE', model, payload, text, response.status);
+    logAIRequest('IMAGE', model, payload, text, response.status, durationMs, 'HTML response');
     throw new Error(`OpenRouter returned HTML instead of JSON (Status ${response.status}).`);
   }
 
@@ -348,11 +379,11 @@ async function generatePlantImage(description: string, model: string = IMAGE_OPT
   try {
     data = JSON.parse(text);
   } catch (e) {
-    logAIRequest('IMAGE', model, payload, text, response.status);
+    logAIRequest('IMAGE', model, payload, text, response.status, durationMs, 'JSON parse failed');
     throw new Error(`Failed to parse OpenRouter image response (Status ${response.status})`);
   }
 
-  logAIRequest('IMAGE', model, payload, data, response.status);
+  logAIRequest('IMAGE', model, payload, data, response.status, durationMs, response.ok ? undefined : data.error?.message);
 
   if (!response.ok) {
     throw new Error(`OpenRouter Image Error: ${data.error?.message || response.statusText}`);
