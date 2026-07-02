@@ -191,11 +191,18 @@ export default function Garden() {
   const [wrappingMode, setWrappingMode]             = useState(false);
   const [wrapError, setWrapError]                   = useState<string | null>(null);
   const [activeGift, setActiveGift]                 = useState<PendingGift | null>(null);
+  // Presentes fechados sem decisão não reabrem sozinhos nesta sessão
+  const [dismissedGiftIds, setDismissedGiftIds]     = useState<ReadonlySet<string>>(new Set());
   const [inventoryOpen, setInventoryOpen]           = useState(false);
   const [painelOpen, setPainelOpen]                 = useState(false); // painel recolhível (começa recolhido)
   // Toast central de feedback (evolução de fase, erros de rega, etc.)
   const [toast, setToast]                           = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-abre o presente pendente (chegado ao vivo via realtime ou já
+  // esperando no login). Ajuste durante o render — o guard evita loop.
+  const nextGift = pendingGifts.find(g => !dismissedGiftIds.has(g.id));
+  if (!activeGift && nextGift) setActiveGift(nextGift);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef    = useRef<HTMLDivElement>(null);
@@ -1108,7 +1115,10 @@ export default function Garden() {
         <GiftReceiveModal
           userId={user.id}
           gift={activeGift}
-          onClose={() => setActiveGift(null)}
+          onClose={() => {
+            setDismissedGiftIds(prev => new Set(prev).add(activeGift.id));
+            setActiveGift(null);
+          }}
         />
       )}
 

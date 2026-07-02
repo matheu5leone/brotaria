@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PlantDNA } from '@/types';
 import { authFetch } from '@/lib/authFetch';
+import { supabase } from '@/lib/supabase';
 
 export type PendingGift = {
   id: string;
@@ -17,6 +19,24 @@ export type UserPreview = {
 };
 
 export function usePendingGifts(userId: string | undefined) {
+  const qc = useQueryClient();
+
+  // Realtime: presente chega ao vivo (INSERT em gifts p/ este destinatário
+  // dispara refetch). O RLS (gifts_visible) garante que só eventos dos
+  // próprios presentes chegam a este cliente.
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel(`gifts-${userId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'gifts', filter: `recipient_id=eq.${userId}` },
+        () => qc.invalidateQueries({ queryKey: ['gifts', 'pending', userId] }),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, qc]);
+
   return useQuery<PendingGift[]>({
     queryKey: ['gifts', 'pending', userId],
     queryFn: async () => {
@@ -26,7 +46,9 @@ export function usePendingGifts(userId: string | undefined) {
     },
     enabled: !!userId,
     staleTime: 30_000,
-    refetchInterval: 60_000,
+    // Fallback: com realtime cobrindo a chegada instantânea, o polling vira
+    // só uma rede de segurança (reconexão de websocket, aba dormida etc.)
+    refetchInterval: 300_000,
   });
 }
 
