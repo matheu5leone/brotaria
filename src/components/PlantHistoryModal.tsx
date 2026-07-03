@@ -240,6 +240,51 @@ function VersionCard({
   );
 }
 
+// ── Card de planta enterrada (sem versões) — SÓ o progresso de rega ─────────
+
+function BuriedCard({ plant }: { plant: PlantRow }) {
+  const progressPct = Math.round(
+    (plant.current_stage_waters / plant.current_stage.waters_required) * 100,
+  );
+  const canWater = plant.hydration_status === 'waiting_water';
+
+  return (
+    <div className="flex flex-col justify-center py-8 px-2">
+      <div className="flex items-center justify-between mb-1.5">
+        <span
+          className="text-[9px] font-black uppercase tracking-widest"
+          style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-muted)' }}
+        >
+          Progresso de rega
+        </span>
+        <span
+          className="text-[10px]"
+          style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}
+        >
+          {plant.current_stage_waters}/{plant.current_stage.waters_required} regas
+        </span>
+      </div>
+      <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(92,58,30,0.15)' }}>
+        <div
+          className="h-full rounded-full transition-all duration-700"
+          style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg, #2a7a2a, #4ade80)' }}
+        />
+      </div>
+      <div className="mt-1.5 text-right">
+        {canWater ? (
+          <span className="text-[9px] font-bold" style={{ color: '#d97706', fontFamily: 'var(--font-display)' }}>
+            Pode regar agora! 💧
+          </span>
+        ) : (
+          <span className="text-[9px]" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)' }}>
+            Próxima rega em: {formatNextWater(plant.next_water_needed_at)}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Modal principal ───────────────────────────────────────────────────────────
 
 export function PlantHistoryModal({
@@ -399,14 +444,7 @@ export function PlantHistoryModal({
             <div className="w-8 h-8 rounded-full animate-pulse" style={{ background: 'rgba(92,58,30,0.25)' }} />
           </div>
         ) : count === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-3">
-            <p
-              className="text-sm text-center"
-              style={{ fontFamily: 'var(--font-caption)', fontStyle: 'italic', color: 'var(--color-text-muted)' }}
-            >
-              Esta planta ainda não possui registros de evolução.
-            </p>
-          </div>
+          <BuriedCard plant={plant} />
         ) : active ? (
           <VersionCard version={active} plant={plant} isLast={isLast} />
         ) : null}
@@ -414,7 +452,9 @@ export function PlantHistoryModal({
         {/* Dica de navegação */}
         {plantIds.length > 1 && (
           <p className="text-center text-[9px] mt-3 flex-shrink-0" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
-            Toque nas laterais para mudar o estágio · deslize para trocar de planta
+            {count > 1
+              ? 'Toque nas laterais para mudar o estágio · deslize para trocar de planta'
+              : 'Deslize para trocar de planta'}
           </p>
         )}
       </div>
