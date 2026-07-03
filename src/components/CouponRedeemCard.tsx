@@ -71,7 +71,7 @@ export function CouponRedeemCard({ onRedeemed }: { onRedeemed: (r: RedeemResult)
           value={code}
           onChange={(e) => { setCode(e.target.value.toUpperCase()); setError(null); }}
           onKeyDown={(e) => { if (e.key === 'Enter') redeem(); }}
-          placeholder="EX: BIGBROTARIA"
+          placeholder="Digite seu código"
           spellCheck={false}
           autoCapitalize="characters"
           className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold tracking-wider outline-none"
