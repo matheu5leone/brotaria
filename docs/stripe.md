@@ -157,3 +157,46 @@ stripe trigger checkout.session.completed
 `/api/coins/create-checkout` é limitado a **8 req/min por IP**
 ([`src/middleware.ts`](../src/middleware.ts)). O webhook `/api/webhooks/stripe`
 **não** é limitado — o Stripe precisa de acesso livre.
+
+`/api/coupons/redeem` é limitado a **10 req/min por IP** (anti brute-force de códigos).
+
+## 10. Cupons (early access / campanhas)
+
+Cupons de **pacote 100% grátis NÃO passam pelo Stripe** (R$0 de receita): a
+concessão é direta. O Stripe é só para compras reais; a regra "1 cupom por
+campanha por conta" é lógica de aplicação de qualquer forma.
+
+**Modelo:**
+
+| Peça | Onde |
+|---|---|
+| Definição dos cupons (código → campanha → pacote) | [`src/config/coupons.ts`](../src/config/coupons.ts) — fonte única |
+| Moedas concedidas | derivadas do pacote em [`economy.ts`](../src/config/economy.ts) via `getCoinPackage` |
+| Rota de resgate | [`POST /api/coupons/redeem`](../src/app/api/coupons/redeem/route.ts) |
+| RPC atômica | `redeem_coupon_tx` — registra resgate + credita (`add_coins` inline) + loga transação, tudo ou nada |
+| Tabela de audit/enforcement | `coupon_redemptions` (migration `20260703000000_coupons.sql`) |
+| UI | card "Resgatar cupom" na Loja ([`CouponRedeemCard.tsx`](../src/components/CouponRedeemCard.tsx)) |
+
+**Regras (enforçadas por constraints no banco, race-safe):**
+- `unique (user_id, campaign)` → **1 cupom por campanha por conta**.
+- `unique (user_id, code)` → o mesmo código não é resgatável 2x.
+- A RPC captura `unique_violation` e devolve `ALREADY_REDEEMED`.
+
+**Campanha `CLOSED BETA`:**
+
+| Código | Pacote | Concede |
+|---|---|---|
+| `BIGBROTARIA` | `pkg_10` — Saco de moedas | 10 moedas (R$10 grátis) |
+| `SUPERBROTARIA` | `pkg_50` — Cesta de moedas | 65 moedas (R$50 grátis) |
+| `HYPERBROTARIA` | `pkg_100` — Baú de moedas | 150 moedas (R$100 grátis) |
+
+Como os três são da mesma campanha, cada conta resgata **exatamente um** deles.
+
+**Respostas de `/api/coupons/redeem`:**
+- `200 { success, coins, granted, package }` — resgatado, saldo atualizado.
+- `404 { error: 'Cupom inválido.' }` — código não existe.
+- `409 { error: 'Você já resgatou um cupom desta campanha.', code: 'ALREADY_REDEEMED' }`.
+
+**Adicionar cupom:** nova entrada em `COUPONS` (`coupons.ts`) apontando pra um
+`packageId` existente. **Nova campanha:** novo valor em `CAMPAIGNS`. Sem migration
+necessária (a tabela guarda `code`/`campaign` como texto).

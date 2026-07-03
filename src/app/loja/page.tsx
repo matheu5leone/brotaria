@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { AppShell } from '@/components/AppShell';
 import CoinPurchaseModal from '@/components/CoinPurchaseModal';
+import { CouponRedeemCard } from '@/components/CouponRedeemCard';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import { STORE_PRODUCTS } from '@/config/economy';
@@ -129,6 +130,14 @@ export default function LojaPage() {
               <Plus className="w-4 h-4 ml-1" style={{ color: 'var(--color-wood-mid)' }} />
             </button>
           </div>
+
+          {/* Resgatar cupom (early access) */}
+          <CouponRedeemCard
+            onRedeemed={(r) => {
+              setBanner({ type: 'success', text: `🎉 +${r.granted} moedas — ${r.package} resgatado!` });
+              refresh();
+            }}
+          />
 
           {/* Products grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
