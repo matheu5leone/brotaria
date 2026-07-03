@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Pot } from '@/types';
-import { X, Loader2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { X, Loader2, Trash2 } from 'lucide-react';
 
 // Ícones PNG dimensionados em `em` para escalar com o tamanho do botão (.hex-button)
 const WateringCanIcon = () => (
@@ -46,14 +46,24 @@ const SpinnerIcon = () => (
 );
 // Chevron do toggle do painel: vertical em portrait, horizontal em landscape/desktop.
 const PainelToggleIcon = ({ expanded }: { expanded: boolean }) => {
-  const sz = { width: '1.6em', height: '1.6em' } as const;
+  // Seta de madeira (asset gerado no estilo do jogo, apontando pra CIMA).
+  // As 4 direções saem por rotação: mobile abre pra cima/baixo, desktop
+  // (e landscape) pra esquerda/direita.
+  const arrow = (deg: number) => (
+    <span
+      className="relative inline-block transition-transform duration-300"
+      style={{ width: '1.8em', height: '1.8em', transform: `rotate(${deg}deg)` }}
+    >
+      <Image src="/imgs/arrow.png" alt="alternar menu" fill className="object-contain" draggable={false} />
+    </span>
+  );
   return (
     <>
       <span className="inline-flex landscape:hidden md:hidden">
-        {expanded ? <ChevronDown style={sz} /> : <ChevronUp style={sz} />}
+        {arrow(expanded ? 180 : 0)}
       </span>
       <span className="hidden landscape:inline-flex md:inline-flex">
-        {expanded ? <ChevronRight style={sz} /> : <ChevronLeft style={sz} />}
+        {arrow(expanded ? 90 : -90)}
       </span>
     </>
   );
