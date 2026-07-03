@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Pot } from '@/types';
-import { X, Loader2, Trash2 } from 'lucide-react';
+import { X, Loader2, Trash2, Sprout } from 'lucide-react';
 
 // Ícones PNG dimensionados em `em` para escalar com o tamanho do botão (.hex-button)
 const WateringCanIcon = () => (
@@ -82,6 +82,7 @@ import {
 } from '@/hooks/useGardenMutations';
 import { useQueryClient } from '@tanstack/react-query';
 import { PlantHistoryModal } from '@/components/PlantHistoryModal';
+import { PlantsGridModal } from '@/components/PlantsGridModal';
 import { EvolutionLoader } from '@/components/EvolutionLoader';
 import type { PlantRow } from '@/hooks/usePlantData';
 import { InventoryPanel } from '@/components/InventoryPanel';
@@ -205,6 +206,7 @@ export default function Garden() {
   const [dismissedGiftIds, setDismissedGiftIds]     = useState<ReadonlySet<string>>(new Set());
   const [inventoryOpen, setInventoryOpen]           = useState(false);
   const [painelOpen, setPainelOpen]                 = useState(false); // painel recolhível (começa recolhido)
+  const [plantsGridOpen, setPlantsGridOpen]         = useState(false); // grid "Minhas Plantas"
   // Toast central de feedback (evolução de fase, erros de rega, etc.)
   const [toast, setToast]                           = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1002,6 +1004,23 @@ export default function Garden() {
         />
       )}
 
+      {/* ── Botão "Minhas Plantas" — flutuante, canto superior esquerdo ────── */}
+      <button
+        onClick={(e) => { e.stopPropagation(); setPlantsGridOpen(true); }}
+        className="absolute top-3 left-3 z-[100] flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all hover:brightness-110 active:scale-95"
+        style={{
+          fontFamily: 'var(--font-display)',
+          background: 'linear-gradient(135deg, #2a5a1e, #1e4014)',
+          color: '#d9f0c8',
+          border: '1px solid rgba(74,222,128,0.25)',
+          boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+        }}
+        title="Ver todas as suas plantas"
+      >
+        <Sprout className="w-4 h-4" />
+        Minhas Plantas
+      </button>
+
       {/* ── Painel de ferramentas — canto inferior direito, âncora fixa ────── */}
       <div className="painel" onClick={(e) => e.stopPropagation()}>
         {/* Âncora (fixa) — recolhe/expande os demais botões */}
@@ -1109,6 +1128,14 @@ export default function Garden() {
           {toast.text}
         </div>
       )}
+
+      {/* ── Grid "Minhas Plantas" (imagem, raridade e valor) ─────────────── */}
+      <PlantsGridModal
+        open={plantsGridOpen}
+        plantIds={plantedPlantIds}
+        onSelectPlant={selectPlantById}
+        onClose={() => setPlantsGridOpen(false)}
+      />
 
       {/* ── Card story da planta (clique abre; toque=estágio, swipe=planta) ── */}
       {showDetailModal && selectedPlantId && (
