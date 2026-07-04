@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
-import { requireStripe } from '@/lib/stripe';
+import { requireStripe, activeWebhookSecret } from '@/lib/stripe';
 import { supabaseAdmin } from '@/lib/supabaseServer';
 
 /**
@@ -17,9 +17,9 @@ import { supabaseAdmin } from '@/lib/supabaseServer';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret = activeWebhookSecret();
   if (!webhookSecret) {
-    console.error('[Stripe Webhook] STRIPE_WEBHOOK_SECRET não configurado.');
+    console.error('[Stripe Webhook] Webhook secret não configurado para o modo atual.');
     return NextResponse.json({ error: 'Webhook não configurado' }, { status: 500 });
   }
 
