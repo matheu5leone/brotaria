@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import {
   LogOut, LayoutDashboard, Store,
-  ChevronLeft, ChevronRight, Trophy,
+  ChevronLeft, ChevronRight, Trophy, Target,
 } from 'lucide-react';
 import { CoinIcon } from '@/components/CoinIcon';
 
@@ -152,6 +152,11 @@ export default function Sidebar() {
           <NavLink href="/ranking" title="Ranking" className={navItemClass('/ranking')}>
             <Trophy className="w-5 h-5 min-w-[20px]" />
             {!isSidebarCollapsed && <span style={{ fontFamily: 'var(--font-body)' }}>Ranking</span>}
+          </NavLink>
+
+          <NavLink href="/missoes" title="Missões" className={navItemClass('/missoes')}>
+            <Target className="w-5 h-5 min-w-[20px]" />
+            {!isSidebarCollapsed && <span style={{ fontFamily: 'var(--font-body)' }}>Missões</span>}
           </NavLink>
         </div>
 

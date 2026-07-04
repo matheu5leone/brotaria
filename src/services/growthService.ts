@@ -31,7 +31,7 @@ export async function waterPlant(plantId: string, userId: string) {
   // 1. Verificar limite diário do usuário
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('daily_waters_used, water_reset_date')
+    .select('daily_waters_used, water_reset_date, total_waters')
     .eq('id', userId)
     .single();
 
@@ -40,6 +40,7 @@ export async function waterPlant(plantId: string, userId: string) {
   const today = getBrasiliaDate();
   const resetNeeded = !profile.water_reset_date || profile.water_reset_date !== today;
   const watersUsed = resetNeeded ? 0 : (profile.daily_waters_used ?? 0);
+  const totalWaters = profile.total_waters ?? 0;
 
   if (watersUsed >= GAME.DAILY_WATER_LIMIT) {
     const err = new Error('Limite diário de regas atingido. Volte amanhã!') as Error & { code: string };
@@ -68,12 +69,14 @@ export async function waterPlant(plantId: string, userId: string) {
     throw err;
   }
 
-  // 3. Incrementar contador diário (reset se necessário)
+  // 3. Incrementar contador diário (reset se necessário) + contador vitalício
+  //    (total_waters alimenta a missão "regue 100 vezes").
   await supabaseAdmin
     .from('profiles')
     .update({
       daily_waters_used: watersUsed + 1,
       water_reset_date: today,
+      total_waters: totalWaters + 1,
     })
     .eq('id', userId);
 
@@ -84,11 +87,11 @@ export async function waterPlant(plantId: string, userId: string) {
     try {
       return await evolvePlant(plantId);
     } catch (err) {
-      // Evolução falhou (ex.: IA fora do ar) — devolve a rega do dia para o
-      // usuário poder tentar de novo sem ser penalizado.
+      // Evolução falhou (ex.: IA fora do ar) — devolve a rega do dia e o
+      // contador vitalício para o usuário tentar de novo sem ser penalizado.
       await supabaseAdmin
         .from('profiles')
-        .update({ daily_waters_used: watersUsed })
+        .update({ daily_waters_used: watersUsed, total_waters: totalWaters })
         .eq('id', userId);
       throw err;
     }

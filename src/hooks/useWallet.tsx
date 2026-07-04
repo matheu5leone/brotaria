@@ -9,16 +9,19 @@ interface WalletContextType {
   coins: number;
   herbo: number;
   seedCount: number;
+  welcomeAck: boolean;
   refresh: () => Promise<void>;
   setCoins: (coins: number) => void;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
-async function loadWallet(userId: string): Promise<{ coins: number; herbo: number; seedCount: number }> {
+type WalletData = { coins: number; herbo: number; seedCount: number; welcomeAck: boolean };
+
+async function loadWallet(userId: string): Promise<WalletData> {
   const [{ data: profile, error: profileErr }, { data: seedSlots, error: slotsErr }] =
     await Promise.all([
-      supabase.from('profiles').select('coins, herbo').eq('id', userId).single(),
+      supabase.from('profiles').select('coins, herbo, welcome_ack').eq('id', userId).single(),
       supabase
         .from('inventory_items')
         .select('quantity')
@@ -28,7 +31,12 @@ async function loadWallet(userId: string): Promise<{ coins: number; herbo: numbe
   if (profileErr) throw profileErr;
   if (slotsErr) throw slotsErr;
   const seedCount = (seedSlots ?? []).reduce((sum, s) => sum + s.quantity, 0);
-  return { coins: profile?.coins ?? 0, herbo: profile?.herbo ?? 0, seedCount };
+  return {
+    coins: profile?.coins ?? 0,
+    herbo: profile?.herbo ?? 0,
+    seedCount,
+    welcomeAck: profile?.welcome_ack ?? true,
+  };
 }
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
@@ -49,16 +57,17 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const setCoins = useCallback((coins: number) => {
     qc.setQueryData(
       ['wallet', user?.id],
-      (old: { coins: number; herbo: number; seedCount: number } | undefined) =>
-        old ? { ...old, coins } : { coins, herbo: 0, seedCount: 0 },
+      (old: WalletData | undefined) =>
+        old ? { ...old, coins } : { coins, herbo: 0, seedCount: 0, welcomeAck: true },
     );
   }, [qc, user?.id]);
 
   return (
     <WalletContext.Provider value={{
-      coins:     data?.coins    ?? 0,
-      herbo:     data?.herbo    ?? 0,
-      seedCount: data?.seedCount ?? 0,
+      coins:      data?.coins    ?? 0,
+      herbo:      data?.herbo    ?? 0,
+      seedCount:  data?.seedCount ?? 0,
+      welcomeAck: data?.welcomeAck ?? true,
       refresh,
       setCoins,
     }}>

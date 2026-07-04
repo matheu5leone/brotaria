@@ -1,7 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { BottomNav } from '@/components/BottomNav';
+import { WelcomeSeedModal } from '@/components/WelcomeSeedModal';
+import { useWallet } from '@/hooks/useWallet';
 
 /**
  * Shell compartilhado para todas as páginas autenticadas.
@@ -18,11 +21,19 @@ export function AppShell({
   children: React.ReactNode;
   scrollable?: boolean;
 }) {
+  const { welcomeAck, refresh } = useWallet();
+  const [welcomeDone, setWelcomeDone] = useState(false);
+
   return (
     <div
       className="app-shell flex overflow-hidden"
       style={{ height: '100dvh', background: 'var(--color-garden-deep)' }}
     >
+      {/* Popup de boas-vindas (semente-cortesia) — só para contas novas */}
+      {!welcomeAck && !welcomeDone && (
+        <WelcomeSeedModal onDone={() => { setWelcomeDone(true); refresh(); }} />
+      )}
+
       {/* Sidebar — somente desktop real (largura E altura) */}
       <div className="shell-sidebar flex-shrink-0">
         <Sidebar />

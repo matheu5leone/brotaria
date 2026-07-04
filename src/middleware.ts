@@ -22,6 +22,7 @@ const LIMITS: Record<string, number> = {
   '/api/coins/purchase': 5,        // compras de moedas (legado)
   '/api/coins/create-checkout': 8, // criação de sessões Stripe
   '/api/coupons/redeem': 10,       // brute-force de códigos de cupom
+  '/api/missions/claim': 10,       // resgate de recompensa de missão
 };
 
 const WINDOW_MS = 60_000;
@@ -78,5 +79,6 @@ export const config = {
     '/api/coins/purchase',
     '/api/coins/create-checkout',
     '/api/coupons/redeem',
+    '/api/missions/claim',
   ],
 };

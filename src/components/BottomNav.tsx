@@ -4,7 +4,7 @@ import NavLink from '@/components/NavLink';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
-import { LayoutDashboard, Store, Trophy } from 'lucide-react';
+import { LayoutDashboard, Store, Trophy, Target } from 'lucide-react';
 import { CoinIcon } from '@/components/CoinIcon';
 
 function NavItem({
@@ -81,6 +81,9 @@ export function BottomNav() {
       </NavItem>
       <NavItem href="/ranking" label="Ranking" active={pathname === '/ranking'}>
         <Trophy className="w-5 h-5" />
+      </NavItem>
+      <NavItem href="/missoes" label="Missões" active={pathname === '/missoes'}>
+        <Target className="w-5 h-5" />
       </NavItem>
 
       {/* User avatar + logout */}
