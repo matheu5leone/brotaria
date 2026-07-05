@@ -55,10 +55,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   }, [qc, user?.id]);
 
   const setCoins = useCallback((coins: number) => {
+    // Só atualiza se a carteira já carregou — evita gravar um estado parcial
+    // (que poderia esconder o popup de boas-vindas com welcomeAck fixo em true).
     qc.setQueryData(
       ['wallet', user?.id],
-      (old: WalletData | undefined) =>
-        old ? { ...old, coins } : { coins, herbo: 0, seedCount: 0, welcomeAck: true },
+      (old: WalletData | undefined) => (old ? { ...old, coins } : old),
     );
   }, [qc, user?.id]);
 

@@ -1,15 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sprout, Check } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
+import { useWallet } from '@/hooks/useWallet';
 
 /**
  * Popup de boas-vindas: anuncia a semente-cortesia (já concedida no onboarding)
- * com raios de sol girando ao fundo (reaproveita as classes .evo-rays do
- * EvolutionLoader) e um botão OK que confirma o recebimento.
+ * de forma inconfundível — card de recompensa, não tela de loading. Mostra a
+ * semente já na mochila e, ao confirmar, atualiza a carteira.
  */
 export function WelcomeSeedModal({ onDone }: { onDone: () => void }) {
+  const { seedCount, refresh } = useWallet();
   const [loading, setLoading] = useState(false);
 
   const confirm = async () => {
@@ -17,8 +19,9 @@ export function WelcomeSeedModal({ onDone }: { onDone: () => void }) {
     setLoading(true);
     try {
       await authFetch('/api/profile/welcome-ack', { method: 'POST' });
+      await refresh(); // garante que a mochila reflita a semente na hora
     } catch {
-      // Mesmo se a confirmação falhar, não travar o usuário no popup.
+      // Não travar o usuário no popup se a confirmação falhar.
     } finally {
       onDone();
     }
@@ -27,37 +30,19 @@ export function WelcomeSeedModal({ onDone }: { onDone: () => void }) {
   return (
     <div
       className="evo-fade-in fixed inset-0 z-[10060] flex items-center justify-center overflow-hidden select-none"
-      style={{ background: 'radial-gradient(ellipse at center, #2b4a17 0%, #16290c 55%, #0a1606 100%)' }}
+      style={{ background: 'radial-gradient(ellipse at center, #24401a 0%, #16290c 55%, #0a1606 100%)' }}
     >
-      {/* Raios solares girando (duas camadas em sentidos opostos) */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div
-          className="evo-rays absolute"
-          style={{
-            width: '180vmax',
-            height: '180vmax',
-            background:
-              'repeating-conic-gradient(from 0deg, rgba(255,224,140,0.16) 0deg 5deg, transparent 5deg 17deg)',
-            WebkitMaskImage:
-              'radial-gradient(circle, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.55) 35%, transparent 70%)',
-            maskImage:
-              'radial-gradient(circle, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.55) 35%, transparent 70%)',
-          }}
-        />
-        <div
-          className="evo-rays--rev absolute"
-          style={{
-            width: '180vmax',
-            height: '180vmax',
-            background:
-              'repeating-conic-gradient(from 8deg, rgba(255,200,90,0.10) 0deg 3deg, transparent 3deg 22deg)',
-            WebkitMaskImage: 'radial-gradient(circle, rgba(0,0,0,0.8) 0%, transparent 60%)',
-            maskImage: 'radial-gradient(circle, rgba(0,0,0,0.8) 0%, transparent 60%)',
-          }}
-        />
-      </div>
+      {/* Brilho de sol suave e ESTÁTICO atrás do card (não gira → não parece loading) */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          width: 'min(120vw, 900px)',
+          height: 'min(120vw, 900px)',
+          background: 'radial-gradient(circle, rgba(255,224,150,0.22) 0%, rgba(255,200,90,0.08) 38%, transparent 66%)',
+        }}
+      />
 
-      {/* Card pergaminho */}
+      {/* Card de recompensa */}
       <div
         className="relative mx-6 p-7 rounded-3xl text-center max-w-sm w-full"
         style={{
@@ -66,22 +51,22 @@ export function WelcomeSeedModal({ onDone }: { onDone: () => void }) {
           boxShadow: '0 32px 80px rgba(0,0,0,0.55), inset 0 1px 1px rgba(242,232,213,0.9)',
         }}
       >
-        {/* Gold top accent */}
         <div
           className="absolute top-0 left-10 right-10 h-px pointer-events-none"
           style={{ background: 'linear-gradient(90deg, transparent, var(--color-gold), transparent)' }}
         />
 
-        {/* Selo com o broto */}
+        {/* Hero: semente em destaque */}
         <div
-          className="evo-halo mx-auto mb-4 flex items-center justify-center rounded-full"
+          className="mx-auto mb-4 flex items-center justify-center rounded-full"
           style={{
-            width: 96,
-            height: 96,
-            background: 'radial-gradient(circle, rgba(255,228,150,0.55) 0%, rgba(255,200,90,0.15) 60%, transparent 75%)',
+            width: 104,
+            height: 104,
+            background: 'radial-gradient(circle, rgba(74,222,128,0.28) 0%, rgba(42,90,30,0.12) 55%, transparent 72%)',
+            border: '2px solid rgba(74,222,128,0.35)',
           }}
         >
-          <span style={{ fontSize: 54, filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.35))' }}>🌱</span>
+          <Sprout className="w-14 h-14" style={{ color: '#2a7a2a' }} strokeWidth={1.6} />
         </div>
 
         <span
@@ -93,22 +78,38 @@ export function WelcomeSeedModal({ onDone }: { onDone: () => void }) {
             fontFamily: 'var(--font-display)',
           }}
         >
-          Cortesia de boas-vindas
+          Presente de boas-vindas
         </span>
 
         <h2
-          className="text-xl font-black mb-2"
+          className="text-2xl font-black mb-2 leading-tight"
           style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
         >
-          Bem-vindo à Brotaria!
+          Você ganhou<br />1 semente grátis! 🌱
         </h2>
         <p
-          className="text-sm leading-relaxed mb-6"
+          className="text-sm leading-relaxed mb-4"
           style={{ fontFamily: 'var(--font-body)', color: 'var(--color-text-mid)' }}
         >
-          Você recebeu <b>1 semente grátis</b> de cortesia para começar seu jardim.
-          Cave um canteiro com a pá e plante-a para ver sua primeira planta ganhar vida! 🌿
+          Uma cortesia para você começar seu jardim. Cave um canteiro com a pá e
+          plante-a para ver sua primeira planta ganhar vida!
         </p>
+
+        {/* Prova tangível: a semente já está na mochila */}
+        <div
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl mb-5 text-sm font-bold"
+          style={{
+            background: 'rgba(42,90,30,0.1)',
+            border: '1px solid rgba(42,90,30,0.25)',
+            color: '#2a5a1e',
+            fontFamily: 'var(--font-display)',
+          }}
+        >
+          <Check className="w-4 h-4" />
+          {seedCount > 0
+            ? <>Adicionada à mochila · 🌱 {seedCount} {seedCount === 1 ? 'semente' : 'sementes'}</>
+            : <>Adicionada à sua mochila 🌱</>}
+        </div>
 
         <button
           onClick={confirm}
@@ -122,7 +123,7 @@ export function WelcomeSeedModal({ onDone }: { onDone: () => void }) {
             boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
           }}
         >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'OK, recebi minha semente!'}
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Pegar minha semente'}
         </button>
       </div>
     </div>

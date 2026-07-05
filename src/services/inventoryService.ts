@@ -90,19 +90,29 @@ export async function initializeUser(
     throw new Error(`Profile initialization failed: ${profileError.message}`);
   }
 
-  // Verifica se usuário já foi inicializado (tem itens no inventário)
-  const { count: invCount } = await supabaseAdmin
-    .from('inventory_items')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId);
+  // Gate atômico: só a chamada que consegue virar seed_granted false→true
+  // concede a semente. Isso é à prova de corrida — o cadastro Google chama
+  // esta função 2x (login + completar perfil) e sem o gate ganhava 2 sementes.
+  const { data: granted } = await supabaseAdmin
+    .from('profiles')
+    .update({ seed_granted: true })
+    .eq('id', userId)
+    .eq('seed_granted', false)
+    .select('id');
 
-  if (invCount && invCount > 0) {
-    console.log(`[Inventory] User ${userId} already initialized.`);
+  if (!granted || granted.length === 0) {
+    console.log(`[Inventory] User ${userId} já recebeu a semente de boas-vindas.`);
     return { success: true, message: 'Already initialized' };
   }
 
   console.log(`[Inventory] Granting free seed to ${userId}`);
-  await addStackableItem(userId, 'seed');
+  try {
+    await addStackableItem(userId, 'seed');
+  } catch (err) {
+    // Reverte o gate para permitir nova tentativa se a entrega falhar.
+    await supabaseAdmin.from('profiles').update({ seed_granted: false }).eq('id', userId);
+    throw err;
+  }
 
   return { success: true, message: 'Free seed granted' };
 }
