@@ -54,16 +54,29 @@ function MissionCard({ mission }: { mission: MissionView }) {
         </span>
       </div>
 
-      {/* Barra de progresso */}
+      {/* Barra: verde (progresso) → azul brilhando (pode resgatar) → dourada (resgatada) */}
       <div className="h-2 rounded-full overflow-hidden mb-1.5" style={{ background: 'rgba(92,58,30,0.15)' }}>
         <div
-          className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #2a7a2a, #4ade80)' }}
+          className={`h-full rounded-full transition-all duration-700 ${mission.claimable ? 'mission-bar-ready' : ''}`}
+          style={{
+            width: mission.claimed || mission.claimable ? '100%' : `${pct}%`,
+            background: mission.claimed
+              ? 'linear-gradient(90deg, #c9a227, #f0d060)'
+              : mission.claimable
+                ? 'linear-gradient(90deg, #1d4ed8, #60a5fa)'
+                : 'linear-gradient(90deg, #2a7a2a, #4ade80)',
+          }}
         />
       </div>
       <div className="flex items-center justify-between mb-4">
-        <span className="text-[10px] font-bold" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-display)' }}>
-          {mission.progress}/{mission.goal}
+        <span
+          className="text-[10px] font-bold"
+          style={{
+            color: mission.claimed ? '#a07a12' : mission.claimable ? '#2563eb' : 'var(--color-text-muted)',
+            fontFamily: 'var(--font-display)',
+          }}
+        >
+          {mission.claimed ? 'Concluída' : mission.claimable ? 'Pronta para resgatar! ✨' : `${mission.progress}/${mission.goal}`}
         </span>
       </div>
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/getAuthUser';
 import { supabaseAdmin } from '@/lib/supabaseServer';
+import { markReachedForUser } from '@/lib/missionStatus';
 
 /**
  * POST /api/likes/toggle { owner }
@@ -46,6 +47,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Falha ao curtir.' }, { status: 500 });
     }
     liked = true;
+    // Curtida nova pode ter batido a meta de "receber 10" (dono) e "dar 10"
+    // (curtidor). Marca reached (pico) para não perder se as curtidas caírem.
+    await Promise.all([markReachedForUser(owner), markReachedForUser(user.id)]);
   }
 
   const { count } = await supabaseAdmin

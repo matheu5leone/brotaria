@@ -613,3 +613,13 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .leaf-burst-piece { animation: none; opacity: 0; }
 }
+
+/* Barra de missão pronta para resgate: azul pulsando */
+@keyframes mission-ready-glow {
+  0%, 100% { box-shadow: 0 0 4px rgba(37,99,235,0.55); }
+  50%      { box-shadow: 0 0 13px 2px rgba(96,165,250,0.9); }
+}
+.mission-bar-ready { animation: mission-ready-glow 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .mission-bar-ready { animation: none; box-shadow: 0 0 8px rgba(96,165,250,0.8); }
+}

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/getAuthUser';
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { getMission } from '@/config/missions';
-import { getMetricValue } from '@/lib/missionMetrics';
+import { canClaimMission } from '@/lib/missionStatus';
 import { addStackableItem } from '@/services/inventoryService';
 
 /**
@@ -24,9 +24,8 @@ export async function POST(request: Request) {
   const mission = typeof key === 'string' ? getMission(key) : undefined;
   if (!mission) return NextResponse.json({ error: 'Missão inválida.' }, { status: 404 });
 
-  // 1. Confere o progresso no servidor (nunca confia no cliente)
-  const current = await getMetricValue(user.id, mission.metric);
-  if (current < mission.goal) {
+  // 1. Confere no servidor: pode resgatar se atingiu a meta agora OU antes (pico).
+  if (!(await canClaimMission(user.id, mission))) {
     return NextResponse.json(
       { error: 'Missão ainda não concluída.', code: 'MISSION_NOT_COMPLETE' },
       { status: 400 },
