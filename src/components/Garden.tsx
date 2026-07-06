@@ -85,6 +85,11 @@ const PainelToggleIcon = ({ expanded }: { expanded: boolean }) => {
 import CoinPurchaseModal from './CoinPurchaseModal';
 import { usePots, useShovelStatus, useWateringStatus } from '@/hooks/useGardenData';
 import { SHOVEL_COOLDOWN_MS } from '@/config/economy';
+import { useIsDesktop } from '@/hooks/useIsDesktop';
+import { potPolygonPx, polygonsOverlap, footprintBounds, POT_FOOTPRINT } from '@/lib/potGeometry';
+
+// Pontos do footprint para o SVG da silhueta (viewBox 0 0 100 165 = aspecto da caixa)
+const FOOTPRINT_SVG_POINTS = POT_FOOTPRINT.map(([x, y]) => `${(x * 100).toFixed(1)},${(y * 165).toFixed(1)}`).join(' ');
 import { usePlant } from '@/hooks/usePlantData';
 import {
   useDigMutation,
@@ -212,7 +217,9 @@ export default function Garden() {
   const [moveError, setMoveError]                   = useState<string | null>(null);
   // Stressed pots (sad face after move)
   const [stressedPotIds, setStressedPotIds]         = useState<Set<string>>(new Set());
-  const [cursorPos, setCursorPos]                   = useState<{ x: number; y: number } | null>(null);
+  // Pré-visualização da cava: silhueta-fantasma + validade (colisão/área)
+  const [digPreview, setDigPreview]                 = useState<{ posX: number; posY: number; valid: boolean } | null>(null);
+  const isDesktop = useIsDesktop();
   const [wrappingMode, setWrappingMode]             = useState(false);
   const [wrapError, setWrapError]                   = useState<string | null>(null);
   const [activeGift, setActiveGift]                 = useState<PendingGift | null>(null);
@@ -305,52 +312,124 @@ export default function Garden() {
     [qc, user?.id],
   );
 
-  const digAt = useCallback(async (e: React.MouseEvent) => {
-    if (digMutation.isPending || !user) return;
+  // Converte um ponto de tela (clientX/Y) → % do jardim (desfaz pan/zoom).
+  const screenToGardenPct = useCallback((clientX: number, clientY: number) => {
     const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    // Converte posição do viewport → espaço do canvas (desfaz translate + scale)
+    if (!rect) return null;
     const cx = rect.width / 2;
     const cy = rect.height / 2;
-    const canvasX = (e.clientX - rect.left - cx - pan.x) / zoom + cx;
-    const canvasY = (e.clientY - rect.top  - cy - pan.y) / zoom + cy;
-    const rawX = (canvasX / rect.width)  * 100;
-    const rawY = (canvasY / rect.height) * 100;
-    // Área plantável = apenas dentro dos 100% originais do canvas
-    if (rawX < 0 || rawX > 100 || rawY < 0 || rawY > 100) {
-      setShovelError('Fora da área plantável.');
-      return;
+    const canvasX = (clientX - rect.left - cx - panRef.current.x) / zoomRef.current + cx;
+    const canvasY = (clientY - rect.top  - cy - panRef.current.y) / zoomRef.current + cy;
+    return { rect, rawX: (canvasX / rect.width) * 100, rawY: (canvasY / rect.height) * 100 };
+  }, []);
+
+  // Largura da caixa do vaso em px do canvas (sem zoom). Mede um .hex-pot real
+  // (robusto a breakpoint); se não houver vaso ainda, cai para o % do breakpoint.
+  const potBoxWidthPx = useCallback((rectWidth: number) => {
+    const el = canvasRef.current?.querySelector('.hex-pot') as HTMLElement | null;
+    if (el) return el.getBoundingClientRect().width / zoomRef.current;
+    const pct = window.matchMedia('(min-width: 768px) and (min-height: 600px)').matches ? 0.14
+      : window.matchMedia('(orientation: landscape) and (max-height: 600px)').matches ? 0.11
+      : 0.18;
+    return pct * rectWidth;
+  }, []);
+
+  // Posição candidata + validade: dentro da área plantável E sem colidir com vasos.
+  const computeDig = useCallback((clientX: number, clientY: number) => {
+    const s = screenToGardenPct(clientX, clientY);
+    if (!s) return null;
+    const { rect, rawX, rawY } = s;
+    const posX = Math.min(100, Math.max(0, rawX));
+    const posY = Math.min(100, Math.max(0, rawY));
+    const inArea = rawX >= 6 && rawX <= 94 && rawY >= 8 && rawY <= 92;
+
+    const boxW = potBoxWidthPx(rect.width);
+    const boxH = boxW * 1.65;
+    const candidate = potPolygonPx((posX / 100) * rect.width, (posY / 100) * rect.height, boxW, boxH);
+    const b = footprintBounds(candidate);
+    const inside = b.minX >= 0 && b.minY >= 0 && b.maxX <= rect.width && b.maxY <= rect.height;
+    let collides = false;
+    for (const p of pots) {
+      const cxp = ((p.pos_x ?? 50) / 100) * rect.width;
+      const cyp = ((p.pos_y ?? 50) / 100) * rect.height;
+      if (polygonsOverlap(candidate, potPolygonPx(cxp, cyp, boxW, boxH))) { collides = true; break; }
     }
-    const posX = Math.min(94, Math.max(6, rawX));
-    const posY = Math.min(92, Math.max(8, rawY));
+    return { posX, posY, valid: inArea && inside && !collides };
+  }, [screenToGardenPct, potBoxWidthPx, pots]);
+
+  const digAt = useCallback(async (clientX: number, clientY: number) => {
+    if (digMutation.isPending || !user) return;
+    const d = computeDig(clientX, clientY);
+    if (!d) return;
+    if (!d.valid) { setShovelError('Não dá pra cavar aqui — muito perto de outro canteiro ou fora da área.'); return; }
+    const posX = Math.min(94, Math.max(6, d.posX));
+    const posY = Math.min(92, Math.max(8, d.posY));
     setShovelError(null);
     setShovelActive(false);
-    setCursorPos(null);
+    setDigPreview(null);
     try {
       await digMutation.mutateAsync({ posX, posY });
     } catch (err: unknown) {
       const e = err as { code?: string; message?: string };
       setShovelError(e.code === 'COOLDOWN' ? 'A pá ainda está recarregando.' : (e.message ?? 'Erro ao cavar.'));
     }
-  }, [digMutation, user, pan, zoom]);
+  }, [digMutation, user, computeDig]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
   const handleGardenMouseMove = (e: React.MouseEvent) => {
-    if (!shovelActive) return;
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    setCursorPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    if (!shovelActive || !isDesktop) return;
+    const d = computeDig(e.clientX, e.clientY);
+    if (d) setDigPreview(d);
   };
 
-  const handleGardenMouseLeave = () => setCursorPos(null);
+  const handleGardenMouseLeave = () => { if (isDesktop) setDigPreview(null); };
 
   const handleGardenClick = async (e: React.MouseEvent) => {
     if (hasPanned.current) { hasPanned.current = false; return; }
     if (selectedPotId) { setSelectedPotId(null); return; }
-    if (!shovelActive) return;
-    await digAt(e);
+    if (!shovelActive || !isDesktop) return; // mobile cava por drag
+    await digAt(e.clientX, e.clientY);
   };
+
+  // Mobile: cavar por arraste (espelha o padrão do regador).
+  const handleShovelPointerDown = useCallback((e: React.PointerEvent) => {
+    if (!shovelReady || digMutation.isPending) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setInventoryOpen(false);
+    setSelectedPotId(null);
+    setShovelError(null);
+    setShovelActive(true);
+
+    const captureEl = e.currentTarget as HTMLElement;
+    const pointerId = e.pointerId;
+    try { captureEl.setPointerCapture(pointerId); } catch {}
+
+    const d0 = computeDig(e.clientX, e.clientY);
+    if (d0) setDigPreview(d0);
+
+    let active = true;
+    const onMove = (ev: PointerEvent) => {
+      if (!active) return;
+      const d = computeDig(ev.clientX, ev.clientY);
+      if (d) setDigPreview(d);
+    };
+    const onUp = (ev: PointerEvent) => {
+      active = false;
+      captureEl.removeEventListener('pointermove', onMove);
+      captureEl.removeEventListener('pointerup', onUp);
+      captureEl.removeEventListener('pointercancel', onUp);
+      try { captureEl.releasePointerCapture(pointerId); } catch {}
+      const d = computeDig(ev.clientX, ev.clientY);
+      setShovelActive(false);
+      setDigPreview(null);
+      if (d?.valid) { void digAt(ev.clientX, ev.clientY); }
+    };
+    captureEl.addEventListener('pointermove', onMove);
+    captureEl.addEventListener('pointerup', onUp);
+    captureEl.addEventListener('pointercancel', onUp);
+  }, [shovelReady, digMutation.isPending, computeDig, digAt]);
 
   // Rega via drag: chamado pelo pointerup quando soltar sobre uma planta
   const showToast = useCallback((text: string, kind: 'success' | 'error') => {
@@ -599,7 +678,7 @@ export default function Garden() {
     if (suppressClickRef.current) return; // ignora clique sintético pós-rega
     if (wateringDrag || barrowDrag || trashDrag) return; // drag cuida das ferramentas
 
-    if (shovelActive) { await digAt(e); return; }
+    if (shovelActive && isDesktop) { await digAt(e.clientX, e.clientY); return; }
 
     if (wrappingMode && pot.plant_id) {
       if (!confirm('Embrulhar esta planta? 1 kit de embrulho será consumido.')) return;
@@ -896,7 +975,14 @@ export default function Garden() {
                 left: `${x}%`,
                 top: `${y}%`,
                 transform: 'translate(-50%, -50%)',
-                zIndex: selectedPotId === pot.id ? 5 : 2,
+                // Profundidade por perspectiva: quem está mais pra baixo (maior
+                // pos_y) sobressai. Selecionado/alvo flutua acima de todos.
+                zIndex: Math.round(y * 10) + (
+                  selectedPotId === pot.id ||
+                  (wateringDrag && wateringTargetPotId === pot.id) ||
+                  (barrowDrag && barrowTargetPotId === pot.id) ||
+                  (trashDrag && trashTargetPotId === pot.id) ? 100000 : 0
+                ),
                 pointerEvents: 'none', // só o hitbox recortado dentro do HexPot clica
               }}
             >
@@ -913,6 +999,42 @@ export default function Garden() {
             </div>
           );
         })}
+
+        {/* ── Silhueta-fantasma da cava (verde=pode / vermelho=não) ────── */}
+        {shovelActive && digPreview && (
+          <div
+            className="absolute hex-pot pointer-events-none"
+            style={{
+              left: `${digPreview.posX}%`,
+              top: `${digPreview.posY}%`,
+              aspectRatio: '1 / 1.65',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 999999,
+            }}
+          >
+            {/* Fantasma do vaso (mesmo render do HexPot: base 80%, object-bottom) */}
+            <div className="absolute bottom-0 left-0 right-0" style={{ height: '80%', opacity: 0.5 }}>
+              <div style={{ position: 'absolute', inset: 0 }}>
+                <Image src="/imgs/empty-pot.png" alt="" fill className="object-contain object-bottom" draggable={false} />
+              </div>
+            </div>
+            {/* Contorno do footprint tingido de verde/vermelho */}
+            <svg
+              viewBox="0 0 100 165"
+              preserveAspectRatio="none"
+              className="absolute inset-0 w-full h-full"
+              style={{ overflow: 'visible' }}
+            >
+              <polygon
+                points={FOOTPRINT_SVG_POINTS}
+                fill={digPreview.valid ? 'rgba(74,222,128,0.30)' : 'rgba(239,68,68,0.32)'}
+                stroke={digPreview.valid ? '#16a34a' : '#dc2626'}
+                strokeWidth={2.5}
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+        )}
 
         {/* ── Wrap overlay on planted pots ────────────────────────────── */}
         {wrappingMode && pots.map(pot => {
@@ -961,14 +1083,6 @@ export default function Garden() {
         {/* Popup de ações (Regar/Remover) removido — tudo via HUD agora. */}
       </div>
       {/* ══ fim do canvas ═════════════════════════════════════════════════ */}
-
-      {/* ── Shovel cursor (viewport space) ──────────────────────────────── */}
-      {shovelActive && cursorPos && (
-        <div
-          className="pointer-events-none absolute z-50 rounded-full border-2 border-white shadow-lg"
-          style={{ width: 40, height: 40, left: cursorPos.x - 20, top: cursorPos.y - 20 }}
-        />
-      )}
 
       {/* ── Carrinho de mão drag cursor (fixed) — carrinho + miniatura ──── */}
       {barrowDrag && barrowDragPos && (
@@ -1079,7 +1193,8 @@ export default function Garden() {
               disabled={digMutation.isPending}
               cooldown={shovelCdMs > 0 ? { remainingMs: shovelCdMs, totalMs: SHOVEL_COOLDOWN_MS, label: formatCooldown(shovelCdMs) } : undefined}
               active={shovelActive}
-              onClick={toggleShovel}
+              onClick={isDesktop ? toggleShovel : undefined}
+              onPointerDown={isDesktop ? undefined : handleShovelPointerDown}
               label="Pá"
               title={shovelCdMs <= 0 ? 'Usar pá para cavar' : `Recarregando: ${formatCooldown(shovelCdMs)}`}
             />
