@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
 import NavLink from '@/components/NavLink';
 import { FallingLeaves } from '@/components/FallingLeaves';
 import { Mail, Lock, Loader2, AtSign } from 'lucide-react';
@@ -24,8 +23,9 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
   const [cfToken, setCfToken] = useState<string | null>(null);
-  const router = useRouter();
 
   const SITE_KEY = process.env.NEXT_PUBLIC_CF_TURNSTILE_SITE_KEY;
 
@@ -67,8 +67,23 @@ export default function SignupPage() {
       });
     }
 
+    // NÃO redireciona automaticamente: o usuário precisa confirmar o e-mail
+    // antes de conseguir logar. A tela de "confirme seu e-mail" explica o passo.
     setDone(true);
-    setTimeout(() => router.push('/login'), 3000);
+  };
+
+  const resendEmail = async () => {
+    if (resending) return;
+    setResending(true);
+    setResent(false);
+    try {
+      await supabase.auth.resend({ type: 'signup', email });
+      setResent(true);
+    } catch {
+      // silencioso — o usuário pode tentar de novo
+    } finally {
+      setResending(false);
+    }
   };
 
   return (
@@ -127,20 +142,56 @@ export default function SignupPage() {
         </div>
 
         {done ? (
-          <div className="flex flex-col items-center gap-3 py-4 text-center">
-            <span className="text-3xl">🌱</span>
+          <div className="flex flex-col items-center gap-3 py-2 text-center">
+            <div
+              className="flex items-center justify-center rounded-full mb-1"
+              style={{ width: 72, height: 72, background: 'rgba(26,107,160,0.12)', border: '1px solid rgba(26,107,160,0.3)' }}
+            >
+              <Mail className="w-9 h-9" style={{ color: '#1a6ba0' }} />
+            </div>
             <p
-              className="font-bold"
+              className="text-lg font-black"
               style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
             >
-              Jardim criado!
+              Confirme seu e-mail
             </p>
             <p
-              className="text-sm"
-              style={{ fontFamily: 'var(--font-body)', color: 'var(--color-text-muted)' }}
+              className="text-sm leading-relaxed"
+              style={{ fontFamily: 'var(--font-body)', color: 'var(--color-text-mid)' }}
             >
-              Redirecionando para o login...
+              Enviamos um link de verificação para<br />
+              <b style={{ color: 'var(--color-text-dark)' }}>{email}</b>.<br />
+              Abra seu e-mail e clique no link para ativar seu jardim.
             </p>
+            <p
+              className="text-xs"
+              style={{ fontFamily: 'var(--font-caption)', fontStyle: 'italic', color: 'var(--color-text-muted)' }}
+            >
+              Não achou? Confira a caixa de <b>spam</b> ou promoções.
+            </p>
+
+            <NavLink
+              href="/login"
+              className="w-full flex items-center justify-center py-3 rounded-xl font-bold text-sm transition-all active:scale-95 mt-2"
+              style={{
+                fontFamily: 'var(--font-display)',
+                background: 'linear-gradient(135deg, #2a5a1e, #1e4014)',
+                color: '#d9f0c8',
+                border: '1px solid rgba(74,222,128,0.25)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+              }}
+            >
+              Já confirmei — ir para o login
+            </NavLink>
+
+            <button
+              onClick={resendEmail}
+              disabled={resending || resent}
+              className="text-xs font-bold transition-all disabled:opacity-60"
+              style={{ color: 'var(--color-wood-mid)', fontFamily: 'var(--font-display)' }}
+            >
+              {resent ? '✓ E-mail reenviado' : resending ? 'Reenviando...' : 'Reenviar e-mail de verificação'}
+            </button>
           </div>
         ) : (
           <>
