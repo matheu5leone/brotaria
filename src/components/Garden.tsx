@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Pot } from '@/types';
-import { X, Loader2, Trash2, Sprout } from 'lucide-react';
+import { X, Loader2, Trash2, Sprout, Heart } from 'lucide-react';
 
 // Ícones PNG dimensionados em `em` para escalar com o tamanho do botão (.hex-button)
 const WateringCanIcon = () => (
@@ -86,6 +86,7 @@ import CoinPurchaseModal from './CoinPurchaseModal';
 import { usePots, useShovelStatus, useWateringStatus } from '@/hooks/useGardenData';
 import { SHOVEL_COOLDOWN_MS } from '@/config/economy';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
+import { useLikes } from '@/hooks/useLikes';
 import { potPolygonPx, polygonsOverlap, footprintBounds, POT_FOOTPRINT } from '@/lib/potGeometry';
 
 // Pontos do footprint para o SVG da silhueta (viewBox 0 0 100 165 = aspecto da caixa)
@@ -220,6 +221,7 @@ export default function Garden() {
   // Pré-visualização da cava: silhueta-fantasma + validade (colisão/área)
   const [digPreview, setDigPreview]                 = useState<{ posX: number; posY: number; valid: boolean } | null>(null);
   const isDesktop = useIsDesktop();
+  const { data: myLikes } = useLikes(user?.id); // curtidas do próprio jardim
   const [wrappingMode, setWrappingMode]             = useState(false);
   const [wrapError, setWrapError]                   = useState<string | null>(null);
   const [activeGift, setActiveGift]                 = useState<PendingGift | null>(null);
@@ -1145,22 +1147,41 @@ export default function Garden() {
         />
       )}
 
-      {/* ── Botão "Minhas Plantas" — flutuante, canto superior esquerdo ────── */}
-      <button
-        onClick={(e) => { e.stopPropagation(); setPlantsGridOpen(true); }}
-        className="absolute top-3 left-3 z-[100] flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all hover:brightness-110 active:scale-95"
-        style={{
-          fontFamily: 'var(--font-display)',
-          background: 'linear-gradient(135deg, #2a5a1e, #1e4014)',
-          color: '#d9f0c8',
-          border: '1px solid rgba(74,222,128,0.25)',
-          boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
-        }}
-        title="Ver todas as suas plantas"
-      >
-        <Sprout className="w-4 h-4" />
-        Minhas Plantas
-      </button>
+      {/* ── Canto superior esquerdo: botão de plantas + curtidas do jardim ──── */}
+      <div className="absolute top-3 left-3 z-[100] flex flex-col items-start gap-2">
+        <button
+          onClick={(e) => { e.stopPropagation(); setPlantsGridOpen(true); }}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all hover:brightness-110 active:scale-95"
+          style={{
+            fontFamily: 'var(--font-display)',
+            background: 'linear-gradient(135deg, #2a5a1e, #1e4014)',
+            color: '#d9f0c8',
+            border: '1px solid rgba(74,222,128,0.25)',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+          }}
+          title="Ver todas as suas plantas"
+        >
+          <Sprout className="w-4 h-4" />
+          Minhas Plantas
+        </button>
+
+        {/* Curtidas recebidas no meu jardim (só leitura, votos anônimos) */}
+        <div
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-sm"
+          style={{
+            fontFamily: 'var(--font-display)',
+            background: 'rgba(8,14,5,0.72)',
+            color: '#f87171',
+            border: '1px solid rgba(248,113,113,0.35)',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+            backdropFilter: 'blur(6px)',
+          }}
+          title="Curtidas do seu jardim"
+        >
+          <Heart className="w-4 h-4" style={{ fill: '#f87171' }} />
+          {myLikes?.total ?? 0}
+        </div>
+      </div>
 
       {/* ── Painel de ferramentas — canto inferior direito, âncora fixa ────── */}
       <div className="painel" onClick={(e) => e.stopPropagation()}>

@@ -6,6 +6,7 @@ import Image from 'next/image';
 import NavLink from '@/components/NavLink';
 import { GardenView } from '@/components/GardenView';
 import { AppShell } from '@/components/AppShell';
+import { LikeButton } from '@/components/LikeButton';
 import { useAuth } from '@/hooks/useAuth';
 
 type VisitedUser = {
@@ -105,7 +106,10 @@ export default function GardenVisitPage() {
         </div>
 
         {/* Garden view ocupa o resto */}
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 relative">
+          <div className="absolute top-3 left-3 z-20">
+            <LikeButton ownerId={visitedUser.id} />
+          </div>
           <GardenView userId={visitedUser.id} />
         </div>
       </div>
@@ -120,6 +124,11 @@ export default function GardenVisitPage() {
       <div
         className="relative flex-1 min-h-0 h-full overflow-hidden"
       >
+        {/* Curtir jardim — canto superior esquerdo */}
+        <div className="absolute top-3 left-3 z-20">
+          <LikeButton ownerId={visitedUser.id} />
+        </div>
+
         {/* Aviso de modo visita */}
         <div
           className="absolute top-3 left-1/2 -translate-x-1/2 z-20 px-4 py-1.5 rounded-full text-xs font-bold"

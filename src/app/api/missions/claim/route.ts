@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/getAuthUser';
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { getMission } from '@/config/missions';
+import { getMetricValue } from '@/lib/missionMetrics';
 import { addStackableItem } from '@/services/inventoryService';
 
 /**
@@ -24,17 +25,7 @@ export async function POST(request: Request) {
   if (!mission) return NextResponse.json({ error: 'Missão inválida.' }, { status: 404 });
 
   // 1. Confere o progresso no servidor (nunca confia no cliente)
-  const { data: profile, error: profErr } = await supabaseAdmin
-    .from('profiles')
-    .select('total_waters, herbo')
-    .eq('id', user.id)
-    .single();
-
-  if (profErr || !profile) {
-    return NextResponse.json({ error: 'Perfil não encontrado.' }, { status: 500 });
-  }
-
-  const current = Number((profile as Record<string, number>)[mission.metric] ?? 0);
+  const current = await getMetricValue(user.id, mission.metric);
   if (current < mission.goal) {
     return NextResponse.json(
       { error: 'Missão ainda não concluída.', code: 'MISSION_NOT_COMPLETE' },

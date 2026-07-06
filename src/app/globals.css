@@ -602,3 +602,14 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .buy-float, .buy-bump { animation: none; }
 }
+
+/* ---------- Confetti de folhas (resgate de missão) ----------------------- */
+@keyframes leaf-burst {
+  0%   { opacity: 0; transform: translate(0,0) rotate(0deg) scale(0.4); }
+  12%  { opacity: 1; transform: translate(calc(var(--lx) * 0.4), calc(var(--ly) * 0.2)) rotate(calc(var(--lr) * 0.3)) scale(1); }
+  100% { opacity: 0; transform: translate(var(--lx), var(--ly)) rotate(var(--lr)) scale(0.9); }
+}
+.leaf-burst-piece { animation: leaf-burst 1.1s cubic-bezier(0.2,0.7,0.3,1) forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .leaf-burst-piece { animation: none; opacity: 0; }
+}

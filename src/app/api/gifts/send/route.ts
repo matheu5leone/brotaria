@@ -63,6 +63,14 @@ export async function POST(request: Request) {
       throw giftError;
     }
 
+    // 5. Conta o presente enviado (missão "presentear alguém").
+    const { data: prof } = await supabaseAdmin
+      .from('profiles').select('total_gifts_sent').eq('id', userId).single();
+    await supabaseAdmin
+      .from('profiles')
+      .update({ total_gifts_sent: (prof?.total_gifts_sent ?? 0) + 1 })
+      .eq('id', userId);
+
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
     console.error('[Gift Send]', err);

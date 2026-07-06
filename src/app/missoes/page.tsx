@@ -3,17 +3,20 @@
 import { useState } from 'react';
 import { Target, Loader2, Check } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
+import { LeafConfetti } from '@/components/LeafConfetti';
 import { useMissions, useClaimMission, MissionView } from '@/hooks/useMissions';
 
 function MissionCard({ mission }: { mission: MissionView }) {
   const claim = useClaimMission();
   const [error, setError] = useState<string | null>(null);
+  const [burstId, setBurstId] = useState(0);
   const pct = Math.round((mission.progress / mission.goal) * 100);
 
   const onClaim = async () => {
     setError(null);
     try {
       await claim.mutateAsync(mission.key);
+      setBurstId((b) => b + 1); // confetti de folhas saindo do botão
     } catch (e) {
       setError((e as { message?: string }).message ?? 'Erro ao resgatar.');
     }
@@ -73,20 +76,23 @@ function MissionCard({ mission }: { mission: MissionView }) {
           <Check className="w-4 h-4" /> Concluída
         </div>
       ) : mission.claimable ? (
-        <button
-          onClick={onClaim}
-          disabled={claim.isPending}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 disabled:opacity-50"
-          style={{
-            fontFamily: 'var(--font-display)',
-            background: 'linear-gradient(135deg, #2a5a1e, #1e4014)',
-            color: '#d9f0c8',
-            border: '1px solid rgba(74,222,128,0.25)',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
-          }}
-        >
-          {claim.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Resgatar recompensa'}
-        </button>
+        <div className="relative">
+          <button
+            onClick={onClaim}
+            disabled={claim.isPending}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 disabled:opacity-50"
+            style={{
+              fontFamily: 'var(--font-display)',
+              background: 'linear-gradient(135deg, #2a5a1e, #1e4014)',
+              color: '#d9f0c8',
+              border: '1px solid rgba(74,222,128,0.25)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+            }}
+          >
+            {claim.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Resgatar recompensa'}
+          </button>
+          <LeafConfetti burstId={burstId} />
+        </div>
       ) : (
         <div
           className="text-center py-2.5 rounded-xl text-sm font-bold"
