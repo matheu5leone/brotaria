@@ -22,17 +22,31 @@ const BackpackIcon = ({ open }: { open: boolean }) => (
     <Image src={open ? '/imgs/backpack-open.png' : '/imgs/backpack.png'} alt="mochila" fill className="object-contain" draggable={false} />
   </span>
 );
-const WheelbarrowIcon = ({ carriedImageUrl }: { carriedImageUrl: string | null }) => (
+const WheelbarrowIcon = ({ carriedImageUrl, carrying }: { carriedImageUrl: string | null; carrying: boolean }) => (
   <span className="relative inline-block" style={{ width: '2.2em', height: '2.2em' }}>
     <Image src="/imgs/wheelbarrow.png" alt="carrinho" fill className="object-contain" draggable={false} />
-    {/* Miniatura da planta recolhida sobreposta ao carrinho */}
-    {carriedImageUrl && (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={carriedImageUrl}
-        alt="planta"
-        style={{ position: 'absolute', left: '50%', top: '-0.45em', transform: 'translateX(-50%)', width: '1.3em', height: '1.3em', objectFit: 'contain', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.55))' }}
-      />
+    {/* Carga do carrinho: miniatura da planta OU broto (quando enterrada, sem imagem).
+        Glow verde suave sinaliza que o carrinho está carregado. */}
+    {carrying && (
+      <span
+        className="absolute flex items-center justify-center"
+        style={{ left: '50%', top: '-0.45em', transform: 'translateX(-50%)', width: '1.3em', height: '1.3em' }}
+      >
+        <span
+          className="absolute inset-0 rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(74,222,128,0.55), transparent 70%)' }}
+        />
+        {carriedImageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={carriedImageUrl}
+            alt="planta"
+            style={{ position: 'relative', width: '1.3em', height: '1.3em', objectFit: 'contain', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.55))' }}
+          />
+        ) : (
+          <Sprout style={{ position: 'relative', width: '1em', height: '1em', color: '#4ade80', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }} strokeWidth={2.4} />
+        )}
+      </span>
     )}
   </span>
 );
@@ -963,13 +977,26 @@ export default function Garden() {
           style={{ left: barrowDragPos.x - 28, top: barrowDragPos.y - 32, width: 56, height: 56, filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.55))' }}
         >
           <Image src="/imgs/wheelbarrow.png" alt="carrinho" width={56} height={56} className="object-contain" draggable={false} />
-          {carried?.imageUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={carried.imageUrl}
-              alt="planta"
-              style={{ position: 'absolute', left: '50%', top: '-30%', transform: 'translateX(-50%)', width: 34, height: 34, objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5)) brightness(1.05)' }}
-            />
+          {carried && (
+            <span
+              className="absolute flex items-center justify-center"
+              style={{ left: '50%', top: '-30%', transform: 'translateX(-50%)', width: 34, height: 34 }}
+            >
+              <span
+                className="absolute inset-0 rounded-full"
+                style={{ background: 'radial-gradient(circle, rgba(74,222,128,0.55), transparent 70%)' }}
+              />
+              {carried.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={carried.imageUrl}
+                  alt="planta"
+                  style={{ position: 'relative', width: 34, height: 34, objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5)) brightness(1.05)' }}
+                />
+              ) : (
+                <Sprout style={{ position: 'relative', width: 22, height: 22, color: '#4ade80', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }} strokeWidth={2.4} />
+              )}
+            </span>
           )}
         </div>
       )}
@@ -1070,7 +1097,7 @@ export default function Garden() {
             {/* Carrinho de mão (mover planta) */}
             <HexButton
               className="painel-btn"
-              icon={movePlantMutation.isPending ? <SpinnerIcon /> : <WheelbarrowIcon carriedImageUrl={carried?.imageUrl ?? null} />}
+              icon={movePlantMutation.isPending ? <SpinnerIcon /> : <WheelbarrowIcon carriedImageUrl={carried?.imageUrl ?? null} carrying={!!carried} />}
               disabled={movePlantMutation.isPending}
               active={barrowDrag || !!carried}
               onPointerDown={handleBarrowPointerDown}
