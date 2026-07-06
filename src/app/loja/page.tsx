@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { AppShell } from '@/components/AppShell';
@@ -21,6 +21,12 @@ export default function LojaPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [buyingId, setBuyingId] = useState<string | null>(null);
   const [banner, setBanner] = useState<{ type: 'success' | 'cancel'; text: string } | null>(null);
+  // Feedback de compra: toast, números flutuantes no card e bump no contador
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fxNonce = useRef(0);
+  const [buyFx, setBuyFx] = useState<{ id: string; cost: number; emoji: string; nonce: number } | null>(null);
+  const [coinPulse, setCoinPulse] = useState(0);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -44,6 +50,8 @@ export default function LojaPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
+
   const buyProduct = async (productId: string, costCoins: number) => {
     if (!user || buyingId) return;
 
@@ -63,6 +71,14 @@ export default function LojaPage() {
       const data = await res.json();
       if (data.success) {
         await refresh();
+        // Feedback visual da compra
+        const product = STORE_PRODUCTS.find((p) => p.id === productId);
+        const emoji = productId === 'seed' ? '🌱' : productId === 'wrapping_kit' ? '🎁' : '✨';
+        setToast(`${emoji} ${product?.name ?? 'Item'} adquirido!`);
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+        toastTimer.current = setTimeout(() => setToast(null), 2600);
+        setBuyFx({ id: productId, cost: costCoins, emoji, nonce: ++fxNonce.current });
+        setCoinPulse((n) => n + 1);
       } else if (data.code === 'INSUFFICIENT_COINS') {
         setModalOpen(true);
       } else {
@@ -90,6 +106,25 @@ export default function LojaPage() {
 
   return (
     <AppShell>
+      {/* Toast de compra */}
+      {toast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[10000] pointer-events-none">
+          <div
+            key={coinPulse}
+            className="buy-toast flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-black"
+            style={{
+              fontFamily: 'var(--font-display)',
+              background: 'linear-gradient(180deg, var(--color-parch-light), var(--color-parch-dark))',
+              color: '#2a5a1e',
+              border: '1.5px solid rgba(42,90,30,0.35)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+            }}
+          >
+            {toast}
+          </div>
+        </div>
+      )}
+
       <div className="p-6 md:p-8">
         <div className="max-w-4xl mx-auto">
           {/* Banner de retorno do Stripe */}
@@ -125,7 +160,7 @@ export default function LojaPage() {
               }}
             >
               <CoinIcon size={20} />
-              <span className="font-black">{coins}</span>
+              <span key={coinPulse} className={`font-black ${coinPulse > 0 ? 'buy-bump' : ''}`}>{coins}</span>
               <span className="opacity-70">moedas</span>
               <Plus className="w-4 h-4 ml-1" style={{ color: 'var(--color-wood-mid)' }} />
             </button>
@@ -204,6 +239,23 @@ export default function LojaPage() {
                       </button>
                     </div>
                   </div>
+
+                  {/* Números flutuantes da compra (-moedas / +item) */}
+                  {buyFx && buyFx.id === product.id && (
+                    <div
+                      key={buyFx.nonce}
+                      className="absolute bottom-16 right-5 z-20 pointer-events-none flex flex-col items-end gap-1"
+                    >
+                      <span className="buy-float text-sm font-black" style={{ fontFamily: 'var(--font-display)', color: '#2a7a2a' }}>
+                        +1 {buyFx.emoji}
+                      </span>
+                      {buyFx.cost > 0 && (
+                        <span className="buy-float text-sm font-black" style={{ fontFamily: 'var(--font-display)', color: '#b45309', animationDelay: '0.08s' }}>
+                          −{buyFx.cost} 🪙
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
