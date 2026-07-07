@@ -60,17 +60,21 @@ const safeFetch: typeof fetch = (input, init) => {
   if (!init?.headers) return fetch(input, init);
 
   const safe: Record<string, string> = {};
+  const h = init.headers as Headers | [string, string][] | Record<string, string>;
 
-  if (init.headers instanceof Headers) {
-    (init.headers as Headers).forEach((value, key) => {
+  // Detecção por duck-typing (NÃO instanceof): globalThis.Headers foi reescrito
+  // com SafeHeaders, então um Headers pode falhar no instanceof e cair no
+  // Object.entries — que num Headers retorna vazio e DESCARTA o apikey.
+  if (h && typeof (h as Headers).forEach === 'function' && typeof (h as Headers).get === 'function') {
+    (h as Headers).forEach((value, key) => {
       safe[key] = sanitize(value);
     });
-  } else if (Array.isArray(init.headers)) {
-    for (const [key, value] of init.headers) {
+  } else if (Array.isArray(h)) {
+    for (const [key, value] of h) {
       safe[key] = typeof value === 'string' ? sanitize(value) : value;
     }
   } else {
-    for (const [key, value] of Object.entries(init.headers as Record<string, string>)) {
+    for (const [key, value] of Object.entries(h as Record<string, string>)) {
       safe[key] = typeof value === 'string' ? sanitize(value) : value;
     }
   }
