@@ -614,6 +614,25 @@ body {
   .leaf-burst-piece { animation: none; opacity: 0; }
 }
 
+/* ---------- Curtida: coração pulsando + partículas de amor -------------- */
+@keyframes heart-pop {
+  0%, 100% { transform: scale(1); }
+  35%      { transform: scale(1.5); }
+  60%      { transform: scale(0.92); }
+}
+.heart-pop { animation: heart-pop 0.45s cubic-bezier(0.3,1.4,0.5,1); }
+
+@keyframes heart-fly {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.3) rotate(0deg); }
+  18%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--hx)), calc(-50% + var(--hy))) scale(1) rotate(var(--hr)); }
+}
+.heart-fly-piece { animation: heart-fly 0.95s ease-out forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .heart-pop { animation: none; }
+  .heart-fly-piece { animation: none; opacity: 0; }
+}
+
 /* Barra de missão pronta para resgate: azul pulsando */
 @keyframes mission-ready-glow {
   0%, 100% { box-shadow: 0 0 4px rgba(37,99,235,0.55); }

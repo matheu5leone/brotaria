@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import NavLink from '@/components/NavLink';
@@ -17,6 +17,20 @@ export default function Sidebar() {
   const { user, signOut } = useAuth();
   const { coins, herbo, nickname } = useWallet();
   const myGarden = nickname ? `/jardim/${nickname}` : '/';
+  const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const copyGardenLink = async () => {
+    if (!nickname) return;
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/jardim/${nickname}`);
+      setCopied(true);
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+      copiedTimer.current = setTimeout(() => setCopied(false), 1600);
+    } catch {
+      // clipboard indisponível — ignora
+    }
+  };
   const pathname = usePathname();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -189,31 +203,50 @@ export default function Sidebar() {
       >
         {user ? (
           <div className="flex flex-col gap-3">
-            <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-2 py-1'}`}>
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center font-bold border flex-shrink-0 cursor-help"
-                style={{
-                  background: 'linear-gradient(135deg, #2a4a1e, #1a2f10)',
-                  borderColor: 'var(--color-wood-light)',
-                  fontFamily: 'var(--font-display)',
-                  color: 'var(--color-wood-light)',
-                  fontSize: 14,
-                }}
-                title={user.email || ''}
+            <div className="relative">
+              <button
+                onClick={copyGardenLink}
+                disabled={!nickname}
+                title="Copiar link do meu jardim"
+                className={`w-full flex items-center rounded-lg transition-colors hover:bg-[rgba(92,58,30,0.09)] active:scale-[0.98] ${
+                  isSidebarCollapsed ? 'justify-center p-1' : 'gap-3 px-2 py-1.5'
+                }`}
               >
-                {user.email?.[0].toUpperCase()}
-              </div>
-              {!isSidebarCollapsed && (
-                <div className="flex-1 overflow-hidden">
-                  <p
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center font-bold border flex-shrink-0"
+                  style={{
+                    background: 'linear-gradient(135deg, #2a4a1e, #1a2f10)',
+                    borderColor: 'var(--color-wood-light)',
+                    fontFamily: 'var(--font-display)',
+                    color: 'var(--color-wood-light)',
+                    fontSize: 14,
+                  }}
+                >
+                  {(nickname?.[0] ?? user.email?.[0])?.toUpperCase()}
+                </div>
+                {!isSidebarCollapsed && (
+                  <span
                     className="text-sm font-bold truncate"
                     style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
                   >
-                    {user.email?.split('@')[0]}
-                  </p>
-                  <p className="text-[10px] truncate" style={{ color: 'var(--color-text-muted)' }}>
-                    {user.email}
-                  </p>
+                    @{nickname ?? '...'}
+                  </span>
+                )}
+              </button>
+
+              {/* Mensagem "copiado" — perto da menção clicada */}
+              {copied && (
+                <div
+                  className="absolute left-2 -top-8 z-50 px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap pointer-events-none"
+                  style={{
+                    background: 'rgba(8,14,5,0.92)',
+                    color: 'var(--color-text-light)',
+                    border: '1px solid rgba(201,162,39,0.35)',
+                    fontFamily: 'var(--font-display)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                  }}
+                >
+                  Link do jardim copiado
                 </div>
               )}
             </div>
