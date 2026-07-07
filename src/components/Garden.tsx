@@ -175,7 +175,13 @@ export default function Garden() {
   const shovelCooldownMs = shovelStatus?.cooldownRemainingMs ?? 0;
   // Cooldown da pá com tick local (varredura/numero suaves, sem depender do refetch)
   const [shovelCdMs, setShovelCdMs] = useState(0);
-  const shovelReady = shovelCdMs <= 0;
+  // Camada de segurança: com 0 canteiros a pá SEMPRE pode ser usada (o cooldown só
+  // vale enquanto houver ao menos um canteiro). Evita ficar preso sem jardim ao
+  // cavar e remover logo em seguida.
+  const noPots = pots.length === 0;
+  const shovelReady = noPots || shovelCdMs <= 0;
+  // Cooldown exibido: escondido quando não há canteiros (a pá está liberada).
+  const shovelCdShown = noPots ? 0 : shovelCdMs;
   const waterBalance = wateringStatus?.balance ?? 0;
   const canWaterToday = waterBalance > 0;
 
@@ -1212,12 +1218,12 @@ export default function Garden() {
               className="painel-btn"
               icon={digMutation.isPending ? <SpinnerIcon /> : <ShovelIcon />}
               disabled={digMutation.isPending}
-              cooldown={shovelCdMs > 0 ? { remainingMs: shovelCdMs, totalMs: SHOVEL_COOLDOWN_MS, label: formatCooldown(shovelCdMs) } : undefined}
+              cooldown={shovelCdShown > 0 ? { remainingMs: shovelCdShown, totalMs: SHOVEL_COOLDOWN_MS, label: formatCooldown(shovelCdShown) } : undefined}
               active={shovelActive}
               onClick={isDesktop ? toggleShovel : undefined}
               onPointerDown={isDesktop ? undefined : handleShovelPointerDown}
               label="Pá"
-              title={shovelCdMs <= 0 ? 'Usar pá para cavar' : `Recarregando: ${formatCooldown(shovelCdMs)}`}
+              title={shovelReady ? 'Usar pá para cavar' : `Recarregando: ${formatCooldown(shovelCdShown)}`}
             />
             {/* Regador — badge com nº de regas */}
             <HexButton

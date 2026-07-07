@@ -31,7 +31,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
-    if (profile.shovel_last_used_at) {
+    // Camada de segurança: o cooldown só vale se o usuário já tiver ao menos um
+    // canteiro. Com 0 canteiros a pá está sempre liberada — assim ninguém fica
+    // preso sem jardim ao cavar e remover o buraco logo em seguida.
+    const { count: potCount } = await supabaseAdmin
+      .from('pots')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if ((potCount ?? 0) > 0 && profile.shovel_last_used_at) {
       const lastUsed = new Date(profile.shovel_last_used_at).getTime();
       const cooldownRemaining = SHOVEL_COOLDOWN_MS - (Date.now() - lastUsed);
       if (cooldownRemaining > 0) {
