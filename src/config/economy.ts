@@ -114,8 +114,8 @@ export const GAME = {
   WATER_COOLDOWN_HOURS: 8,
 
   // ── Água (recurso estocável) ────────────────────────────────────────────
-  /** Saldo máximo de água que o jogador pode estocar. */
-  WATER_MAX_BALANCE:     10,
+  /** Saldo máximo de água que o jogador pode estocar (upgrade de espaço futuro). */
+  WATER_MAX_BALANCE:     5,
   /** Água ganha por coleta bem-sucedida (barra a 100%). */
   WATER_PER_COLLECT:     1,
   /** Cooldown entre coletas (horas). */
