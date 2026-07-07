@@ -109,6 +109,21 @@ export function BottomNav() {
     }
   };
 
+  // Clicar no @apelido copia o link do jardim (igual ao desktop).
+  const [gardenCopied, setGardenCopied] = useState(false);
+  const gardenTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copyGardenLink = async () => {
+    if (!nickname) return;
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/jardim/${nickname}`);
+      setGardenCopied(true);
+      if (gardenTimer.current) clearTimeout(gardenTimer.current);
+      gardenTimer.current = setTimeout(() => setGardenCopied(false), 1600);
+    } catch {
+      // clipboard indisponível — ignora
+    }
+  };
+
   const avatarInitial = (nickname?.[0] ?? user?.email?.[0])?.toUpperCase();
 
   const secondaryActive = pathname === '/ranking' || pathname === '/missoes' || pathname === '/agua';
@@ -171,15 +186,30 @@ export function BottomNav() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Cabeçalho: avatar + @apelido */}
+            {/* Cabeçalho: avatar + @apelido → clicar copia o link do jardim */}
             <div className="flex items-center gap-3 mb-4 px-1">
-              <AvatarCircle url={avatarUrl} initial={avatarInitial} size={40} />
-              <span
-                className="text-base font-black truncate"
-                style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
+              <button
+                onClick={copyGardenLink}
+                disabled={!nickname}
+                title="Copiar link do meu jardim"
+                className="flex items-center gap-3 min-w-0 flex-1 rounded-lg -mx-1 px-1 py-1 transition-colors hover:bg-[rgba(92,58,30,0.08)] active:scale-[0.99]"
               >
-                @{nickname ?? '...'}
-              </span>
+                <AvatarCircle url={avatarUrl} initial={avatarInitial} size={40} />
+                <div className="min-w-0 text-left">
+                  <span
+                    className="block text-base font-black truncate"
+                    style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
+                  >
+                    @{nickname ?? '...'}
+                  </span>
+                  <span
+                    className="block text-[10px] font-bold"
+                    style={{ fontFamily: 'var(--font-display)', color: gardenCopied ? '#2a5a1e' : 'var(--color-text-muted)' }}
+                  >
+                    {gardenCopied ? '✓ Link do jardim copiado' : 'Toque para copiar o link'}
+                  </span>
+                </div>
+              </button>
               <button onClick={() => setProfileOpen(false)} aria-label="Fechar" className="ml-auto" style={{ color: 'var(--color-text-muted)' }}>
                 <X className="w-4 h-4" />
               </button>
