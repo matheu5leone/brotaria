@@ -1,32 +1,99 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Heart } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { useLikes, useToggleLike } from '@/hooks/useLikes';
+import { authFetch } from '@/lib/authFetch';
 import { HeartBurst } from '@/components/HeartBurst';
 
+type LikeState = { total: number; liked: boolean };
+
+const lsKey = (id: string) => `brotaria_like:${id}`;
+
+function readLS(id: string): LikeState | null {
+  try {
+    const raw = localStorage.getItem(lsKey(id));
+    return raw ? (JSON.parse(raw) as LikeState) : null;
+  } catch {
+    return null;
+  }
+}
+function writeLS(id: string, s: LikeState) {
+  try { localStorage.setItem(lsKey(id), JSON.stringify(s)); } catch { /* indisponível */ }
+}
+
 /**
- * Botão de curtida do jardim visitado. Feedback INSTANTÂNEO: a curtida é
- * otimista (muda na hora, sincroniza com o banco depois), com coração pulsando
- * e coraçõezinhos subindo. Total é anônimo. Deslogado → manda logar.
+ * Botão de curtida do jardim visitado. Feedback INSTANTÂNEO: o estado vem do
+ * localStorage (sem esperar rede), muda na hora ao clicar e só então a request
+ * vai ao banco; a resposta reconcilia. `onLiked` dispara efeitos extras (ex.:
+ * coração saindo da foto de perfil) apenas ao CURTIR.
  */
-export function LikeButton({ ownerId, embedded = false }: { ownerId: string; embedded?: boolean }) {
+export function LikeButton({
+  ownerId,
+  embedded = false,
+  onLiked,
+}: {
+  ownerId: string;
+  embedded?: boolean;
+  onLiked?: () => void;
+}) {
   const { user } = useAuth();
   const router = useRouter();
-  const { data } = useLikes(ownerId);
-  const toggle = useToggleLike(ownerId);
+  const qc = useQueryClient();
+
+  // Estado semeado do localStorage já na 1ª renderização do cliente (instantâneo,
+  // sem esperar rede). No servidor cai no default (o painel só renderiza no client).
+  const [state, setState] = useState<LikeState>(() =>
+    (typeof window !== 'undefined' && readLS(ownerId)) || { total: 0, liked: false },
+  );
   const [burst, setBurst] = useState(0);
 
-  const liked = data?.liked ?? false;
-  const total = data?.total ?? 0;
+  // Reconcilia com o servidor em background (setState só no callback do fetch).
+  useEffect(() => {
+    let active = true;
+    authFetch(`/api/likes?owner=${ownerId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: LikeState | null) => {
+        if (active && d) { setState(d); writeLS(ownerId, d); }
+      })
+      .catch(() => { /* mantém o cache */ });
+    return () => { active = false; };
+  }, [ownerId]);
 
-  const onClick = () => {
+  const liked = state.liked;
+  const total = state.total;
+
+  const onClick = useCallback(() => {
     if (!user) { router.push('/login'); return; }
-    if (!liked) setBurst((b) => b + 1); // anima só ao CURTIR (não ao descurtir)
-    toggle.mutate();
-  };
+
+    const willLike = !state.liked;
+    const optimistic: LikeState = {
+      liked: willLike,
+      total: Math.max(0, state.total + (willLike ? 1 : -1)),
+    };
+    const prev = state;
+
+    // 1) Feedback instantâneo (estado + localStorage), sem esperar rede
+    setState(optimistic);
+    writeLS(ownerId, optimistic);
+    if (willLike) { setBurst((b) => b + 1); onLiked?.(); }
+
+    // 2) Só então envia ao banco; reconcilia com a verdade do servidor
+    authFetch('/api/likes/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ owner: ownerId }),
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('toggle failed'))))
+      .then((d: LikeState) => {
+        setState(d);
+        writeLS(ownerId, d);
+        qc.invalidateQueries({ queryKey: ['missions'] }); // curtidas alimentam missões
+      })
+      .catch(() => { setState(prev); writeLS(ownerId, prev); });
+  }, [user, router, qc, ownerId, state, onLiked]);
 
   // `embedded`: sem fundo/borda próprios — herda o painel do pai (modo visitante).
   const chrome = embedded

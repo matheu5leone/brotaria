@@ -9,22 +9,54 @@ import Garden from '@/components/Garden';
 import { AppShell } from '@/components/AppShell';
 import { LikeButton } from '@/components/LikeButton';
 import { AvatarCircle } from '@/components/AvatarCircle';
+import { HeartAura } from '@/components/HeartAura';
 import { useAuth } from '@/hooks/useAuth';
 
-/** Painel do canto superior esquerdo no modo visitante: avatar do dono + curtida. */
-function VisitorPanel({ avatarUrl, initial, ownerId }: { avatarUrl: string | null; initial?: string; ownerId: string }) {
+/**
+ * Painel do canto superior esquerdo no modo visitante: foto do dono (50% maior,
+ * pode exceder o painel), apelido + tag de visita na MESMA linha, e a curtida.
+ * Ao curtir, um coração sobe da foto com partículas ao redor da moldura.
+ */
+function VisitorPanel({
+  avatarUrl, initial, ownerId, nickname, showVisitTag = false,
+}: {
+  avatarUrl: string | null;
+  initial?: string;
+  ownerId: string;
+  nickname: string;
+  showVisitTag?: boolean;
+}) {
+  const [aura, setAura] = useState(0);
   return (
     <div
-      className="absolute top-3 left-3 z-20 flex items-center gap-1.5 pl-1.5 pr-1 py-1 rounded-2xl"
+      className="absolute top-3 left-3 z-20 flex items-center gap-2 pl-1.5 pr-1 py-1 rounded-2xl max-w-[calc(100vw-24px)]"
       style={{
         background: 'rgba(8,14,5,0.72)',
         border: '1px solid rgba(92,58,30,0.4)',
         boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
         backdropFilter: 'blur(6px)',
+        overflow: 'visible',
       }}
     >
-      <AvatarCircle url={avatarUrl} initial={initial} size={34} />
-      <LikeButton ownerId={ownerId} embedded />
+      {/* Foto 50% maior (excede o painel, de propósito) + aura de corações */}
+      <div className="relative flex-shrink-0" style={{ marginTop: -8, marginBottom: -8 }}>
+        <AvatarCircle url={avatarUrl} initial={initial} size={51} ring />
+        <HeartAura burstId={aura} />
+      </div>
+
+      {/* Apelido + tag de visita, na mesma linha (evita colisão no portrait) */}
+      <div className="min-w-0 flex items-baseline gap-1.5">
+        <span className="text-sm font-black truncate" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-light)' }}>
+          @{nickname}
+        </span>
+        {showVisitTag && (
+          <span className="text-[10px] font-bold whitespace-nowrap" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-display)' }}>
+            · modo visita
+          </span>
+        )}
+      </div>
+
+      <LikeButton ownerId={ownerId} embedded onLiked={() => setAura((a) => a + 1)} />
     </div>
   );
 }
@@ -128,7 +160,7 @@ export default function GardenVisitPage() {
 
         {/* Garden view ocupa o resto */}
         <div className="flex-1 min-h-0 relative">
-          <VisitorPanel avatarUrl={visitedUser.avatar_url} initial={visitedUser.nickname?.[0]} ownerId={visitedUser.id} />
+          <VisitorPanel avatarUrl={visitedUser.avatar_url} initial={visitedUser.nickname?.[0]} ownerId={visitedUser.id} nickname={visitedUser.nickname} />
           <GardenView userId={visitedUser.id} />
         </div>
       </div>
@@ -143,22 +175,8 @@ export default function GardenVisitPage() {
       <div
         className="relative flex-1 min-h-0 h-full overflow-hidden"
       >
-        {/* Avatar do dono + curtir — canto superior esquerdo */}
-        <VisitorPanel avatarUrl={visitedUser.avatar_url} initial={visitedUser.nickname?.[0]} ownerId={visitedUser.id} />
-
-        {/* Aviso de modo visita */}
-        <div
-          className="absolute top-3 left-1/2 -translate-x-1/2 z-20 px-4 py-1.5 rounded-full text-xs font-bold"
-          style={{
-            background: 'rgba(8,14,5,0.85)',
-            color: 'var(--color-text-muted)',
-            border: '1px solid rgba(92,58,30,0.3)',
-            fontFamily: 'var(--font-display)',
-            backdropFilter: 'blur(6px)',
-          }}
-        >
-          Jardim de @{visitedUser.nickname} · modo visita
-        </div>
+        {/* Foto + apelido + "modo visita" + curtir — tudo no canto superior esquerdo */}
+        <VisitorPanel avatarUrl={visitedUser.avatar_url} initial={visitedUser.nickname?.[0]} ownerId={visitedUser.id} nickname={visitedUser.nickname} showVisitTag />
 
         <GardenView userId={visitedUser.id} />
       </div>

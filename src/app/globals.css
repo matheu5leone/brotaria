@@ -628,9 +628,19 @@ body {
   100% { opacity: 0; transform: translate(calc(-50% + var(--hx)), calc(-50% + var(--hy))) scale(1) rotate(var(--hr)); }
 }
 .heart-fly-piece { animation: heart-fly 0.95s ease-out forwards; }
+
+/* Coração grande subindo da foto de perfil ao curtir */
+@keyframes heart-rise {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+  22%  { opacity: 1; transform: translate(-50%, -95%) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -230%) scale(0.9); }
+}
+.heart-rise { animation: heart-rise 1s ease-out forwards; }
+
 @media (prefers-reduced-motion: reduce) {
   .heart-pop { animation: none; }
   .heart-fly-piece { animation: none; opacity: 0; }
+  .heart-rise { animation: none; opacity: 0; }
 }
 
 /* Barra de missão pronta para resgate: azul pulsando */
