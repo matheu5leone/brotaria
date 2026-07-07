@@ -3,13 +3,13 @@ import { initializeUser } from '@/services/inventoryService';
 
 export async function POST(request: Request) {
   try {
-    const { userId, email, nickname, avatarUrl, ref } = await request.json();
+    const { userId, email, nickname, ref } = await request.json();
 
     if (!userId || !email) {
       return NextResponse.json({ error: 'Missing userId or email' }, { status: 400 });
     }
 
-    await initializeUser(userId, email, nickname ?? null, avatarUrl ?? null, ref ?? null);
+    await initializeUser(userId, email, nickname ?? null, ref ?? null);
 
     return NextResponse.json({ success: true });
   } catch (error) {

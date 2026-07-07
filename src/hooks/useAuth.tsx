@@ -56,12 +56,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
 
       if (_event === 'SIGNED_IN' && currentUser) {
-        // Salva avatar do Google/OAuth se disponível
-        const oauthAvatar =
-          currentUser.user_metadata?.avatar_url ??
-          currentUser.user_metadata?.picture ??
-          null;
-
+        // NÃO envia avatar do Google: o avatar é por catálogo (imagens locais/
+        // supabase). URLs externas ficam inconsistentes e são bloqueadas pelo CSP.
         try {
           await fetch('/api/auth/init', {
             method: 'POST',
@@ -69,7 +65,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             body: JSON.stringify({
               userId: currentUser.id,
               email: currentUser.email,
-              avatarUrl: oauthAvatar,
             }),
           });
         } catch (err) {

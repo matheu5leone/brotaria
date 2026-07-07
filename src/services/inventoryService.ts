@@ -73,14 +73,13 @@ export async function initializeUser(
   userId: string,
   email: string,
   nickname?: string | null,
-  avatarUrl?: string | null,
   refCode?: string | null,
 ) {
   console.log(`[Inventory] Checking/Initializing user ${userId}`);
 
+  // avatar_url NÃO é setado aqui: o avatar vem do catálogo (grantDefaultAvatar).
   const upsertData: Record<string, unknown> = { id: userId, email };
   if (nickname) upsertData.nickname = nickname.toLowerCase();
-  if (avatarUrl) upsertData.avatar_url = avatarUrl;
 
   const { error: profileError } = await supabaseAdmin
     .from('profiles')
