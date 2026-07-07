@@ -58,13 +58,16 @@ export default function SignupPage() {
       return;
     }
 
-    // Salva o apelido junto com o perfil
+    // Salva o apelido junto com o perfil (+ código de indicação, se veio por link)
     if (data.user) {
+      let ref: string | null = null;
+      try { ref = localStorage.getItem('brotaria_ref'); } catch { /* storage indisponível */ }
       await fetch('/api/auth/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: data.user.id, email, nickname: nick }),
+        body: JSON.stringify({ userId: data.user.id, email, nickname: nick, ref }),
       });
+      if (ref) { try { localStorage.removeItem('brotaria_ref'); } catch { /* ignora */ } }
     }
 
     // NÃO redireciona automaticamente: o usuário precisa confirmar o e-mail

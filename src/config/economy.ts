@@ -110,10 +110,24 @@ export function getStoreProduct(id: string): StoreProduct | undefined {
 
 export const GAME = {
   // ── Rega ──────────────────────────────────────────────────────────────────
-  /** Regas disponíveis por usuário por dia (reset à meia-noite de Brasília). */
-  DAILY_WATER_LIMIT:    10,
   /** Horas de cooldown entre regas da mesma planta. */
   WATER_COOLDOWN_HOURS: 8,
+
+  // ── Água (recurso estocável) ────────────────────────────────────────────
+  /** Saldo máximo de água que o jogador pode estocar. */
+  WATER_MAX_BALANCE:     10,
+  /** Água ganha por coleta bem-sucedida (barra a 100%). */
+  WATER_PER_COLLECT:     1,
+  /** Cooldown entre coletas (horas). */
+  WATER_COLLECT_COOLDOWN_HOURS: 2,
+
+  // ── Coleta de água (mini-game da barra) — parâmetros do cliente ───────────
+  /** % que cada clique/toque enche na barra vertical. */
+  WATER_BAR_FILL_PER_CLICK: 7,
+  /** % que a barra decai a cada tick (exige cliques rápidos). */
+  WATER_BAR_DECAY_PER_TICK: 1.5,
+  /** Intervalo do tick de decaimento (ms). */
+  WATER_BAR_TICK_MS:        50,
 
   // ── Pá (canteiro) ─────────────────────────────────────────────────────────
   /** Horas de cooldown para usar a pá novamente. */
@@ -142,6 +156,9 @@ export const GAME = {
 
 /** Milissegundos de cooldown de rega. */
 export const WATER_COOLDOWN_MS = GAME.WATER_COOLDOWN_HOURS * 60 * 60 * 1000;
+
+/** Milissegundos de cooldown entre coletas de água. */
+export const WATER_COLLECT_COOLDOWN_MS = GAME.WATER_COLLECT_COOLDOWN_HOURS * 60 * 60 * 1000;
 
 /** Milissegundos de cooldown da pá. */
 export const SHOVEL_COOLDOWN_MS = GAME.SHOVEL_COOLDOWN_HOURS * 60 * 60 * 1000;

@@ -6,9 +6,9 @@ import { canClaimMission } from '@/lib/missionStatus';
 import { addStackableItem } from '@/services/inventoryService';
 
 /**
- * Resgata a recompensa (1 semente) de uma missão concluída, uma única vez.
- * A unicidade é garantida pela constraint (user_id, mission_key); se a entrega
- * da semente falhar, a claim é revertida (padrão de compensação do store/buy).
+ * Resgata a recompensa (semente ou kit de embrulho) de uma missão concluída, uma
+ * única vez. A unicidade é garantida pela constraint (user_id, mission_key); se a
+ * entrega do item falhar, a claim é revertida (padrão de compensação do store/buy).
  */
 export async function POST(request: Request) {
   const user = await getAuthUser(request);
@@ -48,9 +48,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Falha ao resgatar.' }, { status: 500 });
   }
 
-  // 3. Entrega a semente; se falhar, reverte a claim (compensação)
+  // 3. Entrega a recompensa da missão; se falhar, reverte a claim (compensação)
   try {
-    await addStackableItem(user.id, 'seed');
+    await addStackableItem(user.id, mission.reward);
   } catch (err) {
     await supabaseAdmin
       .from('mission_claims')
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
         { status: 409 },
       );
     }
-    console.error('[Missions] Falha ao entregar semente:', err);
+    console.error('[Missions] Falha ao entregar recompensa:', err);
     return NextResponse.json({ error: 'Falha ao entregar a recompensa.' }, { status: 500 });
   }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import NavLink from '@/components/NavLink';
@@ -10,12 +10,13 @@ import { useWallet } from '@/hooks/useWallet';
 import {
   LogOut, LayoutDashboard, Store,
   ChevronLeft, ChevronRight, Trophy, Target,
+  MoreVertical, UserPlus, Check, Droplets,
 } from 'lucide-react';
 import { CoinIcon } from '@/components/CoinIcon';
 
 export default function Sidebar() {
   const { user, signOut } = useAuth();
-  const { coins, herbo, nickname } = useWallet();
+  const { coins, herbo, nickname, referralCode } = useWallet();
   const myGarden = nickname ? `/jardim/${nickname}` : '/';
   const [copied, setCopied] = useState(false);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -31,6 +32,34 @@ export default function Sidebar() {
       // clipboard indisponível — ignora
     }
   };
+
+  // Menu "⋮" da linha do perfil → Convidar amigos (copia o link de indicação)
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const inviteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [menuOpen]);
+
+  const copyInviteLink = async () => {
+    if (!referralCode) return;
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/convite/${referralCode}`);
+      setInviteCopied(true);
+      if (inviteTimer.current) clearTimeout(inviteTimer.current);
+      inviteTimer.current = setTimeout(() => { setInviteCopied(false); setMenuOpen(false); }, 1400);
+    } catch {
+      // clipboard indisponível — ignora
+    }
+  };
+
   const pathname = usePathname();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -173,6 +202,11 @@ export default function Sidebar() {
             <Target className="w-5 h-5 min-w-[20px]" />
             {!isSidebarCollapsed && <span style={{ fontFamily: 'var(--font-body)' }}>Missões</span>}
           </NavLink>
+
+          <NavLink href="/agua" title="Coleta de Água" className={navItemClass('/agua')}>
+            <Droplets className="w-5 h-5 min-w-[20px]" />
+            {!isSidebarCollapsed && <span style={{ fontFamily: 'var(--font-body)' }}>Coleta de Água</span>}
+          </NavLink>
         </div>
 
         <div
@@ -203,13 +237,13 @@ export default function Sidebar() {
       >
         {user ? (
           <div className="flex flex-col gap-3">
-            <div className="relative">
+            <div className="relative flex items-center">
               <button
                 onClick={copyGardenLink}
                 disabled={!nickname}
                 title="Copiar link do meu jardim"
-                className={`w-full flex items-center rounded-lg transition-colors hover:bg-[rgba(92,58,30,0.09)] active:scale-[0.98] ${
-                  isSidebarCollapsed ? 'justify-center p-1' : 'gap-3 px-2 py-1.5'
+                className={`flex items-center rounded-lg transition-colors hover:bg-[rgba(92,58,30,0.09)] active:scale-[0.98] ${
+                  isSidebarCollapsed ? 'w-full justify-center p-1' : 'flex-1 min-w-0 gap-3 px-2 py-1.5'
                 }`}
               >
                 <div
@@ -233,6 +267,46 @@ export default function Sidebar() {
                   </span>
                 )}
               </button>
+
+              {/* ⋮ — abre menu discreto com "Convidar amigos" */}
+              {!isSidebarCollapsed && (
+                <div ref={menuRef} className="relative flex-shrink-0">
+                  <button
+                    onClick={() => setMenuOpen((o) => !o)}
+                    disabled={!referralCode}
+                    title="Mais opções"
+                    aria-label="Mais opções"
+                    className="p-1.5 rounded-lg transition-colors hover:bg-[rgba(92,58,30,0.09)] active:scale-95 disabled:opacity-40"
+                    style={{ color: 'var(--color-text-mid)' }}
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+
+                  {menuOpen && (
+                    <div
+                      className="absolute bottom-full right-0 mb-2 z-50 rounded-xl overflow-hidden min-w-[176px]"
+                      style={{
+                        background: 'linear-gradient(180deg, var(--color-parch-light) 0%, var(--color-parch-dark) 100%)',
+                        border: '1.5px solid var(--color-wood-light)',
+                        boxShadow: '0 10px 28px rgba(0,0,0,0.4)',
+                      }}
+                    >
+                      <button
+                        onClick={copyInviteLink}
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-bold transition-colors hover:bg-[rgba(92,58,30,0.08)]"
+                        style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
+                      >
+                        {inviteCopied ? (
+                          <Check className="w-4 h-4" style={{ color: '#2a5a1e' }} />
+                        ) : (
+                          <UserPlus className="w-4 h-4" style={{ color: 'var(--color-wood-mid)' }} />
+                        )}
+                        {inviteCopied ? 'Link copiado!' : 'Convidar amigos'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Mensagem "copiado" — perto da menção clicada */}
               {copied && (

@@ -9,7 +9,8 @@ export type MissionView = {
   title: string;
   description: string;
   goal: number;
-  reward: 'seed';
+  reward: 'seed' | 'wrapping_kit';
+  info?: string;
   progress: number;
   claimed: boolean;
   claimable: boolean;

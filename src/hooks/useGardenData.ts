@@ -3,30 +3,20 @@ import { supabase } from '@/lib/supabase';
 import { Pot } from '@/types';
 import { GAME, SHOVEL_COOLDOWN_MS } from '@/config/economy';
 
-const DAILY_WATER_LIMIT = GAME.DAILY_WATER_LIMIT;
-
-function getBrasiliaDate(): string {
-  const now = new Date();
-  const brasilia = new Date(now.getTime() - 3 * 60 * 60 * 1000);
-  return brasilia.toISOString().split('T')[0];
-}
-
 export type WateringStatus = {
-  watersUsed: number;
-  watersRemaining: number;
+  /** Saldo de água estocado (gasto na rega, enchido pela coleta). */
+  balance: number;
+  max: number;
 };
 
 async function fetchWateringStatus(userId: string): Promise<WateringStatus> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('daily_waters_used, water_reset_date')
+    .select('water_balance')
     .eq('id', userId)
     .single();
   if (error) throw error;
-  const today = getBrasiliaDate();
-  const resetNeeded = !data?.water_reset_date || data.water_reset_date !== today;
-  const used = resetNeeded ? 0 : (data?.daily_waters_used ?? 0);
-  return { watersUsed: used, watersRemaining: Math.max(0, DAILY_WATER_LIMIT - used) };
+  return { balance: data?.water_balance ?? 0, max: GAME.WATER_MAX_BALANCE };
 }
 
 export type ShovelStatus = {

@@ -1,17 +1,11 @@
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { mutateDNA } from '@/services/dnaService';
 import { generatePlantEvolution } from './aiService';
-import { GAME, WATER_COOLDOWN_MS } from '@/config/economy';
+import { WATER_COOLDOWN_MS } from '@/config/economy';
 import { calcPlantScore } from '@/lib/scoring';
+import { qualifyReferralIfPending } from '@/services/referralService';
 
 const MODO_IA = process.env.AI_MODE || 'MOCK';
-
-/** Retorna a data atual no fuso de Brasília (UTC-3) como 'YYYY-MM-DD'. */
-function getBrasiliaDate(): string {
-  const now = new Date();
-  const brasilia = new Date(now.getTime() - 3 * 60 * 60 * 1000);
-  return brasilia.toISOString().split('T')[0];
-}
 
 export async function processGrowth() {
   console.log('[Scheduler] Starting growth processing...');
@@ -28,27 +22,7 @@ export async function processGrowth() {
 export async function waterPlant(plantId: string, userId: string) {
   console.log(`[Growth] Watering plant ${plantId} for user ${userId}`);
 
-  // 1. Verificar limite diário do usuário
-  const { data: profile, error: profileError } = await supabaseAdmin
-    .from('profiles')
-    .select('daily_waters_used, water_reset_date, total_waters')
-    .eq('id', userId)
-    .single();
-
-  if (profileError || !profile) throw new Error('Profile not found');
-
-  const today = getBrasiliaDate();
-  const resetNeeded = !profile.water_reset_date || profile.water_reset_date !== today;
-  const watersUsed = resetNeeded ? 0 : (profile.daily_waters_used ?? 0);
-  const totalWaters = profile.total_waters ?? 0;
-
-  if (watersUsed >= GAME.DAILY_WATER_LIMIT) {
-    const err = new Error('Limite diário de regas atingido. Volte amanhã!') as Error & { code: string };
-    err.code = 'DAILY_LIMIT_REACHED';
-    throw err;
-  }
-
-  // 2. Buscar planta e verificar se está pronta para rega
+  // 1. Buscar planta e verificar prontidão ANTES de gastar água
   const { data: plant, error: fetchError } = await supabaseAdmin
     .from('plants')
     .select('*, current_stage:plant_stages(*)')
@@ -69,30 +43,53 @@ export async function waterPlant(plantId: string, userId: string) {
     throw err;
   }
 
-  // 3. Incrementar contador diário (reset se necessário) + contador vitalício
-  //    (total_waters alimenta a missão "regue 100 vezes").
-  await supabaseAdmin
+  // 2. Consumir 1 de água do saldo (compare-and-swap: atômico, nunca negativo).
+  //    total_waters é contador vitalício (alimenta a missão "regue 100 vezes").
+  const { data: prof, error: profErr } = await supabaseAdmin
     .from('profiles')
-    .update({
-      daily_waters_used: watersUsed + 1,
-      water_reset_date: today,
-      total_waters: totalWaters + 1,
-    })
-    .eq('id', userId);
+    .select('water_balance, total_waters')
+    .eq('id', userId)
+    .single();
 
-  // 4. Regar / evoluir
+  if (profErr || !prof) throw new Error('Profile not found');
+
+  const balance = prof.water_balance ?? 0;
+  const totalWaters = prof.total_waters ?? 0;
+  const noWater = () => {
+    const err = new Error('Sem água. Colete mais na página de Coleta de Água.') as Error & { code: string };
+    err.code = 'NO_WATER';
+    return err;
+  };
+  if (balance <= 0) throw noWater();
+
+  const { data: consumed } = await supabaseAdmin
+    .from('profiles')
+    .update({ water_balance: balance - 1, total_waters: totalWaters + 1 })
+    .eq('id', userId)
+    .eq('water_balance', balance) // guarda: só consome se o saldo não mudou (anti-corrida)
+    .select('water_balance')
+    .maybeSingle();
+
+  if (!consumed) throw noWater();
+  const newBalance = consumed.water_balance;
+
+  // Devolve o gasto de água (usado se a evolução/atualização falhar).
+  const refundWater = () =>
+    supabaseAdmin
+      .from('profiles')
+      .update({ water_balance: newBalance + 1, total_waters: totalWaters })
+      .eq('id', userId);
+
+  // 3. Regar / evoluir
   const newWatersCount = plant.current_stage_waters + 1;
 
   if (newWatersCount >= plant.current_stage.waters_required) {
     try {
       return await evolvePlant(plantId);
     } catch (err) {
-      // Evolução falhou (ex.: IA fora do ar) — devolve a rega do dia e o
-      // contador vitalício para o usuário tentar de novo sem ser penalizado.
-      await supabaseAdmin
-        .from('profiles')
-        .update({ daily_waters_used: watersUsed, total_waters: totalWaters })
-        .eq('id', userId);
+      // Evolução falhou (ex.: IA fora do ar) — devolve a água para o usuário
+      // tentar de novo sem ser penalizado.
+      await refundWater();
       throw err;
     }
   }
@@ -107,13 +104,15 @@ export async function waterPlant(plantId: string, userId: string) {
     })
     .eq('id', plantId);
 
-  if (updateError) throw updateError;
+  if (updateError) {
+    await refundWater();
+    throw updateError;
+  }
 
   return {
     success: true,
     evolved: false,
-    watersUsed: watersUsed + 1,
-    watersRemaining: GAME.DAILY_WATER_LIMIT - (watersUsed + 1),
+    waterBalance: newBalance,
   };
 }
 
@@ -189,6 +188,16 @@ export async function evolvePlant(plantId: string) {
   }
 
   console.log(`[Growth] Plant ${plantId} evolved to ${nextStage.code} (+${herboReward} herbo)`);
+
+  // Campanha de indicação: ao atingir o broto (order_index >= 2), qualifica a
+  // indicação pendente do dono. Idempotente e isolado — nunca quebra a evolução.
+  if (nextStage.order_index >= 2) {
+    try {
+      await qualifyReferralIfPending(plant.user_id);
+    } catch (err) {
+      console.error('[Growth] Falha ao qualificar indicação:', err);
+    }
+  }
 
   return { success: true, evolved: true, nextStage: nextStage.code, stageName: nextStage.name, herbo: herboReward };
 }

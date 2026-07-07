@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { generateRandomDNA } from './dnaService';
 import { WATER_COOLDOWN_MS } from '@/config/economy';
+import { recordPendingReferral } from './referralService';
 
 // ── Helpers de slot ────────────────────────────────────────────────────────
 
@@ -72,6 +73,7 @@ export async function initializeUser(
   email: string,
   nickname?: string | null,
   avatarUrl?: string | null,
+  refCode?: string | null,
 ) {
   console.log(`[Inventory] Checking/Initializing user ${userId}`);
 
@@ -103,6 +105,17 @@ export async function initializeUser(
   if (!granted || granted.length === 0) {
     console.log(`[Inventory] User ${userId} já recebeu a semente de boas-vindas.`);
     return { success: true, message: 'Already initialized' };
+  }
+
+  // Conta nova: se veio por um link de indicação, registra o vínculo pendente.
+  // Amarrado ao gate de 1ª init para nunca vincular contas antigas. Falha aqui
+  // não pode bloquear a criação da conta — apenas loga.
+  if (refCode) {
+    try {
+      await recordPendingReferral(userId, refCode);
+    } catch (err) {
+      console.error('[Inventory] Falha ao registrar indicação:', err);
+    }
   }
 
   console.log(`[Inventory] Granting free seed to ${userId}`);

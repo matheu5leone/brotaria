@@ -27,5 +27,13 @@ export async function getMetricValue(userId: string, metric: MissionMetric): Pro
         .from('garden_likes').select('*', { count: 'exact', head: true }).eq('liker_id', userId);
       return count ?? 0;
     }
+    case 'referrals': {
+      const { count } = await supabaseAdmin
+        .from('referrals')
+        .select('*', { count: 'exact', head: true })
+        .eq('referrer_id', userId)
+        .eq('status', 'qualified');
+      return count ?? 0;
+    }
   }
 }

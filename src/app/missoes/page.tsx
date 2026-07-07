@@ -4,7 +4,14 @@ import { useState } from 'react';
 import { Target, Loader2, Check } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { LeafConfetti } from '@/components/LeafConfetti';
+import { InfoTooltip } from '@/components/InfoTooltip';
 import { useMissions, useClaimMission, MissionView } from '@/hooks/useMissions';
+
+/** Rótulo do chip de recompensa por tipo de item. */
+const REWARD_LABEL: Record<MissionView['reward'], string> = {
+  seed: '🌱 1 semente',
+  wrapping_kit: '🎁 Kit de embrulho',
+};
 
 function MissionCard({ mission }: { mission: MissionView }) {
   const claim = useClaimMission();
@@ -42,15 +49,16 @@ function MissionCard({ mission }: { mission: MissionView }) {
           <h3 className="text-base font-black" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}>
             {mission.title}
           </h3>
-          <p className="text-xs" style={{ fontFamily: 'var(--font-caption)', fontStyle: 'italic', color: 'var(--color-text-muted)' }}>
+          <p className="flex items-center gap-1.5 text-xs" style={{ fontFamily: 'var(--font-caption)', fontStyle: 'italic', color: 'var(--color-text-muted)' }}>
             {mission.description}
+            {mission.info && <InfoTooltip text={mission.info} />}
           </p>
         </div>
         <span
           className="flex items-center gap-1 text-xs font-black px-2.5 py-1 rounded-full flex-shrink-0"
           style={{ background: 'rgba(42,90,30,0.12)', color: '#2a5a1e', border: '1px solid rgba(42,90,30,0.25)', fontFamily: 'var(--font-display)' }}
         >
-          🌱 1 semente
+          {REWARD_LABEL[mission.reward]}
         </span>
       </div>
 

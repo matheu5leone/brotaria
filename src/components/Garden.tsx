@@ -176,8 +176,8 @@ export default function Garden() {
   // Cooldown da pá com tick local (varredura/numero suaves, sem depender do refetch)
   const [shovelCdMs, setShovelCdMs] = useState(0);
   const shovelReady = shovelCdMs <= 0;
-  const watersRemaining = wateringStatus?.watersRemaining ?? 10;
-  const canWaterToday = watersRemaining > 0;
+  const waterBalance = wateringStatus?.balance ?? 0;
+  const canWaterToday = waterBalance > 0;
 
   // ── Mutations ────────────────────────────────────────────────────────────
   const digMutation       = useDigMutation(user?.id ?? '');
@@ -467,7 +467,7 @@ export default function Garden() {
     } catch (err: unknown) {
       const e = err as { code?: string; message?: string };
       const msg =
-        e.code === 'DAILY_LIMIT_REACHED' ? 'Limite diário atingido! Volte amanhã.' :
+        e.code === 'NO_WATER' ? 'Sem água! Colete mais na aba Coleta de Água.' :
         e.code === 'NOT_READY' ? 'Esta planta ainda não precisa de água.' :
         (e.message ?? 'Erro ao regar.');
       showToast(msg, 'error');
@@ -1223,12 +1223,12 @@ export default function Garden() {
             <HexButton
               className="painel-btn"
               icon={waterMutation.isPending ? <SpinnerIcon /> : <WateringCanIcon />}
-              badge={watersRemaining}
+              badge={waterBalance}
               disabled={!canWaterToday || waterMutation.isPending}
               active={wateringDrag}
               onPointerDown={handleWateringPointerDown}
               label="Regador"
-              title={canWaterToday ? 'Arraste até uma planta para regar' : 'Limite diário atingido'}
+              title={canWaterToday ? 'Arraste até uma planta para regar' : 'Sem água — colete mais'}
             />
             {/* Carrinho de mão (mover planta) */}
             <HexButton

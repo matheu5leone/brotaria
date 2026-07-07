@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabaseServer';
-import { MISSIONS, Mission } from '@/config/missions';
+import { MISSIONS, Mission, MissionReward } from '@/config/missions';
 import { getMetricValue } from '@/lib/missionMetrics';
 
 export type MissionStatus = {
@@ -7,7 +7,8 @@ export type MissionStatus = {
   title: string;
   description: string;
   goal: number;
-  reward: 'seed';
+  reward: MissionReward;
+  info?: string;
   progress: number;
   claimed: boolean;
   claimable: boolean;
@@ -50,6 +51,7 @@ export async function getMissionStatus(userId: string): Promise<MissionStatus[]>
         description: m.description,
         goal: m.goal,
         reward: m.reward,
+        info: m.info,
         progress: Math.min(current, m.goal),
         claimed,
         claimable: (reachedKeys.has(m.key) || hitNow) && !claimed,

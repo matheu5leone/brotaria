@@ -11,18 +11,19 @@ interface WalletContextType {
   seedCount: number;
   welcomeAck: boolean;
   nickname: string | null;
+  referralCode: string | null;
   refresh: () => Promise<void>;
   setCoins: (coins: number) => void;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
-type WalletData = { coins: number; herbo: number; seedCount: number; welcomeAck: boolean; nickname: string | null };
+type WalletData = { coins: number; herbo: number; seedCount: number; welcomeAck: boolean; nickname: string | null; referralCode: string | null };
 
 async function loadWallet(userId: string): Promise<WalletData> {
   const [{ data: profile, error: profileErr }, { data: seedSlots, error: slotsErr }] =
     await Promise.all([
-      supabase.from('profiles').select('coins, herbo, welcome_ack, nickname').eq('id', userId).single(),
+      supabase.from('profiles').select('coins, herbo, welcome_ack, nickname, referral_code').eq('id', userId).single(),
       supabase
         .from('inventory_items')
         .select('quantity')
@@ -38,6 +39,7 @@ async function loadWallet(userId: string): Promise<WalletData> {
     seedCount,
     welcomeAck: profile?.welcome_ack ?? true,
     nickname: profile?.nickname ?? null,
+    referralCode: profile?.referral_code ?? null,
   };
 }
 
@@ -72,6 +74,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       seedCount:  data?.seedCount ?? 0,
       welcomeAck: data?.welcomeAck ?? true,
       nickname:   data?.nickname ?? null,
+      referralCode: data?.referralCode ?? null,
       refresh,
       setCoins,
     }}>

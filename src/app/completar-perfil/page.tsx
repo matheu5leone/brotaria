@@ -82,6 +82,8 @@ export default function CompletarPerfilPage() {
     setError(null);
 
     try {
+      let ref: string | null = null;
+      try { ref = localStorage.getItem('brotaria_ref'); } catch { /* storage indisponível */ }
       const res = await fetch('/api/auth/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -89,9 +91,11 @@ export default function CompletarPerfilPage() {
           userId: user.id,
           email: user.email ?? '',
           nickname: clean,
+          ref,
         }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? 'Erro ao salvar');
+      if (ref) { try { localStorage.removeItem('brotaria_ref'); } catch { /* ignora */ } }
       router.replace('/');
     } catch (err: unknown) {
       setError((err as Error).message);
