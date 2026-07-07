@@ -45,7 +45,8 @@ function NavItem({
 export function BottomNav() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
-  const { coins, herbo } = useWallet();
+  const { coins, herbo, nickname } = useWallet();
+  const myGarden = nickname ? `/jardim/${nickname}` : '/';
 
   return (
     <nav
@@ -73,7 +74,7 @@ export function BottomNav() {
         </span>
       </NavLink>
 
-      <NavItem href="/" label="Jardim" active={pathname === '/'}>
+      <NavItem href={myGarden} label="Jardim" active={pathname === myGarden || pathname === '/'}>
         <LayoutDashboard className="w-5 h-5" />
       </NavItem>
       <NavItem href="/loja" label="Loja" active={pathname === '/loja'}>

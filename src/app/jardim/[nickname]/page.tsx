@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import NavLink from '@/components/NavLink';
 import { GardenView } from '@/components/GardenView';
+import Garden from '@/components/Garden';
 import { AppShell } from '@/components/AppShell';
 import { LikeButton } from '@/components/LikeButton';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,7 +19,6 @@ type VisitedUser = {
 export default function GardenVisitPage() {
   const { nickname } = useParams<{ nickname: string }>();
   const { user, isLoading: authLoading } = useAuth();
-  const router = useRouter();
 
   const [visitedUser, setVisitedUser] = useState<VisitedUser | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -35,13 +35,6 @@ export default function GardenVisitPage() {
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [nickname]);
-
-  // Redireciona pro próprio jardim se o usuário logado visitar @dele
-  useEffect(() => {
-    if (!authLoading && user && visitedUser && user.id === visitedUser.id) {
-      router.replace('/');
-    }
-  }, [user, visitedUser, authLoading, router]);
 
   if (loading || authLoading) {
     return (
@@ -71,6 +64,15 @@ export default function GardenVisitPage() {
   }
 
   if (!visitedUser) return null;
+
+  // ── Dono visitando o próprio jardim → jardim EDITÁVEL (é o "lar" dele) ────────
+  if (user && user.id === visitedUser.id) {
+    return (
+      <AppShell scrollable={false}>
+        <Garden />
+      </AppShell>
+    );
+  }
 
   // ── Modo deslogado ────────────────────────────────────────────────────────────
 

@@ -15,7 +15,8 @@ import { CoinIcon } from '@/components/CoinIcon';
 
 export default function Sidebar() {
   const { user, signOut } = useAuth();
-  const { coins, herbo } = useWallet();
+  const { coins, herbo, nickname } = useWallet();
+  const myGarden = nickname ? `/jardim/${nickname}` : '/';
   const pathname = usePathname();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -139,7 +140,7 @@ export default function Sidebar() {
             </p>
           )}
 
-          <NavLink href="/" title="Meu Jardim" className={navItemClass('/')}>
+          <NavLink href={myGarden} title="Meu Jardim" className={navItemClass(myGarden)}>
             <LayoutDashboard className="w-5 h-5 min-w-[20px]" />
             {!isSidebarCollapsed && <span style={{ fontFamily: 'var(--font-body)' }}>Meu Jardim</span>}
           </NavLink>

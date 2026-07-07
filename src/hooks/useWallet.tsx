@@ -10,18 +10,19 @@ interface WalletContextType {
   herbo: number;
   seedCount: number;
   welcomeAck: boolean;
+  nickname: string | null;
   refresh: () => Promise<void>;
   setCoins: (coins: number) => void;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
-type WalletData = { coins: number; herbo: number; seedCount: number; welcomeAck: boolean };
+type WalletData = { coins: number; herbo: number; seedCount: number; welcomeAck: boolean; nickname: string | null };
 
 async function loadWallet(userId: string): Promise<WalletData> {
   const [{ data: profile, error: profileErr }, { data: seedSlots, error: slotsErr }] =
     await Promise.all([
-      supabase.from('profiles').select('coins, herbo, welcome_ack').eq('id', userId).single(),
+      supabase.from('profiles').select('coins, herbo, welcome_ack, nickname').eq('id', userId).single(),
       supabase
         .from('inventory_items')
         .select('quantity')
@@ -36,6 +37,7 @@ async function loadWallet(userId: string): Promise<WalletData> {
     herbo: profile?.herbo ?? 0,
     seedCount,
     welcomeAck: profile?.welcome_ack ?? true,
+    nickname: profile?.nickname ?? null,
   };
 }
 
@@ -69,6 +71,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       herbo:      data?.herbo    ?? 0,
       seedCount:  data?.seedCount ?? 0,
       welcomeAck: data?.welcomeAck ?? true,
+      nickname:   data?.nickname ?? null,
       refresh,
       setCoins,
     }}>

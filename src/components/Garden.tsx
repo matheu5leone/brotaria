@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Pot } from '@/types';
-import { X, Loader2, Trash2, Sprout, Heart } from 'lucide-react';
+import { X, Loader2, Trash2, Sprout, Heart, Share2 } from 'lucide-react';
 
 // Ícones PNG dimensionados em `em` para escalar com o tamanho do botão (.hex-button)
 const WateringCanIcon = () => (
@@ -1165,21 +1165,49 @@ export default function Garden() {
           Minhas Plantas
         </button>
 
-        {/* Curtidas recebidas no meu jardim (só leitura, votos anônimos) */}
-        <div
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-sm"
-          style={{
-            fontFamily: 'var(--font-display)',
-            background: 'rgba(8,14,5,0.72)',
-            color: '#f87171',
-            border: '1px solid rgba(248,113,113,0.35)',
-            boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
-            backdropFilter: 'blur(6px)',
-          }}
-          title="Curtidas do seu jardim"
-        >
-          <Heart className="w-4 h-4" style={{ fill: '#f87171' }} />
-          {myLikes?.total ?? 0}
+        <div className="flex items-center gap-2">
+          {/* Curtidas recebidas no meu jardim (só leitura, votos anônimos) */}
+          <div
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-sm"
+            style={{
+              fontFamily: 'var(--font-display)',
+              background: 'rgba(8,14,5,0.72)',
+              color: '#f87171',
+              border: '1px solid rgba(248,113,113,0.35)',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+              backdropFilter: 'blur(6px)',
+            }}
+            title="Curtidas do seu jardim"
+          >
+            <Heart className="w-4 h-4" style={{ fill: '#f87171' }} />
+            {myLikes?.total ?? 0}
+          </div>
+
+          {/* Compartilhar link do jardim (URL atual = /jardim/<nickname>) */}
+          <button
+            onClick={async (e) => {
+              e.stopPropagation();
+              try {
+                await navigator.clipboard.writeText(window.location.href);
+                showToast('🔗 Link do jardim copiado!', 'success');
+              } catch {
+                showToast('Não foi possível copiar o link.', 'error');
+              }
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-sm transition-all hover:brightness-110 active:scale-95"
+            style={{
+              fontFamily: 'var(--font-display)',
+              background: 'rgba(8,14,5,0.72)',
+              color: '#93c5fd',
+              border: '1px solid rgba(59,130,246,0.35)',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+              backdropFilter: 'blur(6px)',
+            }}
+            title="Copiar link do seu jardim para compartilhar"
+          >
+            <Share2 className="w-4 h-4" />
+            Compartilhar
+          </button>
         </div>
       </div>
 
