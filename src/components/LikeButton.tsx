@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Heart } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -50,13 +50,20 @@ export function LikeButton({
   );
   const [burst, setBurst] = useState(0);
 
-  // Reconcilia com o servidor em background (setState só no callback do fetch).
+  // Sequenciamento anti-corrida: uma vez que o usuário interage, respostas de rede
+  // OBSOLETAS (o GET de reconciliação ou toggles antigos) não podem sobrescrever o
+  // estado atual — só a resposta da ÚLTIMA interação vale. É isso que evita o
+  // número "voltar" e dar a sensação de que o clique não pegou.
+  const interacted = useRef(false);
+  const clickVersion = useRef(0);
+
+  // Reconcilia com o servidor em background — mas só enquanto o usuário NÃO clicou.
   useEffect(() => {
     let active = true;
     authFetch(`/api/likes?owner=${ownerId}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d: LikeState | null) => {
-        if (active && d) { setState(d); writeLS(ownerId, d); }
+        if (active && d && !interacted.current) { setState(d); writeLS(ownerId, d); }
       })
       .catch(() => { /* mantém o cache */ });
     return () => { active = false; };
@@ -75,12 +82,16 @@ export function LikeButton({
     };
     const prev = state;
 
+    interacted.current = true;
+    const myVersion = ++clickVersion.current;
+
     // 1) Feedback instantâneo (estado + localStorage), sem esperar rede
     setState(optimistic);
     writeLS(ownerId, optimistic);
     if (willLike) { setBurst((b) => b + 1); onLiked?.(); }
 
-    // 2) Só então envia ao banco; reconcilia com a verdade do servidor
+    // 2) Só então envia ao banco; a resposta só é aplicada se AINDA for o clique
+    //    mais recente (senão, ignora — um clique posterior já mandou no visual).
     authFetch('/api/likes/toggle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -88,11 +99,14 @@ export function LikeButton({
     })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('toggle failed'))))
       .then((d: LikeState) => {
+        if (myVersion !== clickVersion.current) return; // resposta obsoleta
         setState(d);
         writeLS(ownerId, d);
         qc.invalidateQueries({ queryKey: ['missions'] }); // curtidas alimentam missões
       })
-      .catch(() => { setState(prev); writeLS(ownerId, prev); });
+      .catch(() => {
+        if (myVersion === clickVersion.current) { setState(prev); writeLS(ownerId, prev); }
+      });
   }, [user, router, qc, ownerId, state, onLiked]);
 
   // `embedded`: sem fundo/borda próprios — herda o painel do pai (modo visitante).
