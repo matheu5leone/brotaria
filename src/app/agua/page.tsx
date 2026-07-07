@@ -144,7 +144,7 @@ export default function AguaPage() {
               touchAction: 'manipulation',
             }}
           >
-            <Image src="/imgs/watering-can.png" alt="balde" width={64} height={64} className="object-contain" draggable={false} />
+            <Image src="/imgs/watering-can.webp" alt="balde" width={64} height={64} className="object-contain" draggable={false} />
           </button>
 
           <p

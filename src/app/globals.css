@@ -330,7 +330,7 @@ html, body {
 /* ---------- Jardim — imagem de fundo responsiva ---------- */
 
 .garden-bg {
-  background-image: url('/imgs/bg-garden-mobile.png');
+  background-image: url('/imgs/bg-garden-mobile.webp');
   background-size: cover;
   background-position: center center;
 }
@@ -338,7 +338,7 @@ html, body {
 /* Desktop ou mobile deitado → imagem horizontal */
 @media (min-width: 768px), (orientation: landscape) {
   .garden-bg {
-    background-image: url('/imgs/bg-garden.png');
+    background-image: url('/imgs/bg-garden.webp');
   }
 }
 

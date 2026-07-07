@@ -8,7 +8,26 @@ import { GardenView } from '@/components/GardenView';
 import Garden from '@/components/Garden';
 import { AppShell } from '@/components/AppShell';
 import { LikeButton } from '@/components/LikeButton';
+import { AvatarCircle } from '@/components/AvatarCircle';
 import { useAuth } from '@/hooks/useAuth';
+
+/** Painel do canto superior esquerdo no modo visitante: avatar do dono + curtida. */
+function VisitorPanel({ avatarUrl, initial, ownerId }: { avatarUrl: string | null; initial?: string; ownerId: string }) {
+  return (
+    <div
+      className="absolute top-3 left-3 z-20 flex items-center gap-1.5 pl-1.5 pr-1 py-1 rounded-2xl"
+      style={{
+        background: 'rgba(8,14,5,0.72)',
+        border: '1px solid rgba(92,58,30,0.4)',
+        boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+        backdropFilter: 'blur(6px)',
+      }}
+    >
+      <AvatarCircle url={avatarUrl} initial={initial} size={34} />
+      <LikeButton ownerId={ownerId} embedded />
+    </div>
+  );
+}
 
 type VisitedUser = {
   id: string;
@@ -40,7 +59,7 @@ export default function GardenVisitPage() {
     return (
       <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--color-garden-deep)' }}>
         <div className="animate-pulse flex flex-col items-center gap-4">
-          <Image src="/imgs/brotaria.png" alt="Brotaria" width={48} height={48} className="opacity-50" />
+          <Image src="/imgs/brotaria.webp" alt="Brotaria" width={48} height={48} className="opacity-50" />
           <p className="text-sm" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)' }}>
             Carregando jardim...
           </p>
@@ -88,7 +107,7 @@ export default function GardenVisitPage() {
           }}
         >
           <div className="flex items-center gap-2">
-            <Image src="/imgs/brotaria.png" alt="Brotaria" width={24} height={24} />
+            <Image src="/imgs/brotaria.webp" alt="Brotaria" width={24} height={24} />
             <span className="text-sm font-black" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-light)' }}>
               Jardim de @{visitedUser.nickname}
             </span>
@@ -109,9 +128,7 @@ export default function GardenVisitPage() {
 
         {/* Garden view ocupa o resto */}
         <div className="flex-1 min-h-0 relative">
-          <div className="absolute top-3 left-3 z-20">
-            <LikeButton ownerId={visitedUser.id} />
-          </div>
+          <VisitorPanel avatarUrl={visitedUser.avatar_url} initial={visitedUser.nickname?.[0]} ownerId={visitedUser.id} />
           <GardenView userId={visitedUser.id} />
         </div>
       </div>
@@ -126,10 +143,8 @@ export default function GardenVisitPage() {
       <div
         className="relative flex-1 min-h-0 h-full overflow-hidden"
       >
-        {/* Curtir jardim — canto superior esquerdo */}
-        <div className="absolute top-3 left-3 z-20">
-          <LikeButton ownerId={visitedUser.id} />
-        </div>
+        {/* Avatar do dono + curtir — canto superior esquerdo */}
+        <VisitorPanel avatarUrl={visitedUser.avatar_url} initial={visitedUser.nickname?.[0]} ownerId={visitedUser.id} />
 
         {/* Aviso de modo visita */}
         <div

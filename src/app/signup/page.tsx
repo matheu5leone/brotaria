@@ -124,7 +124,7 @@ export default function SignupPage() {
 
         <div className="flex flex-col items-center mb-8">
           <Image
-            src="/imgs/brotaria.png"
+            src="/imgs/brotaria.webp"
             alt="Brotaria"
             width={56}
             height={56}

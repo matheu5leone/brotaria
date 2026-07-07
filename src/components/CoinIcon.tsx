@@ -7,7 +7,7 @@ import Image from 'next/image';
 export function CoinIcon({ size = 20, className }: { size?: number; className?: string }) {
   return (
     <Image
-      src="/imgs/coin.png"
+      src="/imgs/coin.webp"
       alt="moeda"
       width={size}
       height={size}

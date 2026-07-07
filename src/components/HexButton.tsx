@@ -93,7 +93,7 @@ export function HexButton({
           Assim a caixa == hexágono exatamente; badge/tooltip ancoram certo. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/imgs/hex-button.png"
+        src="/imgs/hex-button.webp"
         alt=""
         draggable={false}
         className="block h-full w-auto select-none"

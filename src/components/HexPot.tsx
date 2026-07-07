@@ -196,7 +196,7 @@ export function HexPot({
       >
         <div style={{ position: 'absolute', inset: 0 }}>
           <Image
-            src="/imgs/empty-pot.png"
+            src="/imgs/empty-pot.webp"
             alt="canteiro"
             fill
             className="object-contain object-bottom"

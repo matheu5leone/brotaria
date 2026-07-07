@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabaseServer';
 import { generateRandomDNA } from './dnaService';
 import { WATER_COOLDOWN_MS } from '@/config/economy';
 import { recordPendingReferral } from './referralService';
+import { grantDefaultAvatar } from './avatarService';
 
 // ── Helpers de slot ────────────────────────────────────────────────────────
 
@@ -116,6 +117,13 @@ export async function initializeUser(
     } catch (err) {
       console.error('[Inventory] Falha ao registrar indicação:', err);
     }
+  }
+
+  // Desbloqueia e define a foto de perfil default (isolado — não bloqueia a conta).
+  try {
+    await grantDefaultAvatar(userId);
+  } catch (err) {
+    console.error('[Inventory] Falha ao conceder avatar default:', err);
   }
 
   console.log(`[Inventory] Granting free seed to ${userId}`);

@@ -10,14 +10,17 @@ import { useWallet } from '@/hooks/useWallet';
 import {
   LogOut, LayoutDashboard, Store,
   ChevronLeft, ChevronRight, Trophy, Target,
-  MoreVertical, UserPlus, Check, Droplets,
+  MoreVertical, UserPlus, Check, Droplets, Camera,
 } from 'lucide-react';
 import { CoinIcon } from '@/components/CoinIcon';
+import { AvatarCircle } from '@/components/AvatarCircle';
+import { AvatarPickerModal } from '@/components/AvatarPickerModal';
 
 export default function Sidebar() {
   const { user, signOut } = useAuth();
-  const { coins, herbo, nickname, referralCode } = useWallet();
+  const { coins, herbo, nickname, referralCode, avatarUrl } = useWallet();
   const myGarden = nickname ? `/jardim/${nickname}` : '/';
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -76,6 +79,8 @@ export default function Sidebar() {
   };
 
   return (
+    <>
+    {pickerOpen && <AvatarPickerModal onClose={() => setPickerOpen(false)} />}
     <aside
       className={`${
         isSidebarCollapsed ? 'w-20' : 'w-64'
@@ -118,7 +123,7 @@ export default function Sidebar() {
       >
         <NavLink href="/" className="flex items-center gap-2.5" title="Brotaria">
           <Image
-            src="/imgs/brotaria.png"
+            src="/imgs/brotaria.webp"
             alt="Brotaria"
             width={36}
             height={36}
@@ -246,18 +251,7 @@ export default function Sidebar() {
                   isSidebarCollapsed ? 'w-full justify-center p-1' : 'flex-1 min-w-0 gap-3 px-2 py-1.5'
                 }`}
               >
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center font-bold border flex-shrink-0"
-                  style={{
-                    background: 'linear-gradient(135deg, #2a4a1e, #1a2f10)',
-                    borderColor: 'var(--color-wood-light)',
-                    fontFamily: 'var(--font-display)',
-                    color: 'var(--color-wood-light)',
-                    fontSize: 14,
-                  }}
-                >
-                  {(nickname?.[0] ?? user.email?.[0])?.toUpperCase()}
-                </div>
+                <AvatarCircle url={avatarUrl} initial={nickname?.[0] ?? user.email?.[0]} size={40} />
                 {!isSidebarCollapsed && (
                   <span
                     className="text-sm font-bold truncate"
@@ -273,10 +267,9 @@ export default function Sidebar() {
                 <div ref={menuRef} className="relative flex-shrink-0">
                   <button
                     onClick={() => setMenuOpen((o) => !o)}
-                    disabled={!referralCode}
                     title="Mais opções"
                     aria-label="Mais opções"
-                    className="p-1.5 rounded-lg transition-colors hover:bg-[rgba(92,58,30,0.09)] active:scale-95 disabled:opacity-40"
+                    className="p-1.5 rounded-lg transition-colors hover:bg-[rgba(92,58,30,0.09)] active:scale-95"
                     style={{ color: 'var(--color-text-mid)' }}
                   >
                     <MoreVertical className="w-4 h-4" />
@@ -292,6 +285,14 @@ export default function Sidebar() {
                       }}
                     >
                       <button
+                        onClick={() => { setMenuOpen(false); setPickerOpen(true); }}
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-bold transition-colors hover:bg-[rgba(92,58,30,0.08)]"
+                        style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
+                      >
+                        <Camera className="w-4 h-4" style={{ color: 'var(--color-wood-mid)' }} />
+                        Mudar foto de perfil
+                      </button>
+                      <button
                         onClick={copyInviteLink}
                         className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-bold transition-colors hover:bg-[rgba(92,58,30,0.08)]"
                         style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
@@ -301,7 +302,7 @@ export default function Sidebar() {
                         ) : (
                           <UserPlus className="w-4 h-4" style={{ color: 'var(--color-wood-mid)' }} />
                         )}
-                        {inviteCopied ? 'Link copiado!' : 'Convidar amigos'}
+                        {!referralCode ? 'Convite indisponível' : inviteCopied ? 'Link copiado!' : 'Convidar amigos'}
                       </button>
                     </div>
                   )}
@@ -357,5 +358,6 @@ export default function Sidebar() {
         ) : null}
       </div>
     </aside>
+    </>
   );
 }

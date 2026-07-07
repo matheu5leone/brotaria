@@ -21,7 +21,7 @@ export default function Loader({ variant = 'fullscreen', size = 72, spin = false
     <div className="brota-loader" style={{ width: size, height: size }}>
       {!spin && <span className="brota-loader__ring" />}
       <Image
-        src="/imgs/brotaria.png"
+        src="/imgs/brotaria.webp"
         alt=""
         aria-hidden
         width={size}

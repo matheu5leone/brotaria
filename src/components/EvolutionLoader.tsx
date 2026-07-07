@@ -67,7 +67,7 @@ export function EvolutionLoader({ open }: { open: boolean }) {
         {/* ── Logo pulsando com scale() ─────────────────────────────────── */}
         <div className="evo-logo relative" style={{ width: 200, height: 200 }}>
           <Image
-            src="/imgs/brotaria.png"
+            src="/imgs/brotaria.webp"
             alt="Brotaria"
             fill
             priority

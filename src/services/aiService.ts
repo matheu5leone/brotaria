@@ -6,6 +6,7 @@ import { keyWhiteBackground, keyChromaColor } from './imageKeyer';
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
+import { encodeWebp } from '@/lib/imageProcessing';
 
 /**
  * CONFIGURAÇÃO DE MODELOS
@@ -278,7 +279,6 @@ async function uploadToSupabase(dataString: string, fileName: string): Promise<s
   console.log(`[AI] Uploading image to Supabase Storage: ${fileName}`);
   try {
     let buffer: Buffer;
-    const contentType = 'image/png';
 
     if (dataString.startsWith('data:')) {
       // Base64 logic
@@ -294,10 +294,13 @@ async function uploadToSupabase(dataString: string, fileName: string): Promise<s
       buffer = Buffer.from(arrayBuffer);
     }
 
+    // Compressão canônica: tudo vai para o storage em WebP (mantém alpha).
+    buffer = await encodeWebp(buffer);
+
     const { data, error } = await supabaseAdmin.storage
       .from('plants')
       .upload(fileName, buffer, {
-        contentType,
+        contentType: 'image/webp',
         upsert: true
       });
 
@@ -409,8 +412,8 @@ async function generatePlantImage(description: string, model: string = IMAGE_OPT
     processedImage = await removeWhiteBackgroundIfNeeded(rawImageUrl);
   }
 
-  // 2. Upload para Supabase Storage
-  const fileName = `plant_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
+  // 2. Upload para Supabase Storage (sempre em WebP, ver uploadToSupabase)
+  const fileName = `plant_${Date.now()}_${Math.random().toString(36).substring(7)}.webp`;
   const finalUrl = await uploadToSupabase(processedImage, fileName);
 
   return finalUrl;

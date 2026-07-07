@@ -44,7 +44,7 @@ export default function AuthCallbackPage() {
       className="flex flex-col items-center justify-center gap-4 min-h-screen"
       style={{ background: 'var(--color-garden-deep)' }}
     >
-      <Image src="/imgs/brotaria.png" alt="Brotaria" width={56} height={56} className="animate-pulse opacity-80" />
+      <Image src="/imgs/brotaria.webp" alt="Brotaria" width={56} height={56} className="animate-pulse opacity-80" />
       <p className="text-sm" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)' }}>
         Confirmando sua conta…
       </p>

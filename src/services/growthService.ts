@@ -161,7 +161,7 @@ export async function evolvePlant(plantId: string) {
       evolution = {
         visualDescription: `[MOCK] Planta do bioma ${newDNA.biome} evoluída para ${nextStage.name}.`,
         // Asset local: evita SVG remoto (dicebear) que o next/image bloqueia.
-        imageUrl: '/imgs/brotaria.png',
+        imageUrl: '/imgs/brotaria.webp',
         modelUsed: 'MOCK-IMAGE-GENERATOR',
       };
       await new Promise(resolve => setTimeout(resolve, 800));

@@ -95,7 +95,7 @@ export default function LojaPage() {
     return (
       <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--color-garden-deep)' }}>
         <div className="animate-pulse flex flex-col items-center gap-4">
-          <Image src="/imgs/brotaria.png" alt="Logo" width={60} height={60} className="opacity-50" />
+          <Image src="/imgs/brotaria.webp" alt="Logo" width={60} height={60} className="opacity-50" />
           <div className="font-medium" style={{ color: 'var(--color-text-muted)' }}>Carregando Brotaria...</div>
         </div>
       </div>

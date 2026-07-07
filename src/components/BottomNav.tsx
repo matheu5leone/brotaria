@@ -1,12 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import NavLink from '@/components/NavLink';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
-import { LayoutDashboard, Store, Trophy, Target, Menu, Droplets, X } from 'lucide-react';
+import {
+  LayoutDashboard, Store, Trophy, Target, Menu, Droplets, X,
+  UserPlus, LogOut, Check, Camera,
+} from 'lucide-react';
 import { CoinIcon } from '@/components/CoinIcon';
+import { AvatarCircle } from '@/components/AvatarCircle';
+import { AvatarPickerModal } from '@/components/AvatarPickerModal';
 
 function NavItem({
   href,
@@ -83,15 +88,35 @@ function SheetItem({
 export function BottomNav() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
-  const { coins, herbo, nickname } = useWallet();
+  const { coins, herbo, nickname, referralCode, avatarUrl } = useWallet();
   const myGarden = nickname ? `/jardim/${nickname}` : '/';
   const [menuOpen, setMenuOpen] = useState(false);
-  // O menu fecha via onClick dos itens e do backdrop (sem effect de rota).
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
+  const inviteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Os menus fecham via onClick dos itens e do backdrop (sem effect de rota).
+
+  const copyInviteLink = async () => {
+    if (!referralCode) return;
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/convite/${referralCode}`);
+      setInviteCopied(true);
+      if (inviteTimer.current) clearTimeout(inviteTimer.current);
+      inviteTimer.current = setTimeout(() => { setInviteCopied(false); setProfileOpen(false); }, 1400);
+    } catch {
+      // clipboard indisponível — ignora
+    }
+  };
+
+  const avatarInitial = (nickname?.[0] ?? user?.email?.[0])?.toUpperCase();
 
   const secondaryActive = pathname === '/ranking' || pathname === '/missoes' || pathname === '/agua';
 
   return (
     <>
+      {pickerOpen && <AvatarPickerModal onClose={() => setPickerOpen(false)} />}
+
       {/* Bottom sheet do menu ☰ */}
       {menuOpen && (
         <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)}>
@@ -132,6 +157,78 @@ export function BottomNav() {
         </div>
       )}
 
+      {/* Bottom sheet do perfil (avatar) */}
+      {profileOpen && (
+        <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)}>
+          <div className="absolute inset-0" style={{ background: 'rgba(8,14,5,0.5)' }} />
+          <div
+            className="absolute left-0 right-0 rounded-t-2xl p-4 pb-6"
+            style={{
+              bottom: 62,
+              background: 'linear-gradient(180deg, var(--color-parch-mid) 0%, var(--color-parch-dark) 100%)',
+              borderTop: '2px solid var(--color-wood-mid)',
+              boxShadow: '0 -8px 28px rgba(0,0,0,0.4)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Cabeçalho: avatar + @apelido */}
+            <div className="flex items-center gap-3 mb-4 px-1">
+              <AvatarCircle url={avatarUrl} initial={avatarInitial} size={40} />
+              <span
+                className="text-base font-black truncate"
+                style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
+              >
+                @{nickname ?? '...'}
+              </span>
+              <button onClick={() => setProfileOpen(false)} aria-label="Fechar" className="ml-auto" style={{ color: 'var(--color-text-muted)' }}>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {/* Convidar amigos → copia o link de indicação */}
+              <button
+                onClick={copyInviteLink}
+                disabled={!referralCode}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all active:scale-[0.98] disabled:opacity-40"
+                style={{ background: 'rgba(92,58,30,0.04)', border: '1px solid rgba(92,58,30,0.15)' }}
+              >
+                {inviteCopied
+                  ? <Check className="w-5 h-5" style={{ color: '#2a5a1e' }} />
+                  : <UserPlus className="w-5 h-5" style={{ color: 'var(--color-wood-mid)' }} />}
+                <span className="text-sm font-bold" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}>
+                  {inviteCopied ? 'Link copiado!' : 'Convidar amigos'}
+                </span>
+              </button>
+
+              {/* Mudar foto de perfil → abre o seletor */}
+              <button
+                onClick={() => { setProfileOpen(false); setPickerOpen(true); }}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all active:scale-[0.98]"
+                style={{ background: 'rgba(92,58,30,0.04)', border: '1px solid rgba(92,58,30,0.15)' }}
+              >
+                <Camera className="w-5 h-5" style={{ color: 'var(--color-wood-mid)' }} />
+                <span className="text-sm font-bold" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}>
+                  Mudar foto de perfil
+                </span>
+              </button>
+
+              {/* Sair */}
+              <button
+                onClick={signOut}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all active:scale-[0.98]"
+                style={{ background: 'rgba(139,64,64,0.08)', border: '1px solid rgba(139,64,64,0.2)' }}
+              >
+                <LogOut className="w-5 h-5" style={{ color: '#8b4040' }} />
+                <span className="text-sm font-bold" style={{ fontFamily: 'var(--font-display)', color: '#8b4040' }}>
+                  Sair
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <nav
         className="flex items-center w-full px-3 gap-1 relative z-50"
         style={{
@@ -166,7 +263,7 @@ export function BottomNav() {
 
         {/* ☰ Menu — abre o bottom sheet com os destinos secundários */}
         <button
-          onClick={() => setMenuOpen((o) => !o)}
+          onClick={() => { setProfileOpen(false); setMenuOpen((o) => !o); }}
           aria-label="Mais opções"
           className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 rounded-xl transition-all"
           style={{ background: menuOpen || secondaryActive ? 'rgba(92,58,30,0.15)' : 'transparent' }}
@@ -185,29 +282,19 @@ export function BottomNav() {
           </span>
         </button>
 
-        {/* User avatar + logout */}
+        {/* Avatar → abre o menu de perfil (não sai direto) */}
         <button
-          onClick={signOut}
-          className="flex flex-col items-center justify-center gap-0.5 flex-none px-2 py-1.5 rounded-xl transition-all hover:bg-[rgba(139,64,64,0.1)] active:scale-90"
+          onClick={() => { setMenuOpen(false); setProfileOpen((o) => !o); }}
+          aria-label="Perfil"
+          className="flex flex-col items-center justify-center gap-0.5 flex-none px-2 py-1.5 rounded-xl transition-all active:scale-90"
+          style={{ background: profileOpen ? 'rgba(92,58,30,0.15)' : 'transparent' }}
         >
-          <div
-            className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
-            style={{
-              background: 'linear-gradient(135deg, #2a4a1e, #1a2f10)',
-              color: 'var(--color-wood-light)',
-              border: '1px solid var(--color-wood-light)',
-              fontFamily: 'var(--font-display)',
-              fontSize: 12,
-            }}
-            title={user?.email ?? ''}
-          >
-            {user?.email?.[0].toUpperCase()}
-          </div>
+          <AvatarCircle url={avatarUrl} initial={avatarInitial} size={28} />
           <span
             className="text-[8px] uppercase tracking-wide font-black"
-            style={{ fontFamily: 'var(--font-display)', color: '#8b4040' }}
+            style={{ fontFamily: 'var(--font-display)', color: profileOpen ? 'var(--color-wood-mid)' : 'var(--color-text-muted)' }}
           >
-            Sair
+            Perfil
           </span>
         </button>
       </nav>

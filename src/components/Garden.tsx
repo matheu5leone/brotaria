@@ -9,22 +9,22 @@ import { X, Loader2, Trash2, Sprout, Heart } from 'lucide-react';
 // Ícones PNG dimensionados em `em` para escalar com o tamanho do botão (.hex-button)
 const WateringCanIcon = () => (
   <span className="relative inline-block" style={{ width: '2em', height: '2em' }}>
-    <Image src="/imgs/watering-can.png" alt="regador" fill className="object-contain" draggable={false} />
+    <Image src="/imgs/watering-can.webp" alt="regador" fill className="object-contain" draggable={false} />
   </span>
 );
 const ShovelIcon = () => (
   <span className="relative inline-block" style={{ width: '1.7em', height: '2em', transform: 'rotate(-35deg)' }}>
-    <Image src="/imgs/shovel.png" alt="pá" fill className="object-contain" draggable={false} />
+    <Image src="/imgs/shovel.webp" alt="pá" fill className="object-contain" draggable={false} />
   </span>
 );
 const BackpackIcon = ({ open }: { open: boolean }) => (
   <span className="relative inline-block" style={{ width: '2.2em', height: '2.2em' }}>
-    <Image src={open ? '/imgs/backpack-open.png' : '/imgs/backpack.png'} alt="mochila" fill className="object-contain" draggable={false} />
+    <Image src={open ? '/imgs/backpack-open.webp' : '/imgs/backpack.webp'} alt="mochila" fill className="object-contain" draggable={false} />
   </span>
 );
 const WheelbarrowIcon = ({ carriedImageUrl, carrying }: { carriedImageUrl: string | null; carrying: boolean }) => (
   <span className="relative inline-block" style={{ width: '2.2em', height: '2.2em' }}>
-    <Image src="/imgs/wheelbarrow.png" alt="carrinho" fill className="object-contain" draggable={false} />
+    <Image src="/imgs/wheelbarrow.webp" alt="carrinho" fill className="object-contain" draggable={false} />
     {/* Carga do carrinho: miniatura da planta OU broto (quando enterrada, sem imagem).
         Glow verde suave sinaliza que o carrinho está carregado. */}
     {carrying && (
@@ -52,7 +52,7 @@ const WheelbarrowIcon = ({ carriedImageUrl, carrying }: { carriedImageUrl: strin
 );
 const TrashIcon = () => (
   <span className="relative inline-block" style={{ width: '2.1em', height: '2.1em' }}>
-    <Image src="/imgs/trash.png" alt="lixeira" fill className="object-contain" draggable={false} />
+    <Image src="/imgs/trash.webp" alt="lixeira" fill className="object-contain" draggable={false} />
   </span>
 );
 const SpinnerIcon = () => (
@@ -68,7 +68,7 @@ const PainelToggleIcon = ({ expanded }: { expanded: boolean }) => {
       className="relative inline-block transition-transform duration-300"
       style={{ width: '1.8em', height: '1.8em', transform: `rotate(${deg}deg)` }}
     >
-      <Image src="/imgs/arrow.png" alt="alternar menu" fill className="object-contain" draggable={false} />
+      <Image src="/imgs/arrow.webp" alt="alternar menu" fill className="object-contain" draggable={false} />
     </span>
   );
   return (
@@ -1017,7 +1017,7 @@ export default function Garden() {
             {/* Fantasma do vaso (mesmo render do HexPot: base 80%, object-bottom) */}
             <div className="absolute bottom-0 left-0 right-0" style={{ height: '80%', opacity: 0.5 }}>
               <div style={{ position: 'absolute', inset: 0 }}>
-                <Image src="/imgs/empty-pot.png" alt="" fill className="object-contain object-bottom" draggable={false} />
+                <Image src="/imgs/empty-pot.webp" alt="" fill className="object-contain object-bottom" draggable={false} />
               </div>
             </div>
             {/* Contorno do footprint tingido de verde/vermelho */}
@@ -1092,7 +1092,7 @@ export default function Garden() {
           className="fixed pointer-events-none z-[9999]"
           style={{ left: barrowDragPos.x - 28, top: barrowDragPos.y - 32, width: 56, height: 56, filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.55))' }}
         >
-          <Image src="/imgs/wheelbarrow.png" alt="carrinho" width={56} height={56} className="object-contain" draggable={false} />
+          <Image src="/imgs/wheelbarrow.webp" alt="carrinho" width={56} height={56} className="object-contain" draggable={false} />
           {carried && (
             <span
               className="absolute flex items-center justify-center"
@@ -1123,7 +1123,7 @@ export default function Garden() {
           className="fixed pointer-events-none z-[9999] select-none"
           style={{ left: wateringDragPos.x - 24, top: wateringDragPos.y - 28, width: 48, height: 48, filter: 'drop-shadow(0 2px 6px rgba(59,130,246,0.7))' }}
         >
-          <Image src="/imgs/watering-can.png" alt="regador" width={48} height={48} className="object-contain" draggable={false} />
+          <Image src="/imgs/watering-can.webp" alt="regador" width={48} height={48} className="object-contain" draggable={false} />
         </div>
       )}
 
@@ -1133,7 +1133,7 @@ export default function Garden() {
           className="fixed pointer-events-none z-[9999] select-none"
           style={{ left: trashDragPos.x - 26, top: trashDragPos.y - 30, width: 52, height: 52, filter: 'drop-shadow(0 2px 6px rgba(239,68,68,0.6))' }}
         >
-          <Image src="/imgs/trash.png" alt="lixeira" width={52} height={52} className="object-contain" draggable={false} />
+          <Image src="/imgs/trash.webp" alt="lixeira" width={52} height={52} className="object-contain" draggable={false} />
         </div>
       )}
 
