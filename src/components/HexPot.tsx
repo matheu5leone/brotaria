@@ -6,6 +6,7 @@ import { Shovel } from 'lucide-react';
 import { Pot } from '@/types';
 import { usePlant, usePlantVersion } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
+import { lifecycleFromOrder } from '@/config/lifecycle';
 import Loader from './Loader';
 
 const DIG_DURATION_MS = 60_000;
@@ -57,7 +58,7 @@ export function HexPot({
   const state = getPotState(pot);
   const { data: plant } = usePlant(pot.plant_id);
   const { data: latestVersion } = usePlantVersion(pot.plant_id);
-  const level = plant ? plant.current_stage.order_index + 1 : null;
+  const stageName = plant ? lifecycleFromOrder(plant.current_stage.order_index).name : null;
 
   const [msLeft, setMsLeft] = useState(0);
   const notifiedRef = useRef(false);
@@ -251,8 +252,8 @@ export function HexPot({
         />
       )}
 
-      {/* ── Level badge ── */}
-      {state === 'planted' && level !== null && (
+      {/* ── Badge do estágio ── */}
+      {state === 'planted' && stageName !== null && (
         <div
           className="absolute bottom-[6%] left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full z-20 whitespace-nowrap pointer-events-none"
           style={{
@@ -264,7 +265,7 @@ export function HexPot({
             border: '1px solid rgba(92,58,30,0.6)',
           }}
         >
-          Nível {level}
+          {stageName}
         </div>
       )}
     </div>

@@ -6,6 +6,7 @@ import { usePlant, usePlantVersion } from '@/hooks/usePlantData';
 import { PlantImage } from '@/components/PlantImage';
 import { RarityEffect } from '@/components/RarityEffect';
 import { calcPlantScore } from '@/lib/scoring';
+import { lifecycleFromOrder } from '@/config/lifecycle';
 import { Rarity } from '@/types';
 
 const RARITY_CONFIG: Record<Rarity, { Icon: React.ElementType; color: string; label: string }> = {
@@ -42,7 +43,7 @@ function PlantCell({
   const rarity = (plant.dna.rarity ?? 'comum') as Rarity;
   const cfg = RARITY_CONFIG[rarity] ?? RARITY_CONFIG.comum;
   const value = calcPlantScore(plant.dna, plant.current_stage.order_index);
-  const stageName = plant.current_stage.name;
+  const stageName = lifecycleFromOrder(plant.current_stage.order_index).name;
 
   return (
     <div

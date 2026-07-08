@@ -4,8 +4,8 @@ import { X, Droplets, Trash2 } from 'lucide-react';
 import { PlantImage } from '@/components/PlantImage';
 import { usePlant, usePlantVersion } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
-import { GAME } from '@/config/economy';
 import { calcPlantScore } from '@/lib/scoring';
+import { getLifecycle } from '@/config/lifecycle';
 
 const RARITY_LABELS: Record<string, string> = {
   comum: 'Comum', incomum: 'Incomum', raro: 'Raro',
@@ -51,10 +51,10 @@ export function PlantDetailModal({
   if (!plant) return null;
 
   const stage = plant.current_stage;
-  const level = stage.order_index + 1;
+  const lc = getLifecycle(stage.order_index, plant.current_stage_waters);
   const rarity = plant.dna.rarity as string;
   const biome = plant.dna.biome as string;
-  const progressPct = Math.round((plant.current_stage_waters / stage.waters_required) * 100);
+  const progressPct = lc.progressPct;
   const canWater = plant.hydration_status === 'waiting_water';
   const herboReward = calcPlantScore(plant.dna, stage.order_index + 1);
 
@@ -128,7 +128,7 @@ export function PlantDetailModal({
             className="text-xl font-black"
             style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
           >
-            {stage.name} {level}
+            {lc.name}
           </h2>
         </div>
 
@@ -160,7 +160,7 @@ export function PlantDetailModal({
               className="text-xs font-bold"
               style={{ fontFamily: 'var(--font-display)', color: 'var(--color-wood-mid)' }}
             >
-              Nível {level}
+              {lc.name}
             </span>
           </div>
           <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(92,58,30,0.15)' }}>
@@ -177,7 +177,9 @@ export function PlantDetailModal({
               className="text-[9px]"
               style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}
             >
-              {plant.current_stage_waters}/{stage.waters_required} regas
+              {lc.isFinal
+                ? `${lc.progressWaters}/${lc.totalWaters} regas · crescimento máximo`
+                : `${lc.progressWaters}/${lc.totalWaters} regas até virar ${lc.nextName}`}
             </span>
             {canWater ? (
               <span
@@ -216,17 +218,6 @@ export function PlantDetailModal({
               }}
             >
               🍃 {herboReward} herbo
-            </div>
-            <div
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
-              style={{
-                background: 'rgba(59,130,246,0.1)',
-                color: '#93c5fd',
-                border: '1px solid rgba(59,130,246,0.2)',
-                fontFamily: 'var(--font-display)',
-              }}
-            >
-              💧 +{GAME.XP_PER_EVOLUTION} XP
             </div>
           </div>
         </div>

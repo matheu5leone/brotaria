@@ -113,6 +113,7 @@ import { useWrapPlant } from '@/hooks/useInventory';
 import { HexButton } from '@/components/HexButton';
 import { HexPot, getPotState } from '@/components/HexPot';
 import { PotFx } from '@/components/PotFx';
+import { lifecycleFromCode, isVisibleStageChange } from '@/config/lifecycle';
 import { usePendingGifts } from '@/hooks/useGifts';
 import { GiftReceiveModal } from '@/components/GiftReceiveModal';
 import type { PendingGift } from '@/hooks/useGifts';
@@ -520,11 +521,18 @@ export default function Garden() {
 
     try {
       const result = await waterMutation.mutateAsync({ plantId: pot.plant_id }) as
-        { evolved?: boolean; stageName?: string; herbo?: number } | undefined;
+        { evolved?: boolean; nextStage?: string; herbo?: number } | undefined;
       if (result) triggerWaterFx(pot.id); // gotas na terra sempre que a rega dá certo
       if (result?.evolved) {
-        const reward = result.herbo ? ` · +${result.herbo} 🍃` : '';
-        showToast(`🌱 Nova fase: ${result.stageName ?? 'planta evoluiu'}!${reward}`, 'success');
+        const herbo = result.herbo ? `+${result.herbo} 🍃` : '';
+        if (result.nextStage && isVisibleStageChange(result.nextStage)) {
+          // Mudança VISÍVEL de estágio (a planta muda na tela)
+          const name = lifecycleFromCode(result.nextStage).name;
+          showToast(`🌿 Sua planta virou ${name}!${herbo ? ' · ' + herbo : ''}`, 'success');
+        } else if (herbo) {
+          // Fase interna (nada muda na tela) → feedback discreto de recompensa
+          showToast(herbo, 'success');
+        }
       }
     } catch (err: unknown) {
       const e = err as { code?: string; message?: string };

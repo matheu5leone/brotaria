@@ -10,6 +10,7 @@ import { useRanking, RankingEntry } from '@/hooks/useRanking';
 import { RarityEffect } from '@/components/RarityEffect';
 import { PlantHistoryModal } from '@/components/PlantHistoryModal';
 import { PlantRow } from '@/hooks/usePlantData';
+import { lifecycleFromOrder } from '@/config/lifecycle';
 import { Rarity } from '@/types';
 
 function rankingEntryToPlantRow(entry: RankingEntry): PlantRow {
@@ -17,7 +18,7 @@ function rankingEntryToPlantRow(entry: RankingEntry): PlantRow {
     id: entry.plant_id,
     hydration_status: 'hydrated',
     current_stage_waters: 0,
-    current_stage: { id: '', code: '', name: entry.stage_name, order_index: 0, waters_required: 3 },
+    current_stage: { id: '', code: '', name: entry.stage_name, order_index: entry.stage_order, waters_required: 3 },
     dna: entry.dna,
     created_at: '',
     next_water_needed_at: '',
@@ -100,7 +101,7 @@ function RankingCard({ entry, onOpen }: { entry: RankingEntry; onOpen: () => voi
           )}
           <RarityBadge rarity={entry.rarity} />
         </div>
-        <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>{entry.stage_name}</p>
+        <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>{lifecycleFromOrder(entry.stage_order).name}</p>
       </div>
 
       {/* Score */}

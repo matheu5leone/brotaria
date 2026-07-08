@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import { PlantImage } from '@/components/PlantImage';
 import { X, ChevronLeft, ChevronRight, Droplets, Leaf, Star, Flame, Zap, Sprout } from 'lucide-react';
-import { GAME } from '@/config/economy';
+import { lifecycleFromOrder, getLifecycle } from '@/config/lifecycle';
 import { calcPlantScore } from '@/lib/scoring';
 import { PlantRow, PlantVersionHistoryRow, usePlantHistory } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
@@ -53,9 +53,9 @@ const BIOME_TEXT: Record<string, string> = {
 
 function generateDescription(version: PlantVersionHistoryRow): string {
   const dna = version.dna_snapshot;
-  const stageName = version.stage?.name ?? 'planta';
+  const stageName = version.stage ? lifecycleFromOrder(version.stage.order_index).name : 'planta';
   const biome = BIOME_TEXT[dna.biome as string] ?? 'ambientes variados';
-  return `Um ${stageName.toLowerCase()} de espírito ${dna.personality}. Cresce bem em ${biome}.`;
+  return `Uma ${stageName.toLowerCase()} de espírito ${dna.personality}. Cresce bem em ${biome}.`;
 }
 
 // ── Helper: formatar data ─────────────────────────────────────────────────────
@@ -91,13 +91,13 @@ function VersionCard({
   isLast: boolean;
 }) {
   const rarity = (version.dna_snapshot?.rarity ?? 'comum') as Rarity;
-  const level = (version.stage?.order_index ?? 0) + 1;
+  const stageLabel = lifecycleFromOrder(version.stage?.order_index ?? 1).name;
   const biome = version.dna_snapshot?.biome as string;
   const description = generateDescription(version);
 
-  // Progress: historical stages = 100%; current stage = live data
+  // Progress: estágios passados = 100%; estágio atual = ao vivo (por estágio visível)
   const progressPct = isLast
-    ? Math.round((plant.current_stage_waters / plant.current_stage.waters_required) * 100)
+    ? getLifecycle(plant.current_stage.order_index, plant.current_stage_waters).progressPct
     : 100;
   const canWater = isLast && plant.hydration_status === 'waiting_water';
 
@@ -109,7 +109,7 @@ function VersionCard({
           className="text-lg font-black mb-1 leading-tight"
           style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
         >
-          {version.stage?.name ?? 'Planta'} {level}
+          {stageLabel}
         </h2>
         <p
           className="text-xs leading-relaxed mb-3"
@@ -159,7 +159,7 @@ function VersionCard({
               className="text-[9px] font-bold"
               style={{ fontFamily: 'var(--font-display)', color: 'var(--color-wood-mid)' }}
             >
-              Nível {level}
+              {stageLabel}
             </span>
           </div>
           <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(92,58,30,0.15)' }}>
@@ -176,12 +176,12 @@ function VersionCard({
                 </span>
               ) : (
                 <span className="text-[8px]" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)' }}>
-                  Próximo nível em: {formatNextWater(plant.next_water_needed_at)}
+                  Próxima rega em: {formatNextWater(plant.next_water_needed_at)}
                 </span>
               )
             ) : (
               <span className="text-[8px]" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)' }}>
-                Fase concluída ✓
+                Estágio concluído ✓
               </span>
             )}
           </div>
@@ -194,12 +194,6 @@ function VersionCard({
             style={{ background: 'rgba(201,162,39,0.14)', color: 'var(--color-wood-dark)', border: '1px solid rgba(201,162,39,0.3)', fontFamily: 'var(--font-display)' }}
           >
             🍃 {calcPlantScore(version.dna_snapshot, version.stage?.order_index ?? 0)}
-          </div>
-          <div
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold"
-            style={{ background: 'rgba(42,90,30,0.12)', color: '#2a5a1e', border: '1px solid rgba(42,90,30,0.25)', fontFamily: 'var(--font-display)' }}
-          >
-            💧 +{GAME.XP_PER_EVOLUTION} XP
           </div>
         </div>
       </div>
@@ -233,7 +227,7 @@ function VersionCard({
           className="mt-2 text-center text-[10px] font-bold leading-tight"
           style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
         >
-          {version.stage?.name ?? 'Planta'} {level}
+          {stageLabel}
         </div>
       </div>
     </div>

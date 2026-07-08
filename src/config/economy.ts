@@ -144,8 +144,6 @@ export const GAME = {
    * Herbo NÃO é comprado com dinheiro real. É obtido apenas jogando.
    * Moedas (coins) são compradas com R$ e gastas na loja.
    */
-  /** XP ganho por evolução (implementação futura). */
-  XP_PER_EVOLUTION: 10,
 
   // ── Satisfação ────────────────────────────────────────────────────────────
   /** Ponto de satisfação perdido ao exibir rosto triste (mover planta com 0 regas). */
