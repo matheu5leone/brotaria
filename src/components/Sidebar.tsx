@@ -10,15 +10,17 @@ import { useWallet } from '@/hooks/useWallet';
 import {
   LogOut, LayoutDashboard, Store,
   ChevronLeft, ChevronRight, Trophy, Target,
-  MoreVertical, UserPlus, Check, Droplets, Camera,
+  MoreVertical, UserPlus, Check, Droplets, Camera, Heart,
 } from 'lucide-react';
 import { CoinIcon } from '@/components/CoinIcon';
 import { AvatarCircle } from '@/components/AvatarCircle';
 import { AvatarPickerModal } from '@/components/AvatarPickerModal';
+import { useLikes } from '@/hooks/useLikes';
 
 export default function Sidebar() {
   const { user, signOut } = useAuth();
   const { coins, herbo, nickname, referralCode, avatarUrl } = useWallet();
+  const { data: myLikes } = useLikes(user?.id); // curtidas recebidas no próprio jardim
   const myGarden = nickname ? `/jardim/${nickname}` : '/';
   const [pickerOpen, setPickerOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -261,6 +263,23 @@ export default function Sidebar() {
                   </span>
                 )}
               </button>
+
+              {/* Curtidas recebidas no meu jardim */}
+              {!isSidebarCollapsed && (
+                <div
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg font-black text-xs flex-shrink-0"
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    background: 'rgba(248,113,113,0.1)',
+                    color: '#c0504d',
+                    border: '1px solid rgba(248,113,113,0.3)',
+                  }}
+                  title="Curtidas do seu jardim"
+                >
+                  <Heart className="w-3.5 h-3.5" style={{ fill: '#c0504d' }} />
+                  {myLikes?.total ?? 0}
+                </div>
+              )}
 
               {/* ⋮ — abre menu discreto com "Convidar amigos" */}
               {!isSidebarCollapsed && (

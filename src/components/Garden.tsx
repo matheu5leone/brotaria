@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Pot } from '@/types';
-import { X, Loader2, Trash2, Sprout, Heart, HelpCircle } from 'lucide-react';
+import { X, Loader2, Trash2, Sprout } from 'lucide-react';
 
 // Ícones PNG dimensionados em `em` para escalar com o tamanho do botão (.hex-button)
 const WateringCanIcon = () => (
@@ -86,7 +86,6 @@ import CoinPurchaseModal from './CoinPurchaseModal';
 import { usePots, useShovelStatus, useWateringStatus } from '@/hooks/useGardenData';
 import { SHOVEL_COOLDOWN_MS } from '@/config/economy';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
-import { useLikes } from '@/hooks/useLikes';
 import { useWallet } from '@/hooks/useWallet';
 import { authFetch } from '@/lib/authFetch';
 import { TutorialCoach } from '@/components/TutorialCoach';
@@ -231,7 +230,6 @@ export default function Garden() {
   // Pré-visualização da cava: silhueta-fantasma + validade (colisão/área)
   const [digPreview, setDigPreview]                 = useState<{ posX: number; posY: number; valid: boolean } | null>(null);
   const isDesktop = useIsDesktop();
-  const { data: myLikes } = useLikes(user?.id); // curtidas do próprio jardim
   const [wrappingMode, setWrappingMode]             = useState(false);
   const [wrapError, setWrapError]                   = useState<string | null>(null);
   const [activeGift, setActiveGift]                 = useState<PendingGift | null>(null);
@@ -1181,7 +1179,7 @@ export default function Garden() {
         />
       )}
 
-      {/* ── Canto superior esquerdo: botão de plantas + curtidas do jardim ──── */}
+      {/* ── Canto superior esquerdo: botão de plantas ─────────────────────── */}
       <div className="absolute top-3 left-3 z-[100] flex flex-col items-start gap-2">
         <button
           onClick={(e) => { e.stopPropagation(); setPlantsGridOpen(true); }}
@@ -1198,44 +1196,25 @@ export default function Garden() {
           <Sprout className="w-3.5 h-3.5" />
           Minhas Plantas
         </button>
-
-        {/* Ajuda — reabre o tutorial dos botões a qualquer hora */}
-        <button
-          onClick={(e) => { e.stopPropagation(); startTutorial(); }}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-bold text-xs transition-all hover:brightness-110 active:scale-95"
-          style={{
-            fontFamily: 'var(--font-display)',
-            background: 'rgba(8,14,5,0.72)',
-            color: 'var(--color-text-light)',
-            border: '1px solid rgba(201,162,39,0.35)',
-            boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
-            backdropFilter: 'blur(6px)',
-          }}
-          title="Como jogar — tutorial dos botões"
-        >
-          <HelpCircle className="w-3.5 h-3.5" style={{ color: 'var(--color-gold)' }} />
-          Ajuda
-        </button>
-
-        {/* Curtidas recebidas — no mobile isto vive no menu de perfil (BottomNav) */}
-        {isDesktop && (
-          <div
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-sm"
-            style={{
-              fontFamily: 'var(--font-display)',
-              background: 'rgba(8,14,5,0.72)',
-              color: '#f87171',
-              border: '1px solid rgba(248,113,113,0.35)',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
-              backdropFilter: 'blur(6px)',
-            }}
-            title="Curtidas do seu jardim"
-          >
-            <Heart className="w-4 h-4" style={{ fill: '#f87171' }} />
-            {myLikes?.total ?? 0}
-          </div>
-        )}
       </div>
+
+      {/* ── Ajuda (só "?") — canto superior direito ────────────────────────── */}
+      <button
+        onClick={(e) => { e.stopPropagation(); startTutorial(); }}
+        className="absolute top-3 right-3 z-[100] flex items-center justify-center w-9 h-9 rounded-full font-black text-base transition-all hover:brightness-110 active:scale-95"
+        style={{
+          fontFamily: 'var(--font-display)',
+          background: 'rgba(8,14,5,0.72)',
+          color: 'var(--color-gold)',
+          border: '1px solid rgba(201,162,39,0.45)',
+          boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+          backdropFilter: 'blur(6px)',
+        }}
+        title="Como jogar — tutorial dos botões"
+        aria-label="Ajuda"
+      >
+        ?
+      </button>
 
       {/* ── Painel de ferramentas — canto inferior direito, âncora fixa ────── */}
       <div className="painel" onClick={(e) => e.stopPropagation()}>
