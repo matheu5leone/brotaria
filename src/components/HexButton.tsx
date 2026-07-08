@@ -15,6 +15,8 @@ interface HexButtonProps {
   onClick?: (e: React.MouseEvent) => void;
   onPointerDown?: (e: React.PointerEvent) => void;
   title?: string;
+  /** Marcador para o tutorial (coach marks) achar este botão. */
+  tutorialId?: string;
 }
 
 // Partículas douradas (estilo das plantas) exibidas quando o botão está ativo.
@@ -31,7 +33,7 @@ const ACTIVE_PARTICLES = Array.from({ length: 6 }, (_, i) => {
 });
 
 export function HexButton({
-  icon, label, badge, disabled = false, active = false, anchor = false, className, cooldown, onClick, onPointerDown, title,
+  icon, label, badge, disabled = false, active = false, anchor = false, className, cooldown, onClick, onPointerDown, title, tutorialId,
 }: HexButtonProps) {
   const [hovered, setHovered] = useState(false);
   const [pressed, setPressed] = useState(false);
@@ -72,6 +74,7 @@ export function HexButton({
       tabIndex={disabled ? -1 : 0}
       aria-label={tooltipText}
       aria-disabled={disabled}
+      data-tutorial={tutorialId}
       className={`hex-button relative select-none${anchor ? ' hex-button--anchor' : ''}${className ? ` ${className}` : ''}`}
       style={{
         cursor: blocked ? (cooling ? 'default' : 'not-allowed') : 'pointer',

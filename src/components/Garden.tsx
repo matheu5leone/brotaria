@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Pot } from '@/types';
-import { X, Loader2, Trash2, Sprout, Heart } from 'lucide-react';
+import { X, Loader2, Trash2, Sprout, Heart, HelpCircle } from 'lucide-react';
 
 // Ícones PNG dimensionados em `em` para escalar com o tamanho do botão (.hex-button)
 const WateringCanIcon = () => (
@@ -87,6 +87,10 @@ import { usePots, useShovelStatus, useWateringStatus } from '@/hooks/useGardenDa
 import { SHOVEL_COOLDOWN_MS } from '@/config/economy';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
 import { useLikes } from '@/hooks/useLikes';
+import { useWallet } from '@/hooks/useWallet';
+import { authFetch } from '@/lib/authFetch';
+import { TutorialCoach } from '@/components/TutorialCoach';
+import { TUTORIAL_STEPS } from '@/config/tutorialSteps';
 import { potPolygonPx, polygonsOverlap, footprintBounds, POT_FOOTPRINT } from '@/lib/potGeometry';
 
 // Pontos do footprint para o SVG da silhueta (viewBox 0 0 100 165 = aspecto da caixa)
@@ -236,6 +240,30 @@ export default function Garden() {
   const [inventoryOpen, setInventoryOpen]           = useState(false);
   const [painelOpen, setPainelOpen]                 = useState(false); // painel recolhível (começa recolhido)
   const [plantsGridOpen, setPlantsGridOpen]         = useState(false); // grid "Minhas Plantas"
+
+  // ── Tutorial (coach marks do painel) ──────────────────────────────────────
+  const { welcomeAck, tutorialSeen } = useWallet();
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+  const tutorialAutoRan = useRef(false);
+
+  const startTutorial = useCallback(() => { setPainelOpen(true); setTutorialOpen(true); }, []);
+  const closeTutorial = useCallback(() => {
+    setTutorialOpen(false);
+    if (!tutorialSeen) {
+      authFetch('/api/profile/tutorial-ack', { method: 'POST' }).catch(() => {});
+      qc.invalidateQueries({ queryKey: ['wallet', user?.id] });
+    }
+  }, [tutorialSeen, qc, user?.id]);
+
+  // Auto 1x: após a semente (welcomeAck) e se ainda não viu. setState em callback.
+  useEffect(() => {
+    if (tutorialAutoRan.current) return;
+    if (welcomeAck && !tutorialSeen) {
+      tutorialAutoRan.current = true;
+      const raf = requestAnimationFrame(() => { setPainelOpen(true); setTutorialOpen(true); });
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [welcomeAck, tutorialSeen]);
   // Toast central de feedback (evolução de fase, erros de rega, etc.)
   const [toast, setToast]                           = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1171,6 +1199,24 @@ export default function Garden() {
           Minhas Plantas
         </button>
 
+        {/* Ajuda — reabre o tutorial dos botões a qualquer hora */}
+        <button
+          onClick={(e) => { e.stopPropagation(); startTutorial(); }}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-bold text-xs transition-all hover:brightness-110 active:scale-95"
+          style={{
+            fontFamily: 'var(--font-display)',
+            background: 'rgba(8,14,5,0.72)',
+            color: 'var(--color-text-light)',
+            border: '1px solid rgba(201,162,39,0.35)',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+            backdropFilter: 'blur(6px)',
+          }}
+          title="Como jogar — tutorial dos botões"
+        >
+          <HelpCircle className="w-3.5 h-3.5" style={{ color: 'var(--color-gold)' }} />
+          Ajuda
+        </button>
+
         {/* Curtidas recebidas — no mobile isto vive no menu de perfil (BottomNav) */}
         {isDesktop && (
           <div
@@ -1197,6 +1243,7 @@ export default function Garden() {
         <HexButton
           anchor
           className="painel-btn"
+          tutorialId="menu"
           icon={<PainelToggleIcon expanded={painelOpen} />}
           label={painelOpen ? 'Recolher' : 'Menu'}
           onClick={(e) => { e.stopPropagation(); setPainelOpen(v => !v); }}
@@ -1209,6 +1256,7 @@ export default function Garden() {
             {/* Mochila */}
             <HexButton
               className="painel-btn"
+              tutorialId="backpack"
               icon={<BackpackIcon open={inventoryOpen} />}
               label="Mochila"
               active={inventoryOpen}
@@ -1218,6 +1266,7 @@ export default function Garden() {
             {/* Pá — cooldown radial */}
             <HexButton
               className="painel-btn"
+              tutorialId="shovel"
               icon={digMutation.isPending ? <SpinnerIcon /> : <ShovelIcon />}
               disabled={digMutation.isPending}
               cooldown={shovelCdShown > 0 ? { remainingMs: shovelCdShown, totalMs: SHOVEL_COOLDOWN_MS, label: formatCooldown(shovelCdShown) } : undefined}
@@ -1230,6 +1279,7 @@ export default function Garden() {
             {/* Regador — badge com nº de regas */}
             <HexButton
               className="painel-btn"
+              tutorialId="water"
               icon={waterMutation.isPending ? <SpinnerIcon /> : <WateringCanIcon />}
               badge={waterBalance}
               disabled={!canWaterToday || waterMutation.isPending}
@@ -1241,6 +1291,7 @@ export default function Garden() {
             {/* Carrinho de mão (mover planta) */}
             <HexButton
               className="painel-btn"
+              tutorialId="barrow"
               icon={movePlantMutation.isPending ? <SpinnerIcon /> : <WheelbarrowIcon carriedImageUrl={carried?.imageUrl ?? null} carrying={!!carried} />}
               disabled={movePlantMutation.isPending}
               active={barrowDrag || !!carried}
@@ -1251,6 +1302,7 @@ export default function Garden() {
             {/* Lixeira (remover planta / canteiro) */}
             <HexButton
               className="painel-btn"
+              tutorialId="trash"
               icon={deleteMutation.isPending || removePotMutation.isPending ? <SpinnerIcon /> : <TrashIcon />}
               disabled={deleteMutation.isPending || removePotMutation.isPending}
               active={trashDrag}
@@ -1298,6 +1350,11 @@ export default function Garden() {
         >
           {toast.text}
         </div>
+      )}
+
+      {/* ── Tutorial (coach marks dos botões do painel) ──────────────────── */}
+      {tutorialOpen && (
+        <TutorialCoach steps={TUTORIAL_STEPS} isDesktop={isDesktop} onClose={closeTutorial} />
       )}
 
       {/* ── Grid "Minhas Plantas" (imagem, raridade e valor) ─────────────── */}
