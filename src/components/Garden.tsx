@@ -167,6 +167,10 @@ function HistoryWrapper({
   );
 }
 
+// Estágios (order_index) que geram imagem via IA ao entrar → chamam a OpenRouter.
+// Só nesses casos a rega mostra a tela de evolução (raios de sol).
+const IMAGE_STAGE_ORDERS = new Set([2, 5, 8, 11]);
+
 export default function Garden() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -220,8 +224,6 @@ export default function Garden() {
   const waterFxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Tela de evolução (raios solares + logo) enquanto a IA gera a nova fase
   const [evolvingPlant, setEvolvingPlant]           = useState(false);
-  const evoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (evoTimer.current) clearTimeout(evoTimer.current); }, []);
   // Remove spot mode
   const [removeError, setRemoveError]               = useState<string | null>(null);
   // Lixeira (remover planta / canteiro) — drag-and-drop estilo regador
@@ -502,39 +504,27 @@ export default function Garden() {
     if (!pot.plant_id || !canWaterToday || waterMutation.isPending) return;
     setWateringError(null);
 
-    // Esta rega vai evoluir a planta? Se a planta está no cache, dá pra prever
-    // e mostrar a tela de evolução na hora; senão, um fallback por tempo cobre
-    // requisições lentas (geração de imagem) sem piscar nas regas normais.
+    // A tela de evolução (raios de sol) SÓ deve aparecer quando a rega for chamar
+    // a IA (OpenRouter) — ou seja, quando a planta evolui para um estágio que gera
+    // imagem (order_index 2, 5, 8, 11). Em toda outra rega mostramos só as gotas.
     const cached = qc.getQueryData<PlantRow>(['plant', pot.plant_id]);
-    // Planta precisa de água AGORA? (mesma regra do servidor)
     const needsWater = !!cached && (
       cached.hydration_status === 'waiting_water' ||
       (!!cached.next_water_needed_at && new Date(cached.next_water_needed_at) < new Date())
     );
-    // Sabemos (pelo cache) que NÃO precisa de água → não dispara loader nenhum.
-    // (Evita o loader de evolução aparecer ao "regar" uma planta que vai evoluir
-    //  mas ainda não precisa de água — a rega será rejeitada com NOT_READY.)
-    const knownNotReady = !!cached && !needsWater;
     const willEvolve = !!cached && needsWater &&
       cached.current_stage_waters + 1 >= cached.current_stage.waters_required;
+    const willCallAI = willEvolve && IMAGE_STAGE_ORDERS.has(cached!.current_stage.order_index + 1);
 
-    if (knownNotReady) {
-      // sem loader
-    } else if (willEvolve) {
-      setEvolvingPlant(true);
-    } else {
-      evoTimer.current = setTimeout(() => setEvolvingPlant(true), 700);
-    }
+    if (willCallAI) setEvolvingPlant(true);
 
     try {
       const result = await waterMutation.mutateAsync({ plantId: pot.plant_id }) as
         { evolved?: boolean; stageName?: string; herbo?: number } | undefined;
+      if (result) triggerWaterFx(pot.id); // gotas na terra sempre que a rega dá certo
       if (result?.evolved) {
         const reward = result.herbo ? ` · +${result.herbo} 🍃` : '';
         showToast(`🌱 Nova fase: ${result.stageName ?? 'planta evoluiu'}!${reward}`, 'success');
-      } else if (result) {
-        // Rega normal (sem evolução) → gotas de água na terra do canteiro
-        triggerWaterFx(pot.id);
       }
     } catch (err: unknown) {
       const e = err as { code?: string; message?: string };
@@ -544,7 +534,6 @@ export default function Garden() {
         (e.message ?? 'Erro ao regar.');
       showToast(msg, 'error');
     } finally {
-      if (evoTimer.current) { clearTimeout(evoTimer.current); evoTimer.current = null; }
       setEvolvingPlant(false);
     }
   }, [canWaterToday, waterMutation, showToast, qc, triggerWaterFx]);
