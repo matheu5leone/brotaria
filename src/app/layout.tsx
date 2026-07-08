@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
 import { WalletProvider } from "@/hooks/useWallet";
 import { QueryProvider } from "@/providers/QueryProvider";
+import { ChunkReloadGuard } from "@/components/ChunkReloadGuard";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -80,6 +81,7 @@ export default function RootLayout({
           </defs>
         </svg>
 
+        <ChunkReloadGuard />
         <QueryProvider>
           <AuthProvider>
             <WalletProvider>
