@@ -207,6 +207,10 @@ export default function Garden() {
   const [wateringDragPos, setWateringDragPos]       = useState<{ x: number; y: number } | null>(null);
   const [wateringTargetPotId, setWateringTargetPotId] = useState<string | null>(null);
   const [wateringError, setWateringError]           = useState<string | null>(null);
+  // Drag-and-drop de plantar: arrasta a semente da mochila até um canteiro vazio
+  const [seedDrag, setSeedDrag]                     = useState(false);
+  const [seedDragPos, setSeedDragPos]               = useState<{ x: number; y: number } | null>(null);
+  const [seedTargetPotId, setSeedTargetPotId]       = useState<string | null>(null);
   // Tela de evolução (raios solares + logo) enquanto a IA gera a nova fase
   const [evolvingPlant, setEvolvingPlant]           = useState(false);
   const evoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -571,6 +575,55 @@ export default function Garden() {
     captureEl.addEventListener('pointercancel', onUp);
   }, [canWaterToday, waterMutation.isPending, findPotAtPoint, handleWaterPot]);
 
+  // Plantar arrastando a semente da mochila até um canteiro vazio (estilo regador).
+  const handleSeedDragStart = useCallback((e: React.PointerEvent) => {
+    if (plantMutation.isPending) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    // A mochila (modal) fecha ao arrastar → captura o ponteiro num elemento
+    // ESTÁVEL (a raiz do jardim), senão pointermove/up se perdem quando o slot
+    // da semente desmonta junto com o modal.
+    const captureEl = containerRef.current;
+    if (!captureEl) return;
+    const pointerId = e.pointerId;
+    try { captureEl.setPointerCapture(pointerId); } catch {}
+
+    setInventoryOpen(false); // fecha a mochila
+    setSeedDrag(true);
+    setSeedDragPos({ x: e.clientX, y: e.clientY });
+    setSeedTargetPotId(null);
+    setShovelActive(false);
+
+    const isPlantable = (pot: Pot | null): pot is Pot =>
+      !!pot && !pot.plant_id && getPotState(pot) === 'ready';
+
+    const onMove = (ev: PointerEvent) => {
+      setSeedDragPos({ x: ev.clientX, y: ev.clientY });
+      const pot = findPotAtPoint(ev.clientX, ev.clientY);
+      setSeedTargetPotId(isPlantable(pot) ? pot.id : null);
+    };
+    const onUp = (ev: PointerEvent) => {
+      setSeedDrag(false);
+      setSeedDragPos(null);
+      setSeedTargetPotId(null);
+      captureEl.removeEventListener('pointermove', onMove);
+      captureEl.removeEventListener('pointerup', onUp);
+      captureEl.removeEventListener('pointercancel', onUp);
+      try { captureEl.releasePointerCapture(pointerId); } catch {}
+
+      const pot = findPotAtPoint(ev.clientX, ev.clientY);
+      if (isPlantable(pot)) {
+        plantMutation.mutateAsync({ potId: pot.id }).catch((err: unknown) => {
+          if ((err as { code?: string }).code === 'NO_SEEDS') setCoinModalPotId(pot.id);
+        });
+      }
+    };
+    captureEl.addEventListener('pointermove', onMove);
+    captureEl.addEventListener('pointerup', onUp);
+    captureEl.addEventListener('pointercancel', onUp);
+  }, [plantMutation, findPotAtPoint]);
+
   // Remove canteiro vazio
   const handleRemovePot = useCallback(async (pot: Pot) => {
     if (pot.plant_id) { setRemoveError('Remova a planta antes de apagar o canteiro.'); return; }
@@ -710,7 +763,7 @@ export default function Garden() {
   const handlePotClick = (pot: Pot) => async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (suppressClickRef.current) return; // ignora clique sintético pós-rega
-    if (wateringDrag || barrowDrag || trashDrag) return; // drag cuida das ferramentas
+    if (wateringDrag || barrowDrag || trashDrag || seedDrag) return; // drag cuida das ferramentas
 
     if (shovelActive && isDesktop) { await digAt(e.clientX, e.clientY); return; }
 
@@ -732,13 +785,8 @@ export default function Garden() {
       return;
     }
 
-    if (getPotState(pot) === 'ready') {
-      try {
-        await plantMutation.mutateAsync({ potId: pot.id });
-      } catch (err: unknown) {
-        if ((err as { code?: string }).code === 'NO_SEEDS') setCoinModalPotId(pot.id);
-      }
-    }
+    // Canteiro vazio: plantar agora é por ARRASTE da semente (mochila → canteiro),
+    // não mais por clique. Clique num canteiro vazio não faz nada.
   };
 
   // Confirmação da lixeira: exclui a planta do pot pendente
@@ -1015,7 +1063,8 @@ export default function Garden() {
                   selectedPotId === pot.id ||
                   (wateringDrag && wateringTargetPotId === pot.id) ||
                   (barrowDrag && barrowTargetPotId === pot.id) ||
-                  (trashDrag && trashTargetPotId === pot.id) ? 100000 : 0
+                  (trashDrag && trashTargetPotId === pot.id) ||
+                  (seedDrag && seedTargetPotId === pot.id) ? 100000 : 0
                 ),
                 pointerEvents: 'none', // só o hitbox recortado dentro do HexPot clica
               }}
@@ -1027,6 +1076,7 @@ export default function Garden() {
                 isWaterTarget={wateringDrag && wateringTargetPotId === pot.id}
                 isMoveTarget={barrowDrag && barrowTargetPotId === pot.id}
                 isTrashTarget={trashDrag && trashTargetPotId === pot.id}
+                isSeedTarget={seedDrag && seedTargetPotId === pot.id}
                 onClick={handlePotClick(pot)}
                 onDigComplete={handleDigComplete}
               />
@@ -1159,6 +1209,16 @@ export default function Garden() {
         </div>
       )}
 
+      {/* ── Semente sendo arrastada (fixed) ──────────────────────────────── */}
+      {seedDrag && seedDragPos && (
+        <div
+          className="fixed pointer-events-none z-[9999] select-none"
+          style={{ left: seedDragPos.x - 22, top: seedDragPos.y - 26, width: 44, height: 44, filter: 'drop-shadow(0 2px 6px rgba(74,222,128,0.7))' }}
+        >
+          <Image src="/imgs/seed.webp" alt="semente" width={44} height={44} className="object-contain" draggable={false} />
+        </div>
+      )}
+
       {/* ── Trash cursor (fixed) ─────────────────────────────────────────── */}
       {trashDrag && trashDragPos && (
         <div
@@ -1176,6 +1236,7 @@ export default function Garden() {
           onWrapMode={() => setWrappingMode(true)}
           open={inventoryOpen}
           onClose={() => setInventoryOpen(false)}
+          onSeedDragStart={handleSeedDragStart}
         />
       )}
 

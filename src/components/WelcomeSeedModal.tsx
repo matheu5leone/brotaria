@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Sprout, Check } from 'lucide-react';
+import Image from 'next/image';
+import { Loader2, Check } from 'lucide-react';
 import { authFetch } from '@/lib/authFetch';
 import { useWallet } from '@/hooks/useWallet';
 
@@ -66,7 +67,7 @@ export function WelcomeSeedModal({ onDone }: { onDone: () => void }) {
             border: '2px solid rgba(74,222,128,0.35)',
           }}
         >
-          <Sprout className="w-14 h-14" style={{ color: '#2a7a2a' }} strokeWidth={1.6} />
+          <Image src="/imgs/seed.webp" alt="semente" width={68} height={68} className="object-contain drop-shadow-lg" />
         </div>
 
         <span
@@ -107,8 +108,9 @@ export function WelcomeSeedModal({ onDone }: { onDone: () => void }) {
         >
           <Check className="w-4 h-4" />
           {seedCount > 0
-            ? <>Adicionada à mochila · 🌱 {seedCount} {seedCount === 1 ? 'semente' : 'sementes'}</>
-            : <>Adicionada à sua mochila 🌱</>}
+            ? <>Adicionada à mochila · {seedCount} {seedCount === 1 ? 'semente' : 'sementes'}</>
+            : <>Adicionada à sua mochila</>}
+          <Image src="/imgs/seed.webp" alt="" width={16} height={16} className="object-contain inline-block" />
         </div>
 
         <button

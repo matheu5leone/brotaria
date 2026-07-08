@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import NavLink from '@/components/NavLink';
-import Inventory from '@/components/Inventory';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import {
@@ -216,22 +215,6 @@ export default function Sidebar() {
           </NavLink>
         </div>
 
-        <div
-          className="pt-4"
-          style={{ borderTop: `1px solid rgba(92,58,30,0.2)` }}
-        >
-          {!isSidebarCollapsed && (
-            <p
-              className="px-3 text-[10px] font-bold uppercase tracking-widest mb-4"
-              style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-muted)' }}
-            >
-              Inventário
-            </p>
-          )}
-          <div className={isSidebarCollapsed ? '' : 'px-1'}>
-            <Inventory isCollapsed={isSidebarCollapsed} />
-          </div>
-        </div>
       </nav>
 
       {/* User / Profile */}

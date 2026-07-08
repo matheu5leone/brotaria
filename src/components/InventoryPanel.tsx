@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { Sprout, Gift, X, Info, PackageOpen, SendHorizonal } from 'lucide-react';
+import { Gift, X, Info, PackageOpen, SendHorizonal } from 'lucide-react';
 import { useInventory, useOpenGift, usePatchLabel } from '@/hooks/useInventory';
 import { useUnwrap } from '@/hooks/useGifts';
 import { GiftSendModal } from '@/components/GiftSendModal';
@@ -212,6 +212,7 @@ function SlotContent({
   animRarity,
   onOpenGift,
   onLabelSave,
+  onSeedDragStart,
 }: {
   item: InventoryItem | undefined;
   userId: string;
@@ -219,6 +220,7 @@ function SlotContent({
   animRarity: Rarity;
   onOpenGift: () => void;
   onLabelSave: (label: string) => void;
+  onSeedDragStart?: (e: React.PointerEvent) => void;
 }) {
   if (animPhase !== 'idle') return <AnimatingSlot phase={animPhase} rarity={animRarity} />;
 
@@ -226,9 +228,14 @@ function SlotContent({
 
   if (item.item_type === 'seed') {
     return (
-      <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full bg-green-200/50 border border-green-600/40 rounded-xl">
-        <Sprout className="w-5 h-5 text-green-700" />
-        <span className="text-green-800 text-[9px] font-bold">×{item.quantity}</span>
+      <div
+        className="flex flex-col items-center justify-center gap-0.5 w-full h-full bg-green-200/50 border border-green-600/40 rounded-xl cursor-grab active:cursor-grabbing"
+        style={{ touchAction: 'none' }}
+        onPointerDown={(e) => { e.stopPropagation(); onSeedDragStart?.(e); }}
+        title="Arraste até um canteiro vazio para plantar"
+      >
+        <Image src="/imgs/seed.webp" alt="semente" width={34} height={34} className="object-contain pointer-events-none" draggable={false} />
+        <span className="text-green-800 text-[9px] font-bold pointer-events-none">×{item.quantity}</span>
       </div>
     );
   }
@@ -256,11 +263,14 @@ export function InventoryPanel({
   onWrapMode,
   open,
   onClose,
+  onSeedDragStart,
 }: {
   userId: string | undefined;
   onWrapMode: () => void;
   open: boolean;
   onClose: () => void;
+  /** Inicia o arraste de plantar a partir de um slot de semente (fecha a mochila). */
+  onSeedDragStart?: (e: React.PointerEvent) => void;
 }) {
   const [animatingSlot, setAnimatingSlot] = useState<number | null>(null);
   const [animPhase, setAnimPhase] = useState<OpenPhase>('idle');
@@ -376,6 +386,7 @@ export function InventoryPanel({
                 animRarity={animRarity}
                 onOpenGift={() => item && handleOpenGift(item)}
                 onLabelSave={(label) => item && handleLabelSave(item, label)}
+                onSeedDragStart={onSeedDragStart}
               />
             </div>
           ))}

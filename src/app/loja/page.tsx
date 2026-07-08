@@ -201,7 +201,13 @@ export default function LojaPage() {
                       </span>
                     )}
                     <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.5)', boxShadow: 'inset 0 2px 6px rgba(92,58,30,0.15)' }}>
-                      <Sprout className="w-12 h-12" style={{ color: '#2a5a1e' }} />
+                      {product.id === 'seed' ? (
+                        <Image src="/imgs/seed.webp" alt="semente" width={48} height={48} className="object-contain w-12 h-12" />
+                      ) : product.id === 'wrapping_kit' ? (
+                        <span className="text-5xl leading-none">🎁</span>
+                      ) : (
+                        <Sprout className="w-12 h-12" style={{ color: '#2a5a1e' }} />
+                      )}
                     </div>
                   </div>
                   <div className="p-5 flex flex-col flex-1">

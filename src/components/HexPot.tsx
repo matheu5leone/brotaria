@@ -35,6 +35,7 @@ export function HexPot({
   isWaterTarget = false,
   isMoveTarget = false,
   isTrashTarget = false,
+  isSeedTarget = false,
   onClick,
   onPointerDown,
   onDigComplete,
@@ -46,6 +47,7 @@ export function HexPot({
   isWaterTarget?: boolean;
   isMoveTarget?: boolean;
   isTrashTarget?: boolean;
+  isSeedTarget?: boolean;
   onClick: (e: React.MouseEvent) => void;
   onPointerDown?: (e: React.PointerEvent) => void;
   onDigComplete?: () => void;
@@ -97,8 +99,9 @@ export function HexPot({
   const waterGlow = 'drop-shadow(0 0 4px rgba(59,130,246,0.95)) drop-shadow(0 0 9px rgba(59,130,246,0.85))';
   const moveGlow  = 'drop-shadow(0 0 4px rgba(251,191,36,0.95)) drop-shadow(0 0 9px rgba(251,191,36,0.85))';
   const trashGlow = 'drop-shadow(0 0 4px rgba(239,68,68,0.95)) drop-shadow(0 0 9px rgba(239,68,68,0.85))';
+  const seedGlow  = 'drop-shadow(0 0 4px rgba(74,222,128,0.95)) drop-shadow(0 0 9px rgba(74,222,128,0.85))';
   const selectGlow = 'drop-shadow(0 0 10px rgba(201,162,39,0.85))';
-  const targetGlow = isWaterTarget ? waterGlow : isMoveTarget ? moveGlow : isTrashTarget ? trashGlow : undefined;
+  const targetGlow = isWaterTarget ? waterGlow : isMoveTarget ? moveGlow : isTrashTarget ? trashGlow : isSeedTarget ? seedGlow : undefined;
   // Glow do canteiro: alvo (água/mover) tem prioridade sobre seleção
   const potGlow = targetGlow ?? (isSelected ? selectGlow : undefined);
 

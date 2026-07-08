@@ -1,17 +1,24 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Target, Loader2, Check } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { LeafConfetti } from '@/components/LeafConfetti';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { useMissions, useClaimMission, MissionView } from '@/hooks/useMissions';
 
-/** Rótulo do chip de recompensa por tipo de item. */
-const REWARD_LABEL: Record<MissionView['reward'], string> = {
-  seed: '🌱 1 semente',
-  wrapping_kit: '🎁 Kit de embrulho',
-};
+/** Conteúdo do chip de recompensa por tipo de item. */
+function RewardLabel({ reward }: { reward: MissionView['reward'] }) {
+  if (reward === 'seed') {
+    return (
+      <>
+        <Image src="/imgs/seed.webp" alt="" width={14} height={14} className="object-contain" /> 1 semente
+      </>
+    );
+  }
+  return <>🎁 Kit de embrulho</>;
+}
 
 function MissionCard({ mission }: { mission: MissionView }) {
   const claim = useClaimMission();
@@ -58,7 +65,7 @@ function MissionCard({ mission }: { mission: MissionView }) {
           className="flex items-center gap-1 text-xs font-black px-2.5 py-1 rounded-full flex-shrink-0"
           style={{ background: 'rgba(42,90,30,0.12)', color: '#2a5a1e', border: '1px solid rgba(42,90,30,0.25)', fontFamily: 'var(--font-display)' }}
         >
-          {REWARD_LABEL[mission.reward]}
+          <RewardLabel reward={mission.reward} />
         </span>
       </div>
 
