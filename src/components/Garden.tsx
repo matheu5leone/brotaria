@@ -112,6 +112,7 @@ import { InventoryPanel } from '@/components/InventoryPanel';
 import { useWrapPlant } from '@/hooks/useInventory';
 import { HexButton } from '@/components/HexButton';
 import { HexPot, getPotState } from '@/components/HexPot';
+import { PotFx } from '@/components/PotFx';
 import { usePendingGifts } from '@/hooks/useGifts';
 import { GiftReceiveModal } from '@/components/GiftReceiveModal';
 import type { PendingGift } from '@/hooks/useGifts';
@@ -211,6 +212,12 @@ export default function Garden() {
   const [seedDrag, setSeedDrag]                     = useState(false);
   const [seedDragPos, setSeedDragPos]               = useState<{ x: number; y: number } | null>(null);
   const [seedTargetPotId, setSeedTargetPotId]       = useState<string | null>(null);
+  // Feedback visual rápido no canteiro: plantar (terra) / regar (gotas)
+  const [plantFx, setPlantFx]                       = useState<{ potId: string; nonce: number } | null>(null);
+  const [waterFx, setWaterFx]                       = useState<{ potId: string; nonce: number } | null>(null);
+  const fxNonce = useRef(0);
+  const plantFxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const waterFxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Tela de evolução (raios solares + logo) enquanto a IA gera a nova fase
   const [evolvingPlant, setEvolvingPlant]           = useState(false);
   const evoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -476,6 +483,21 @@ export default function Garden() {
     toastTimer.current = setTimeout(() => setToast(null), kind === 'success' ? 3500 : 3000);
   }, []);
 
+  const triggerPlantFx = useCallback((potId: string) => {
+    setPlantFx({ potId, nonce: ++fxNonce.current });
+    if (plantFxTimer.current) clearTimeout(plantFxTimer.current);
+    plantFxTimer.current = setTimeout(() => setPlantFx(null), 700);
+  }, []);
+  const triggerWaterFx = useCallback((potId: string) => {
+    setWaterFx({ potId, nonce: ++fxNonce.current });
+    if (waterFxTimer.current) clearTimeout(waterFxTimer.current);
+    waterFxTimer.current = setTimeout(() => setWaterFx(null), 700);
+  }, []);
+  useEffect(() => () => {
+    if (plantFxTimer.current) clearTimeout(plantFxTimer.current);
+    if (waterFxTimer.current) clearTimeout(waterFxTimer.current);
+  }, []);
+
   const handleWaterPot = useCallback(async (pot: Pot) => {
     if (!pot.plant_id || !canWaterToday || waterMutation.isPending) return;
     setWateringError(null);
@@ -484,10 +506,21 @@ export default function Garden() {
     // e mostrar a tela de evolução na hora; senão, um fallback por tempo cobre
     // requisições lentas (geração de imagem) sem piscar nas regas normais.
     const cached = qc.getQueryData<PlantRow>(['plant', pot.plant_id]);
-    const willEvolve = !!cached &&
+    // Planta precisa de água AGORA? (mesma regra do servidor)
+    const needsWater = !!cached && (
+      cached.hydration_status === 'waiting_water' ||
+      (!!cached.next_water_needed_at && new Date(cached.next_water_needed_at) < new Date())
+    );
+    // Sabemos (pelo cache) que NÃO precisa de água → não dispara loader nenhum.
+    // (Evita o loader de evolução aparecer ao "regar" uma planta que vai evoluir
+    //  mas ainda não precisa de água — a rega será rejeitada com NOT_READY.)
+    const knownNotReady = !!cached && !needsWater;
+    const willEvolve = !!cached && needsWater &&
       cached.current_stage_waters + 1 >= cached.current_stage.waters_required;
 
-    if (willEvolve) {
+    if (knownNotReady) {
+      // sem loader
+    } else if (willEvolve) {
       setEvolvingPlant(true);
     } else {
       evoTimer.current = setTimeout(() => setEvolvingPlant(true), 700);
@@ -499,6 +532,9 @@ export default function Garden() {
       if (result?.evolved) {
         const reward = result.herbo ? ` · +${result.herbo} 🍃` : '';
         showToast(`🌱 Nova fase: ${result.stageName ?? 'planta evoluiu'}!${reward}`, 'success');
+      } else if (result) {
+        // Rega normal (sem evolução) → gotas de água na terra do canteiro
+        triggerWaterFx(pot.id);
       }
     } catch (err: unknown) {
       const e = err as { code?: string; message?: string };
@@ -511,7 +547,7 @@ export default function Garden() {
       if (evoTimer.current) { clearTimeout(evoTimer.current); evoTimer.current = null; }
       setEvolvingPlant(false);
     }
-  }, [canWaterToday, waterMutation, showToast, qc]);
+  }, [canWaterToday, waterMutation, showToast, qc, triggerWaterFx]);
 
   // Encontra o pot pelo ponto na tela usando data-pot-id
   const findPotAtPoint = useCallback((x: number, y: number): Pot | null => {
@@ -614,15 +650,17 @@ export default function Garden() {
 
       const pot = findPotAtPoint(ev.clientX, ev.clientY);
       if (isPlantable(pot)) {
-        plantMutation.mutateAsync({ potId: pot.id }).catch((err: unknown) => {
-          if ((err as { code?: string }).code === 'NO_SEEDS') setCoinModalPotId(pot.id);
-        });
+        plantMutation.mutateAsync({ potId: pot.id })
+          .then(() => triggerPlantFx(pot.id)) // terra saindo + distorção do canteiro
+          .catch((err: unknown) => {
+            if ((err as { code?: string }).code === 'NO_SEEDS') setCoinModalPotId(pot.id);
+          });
       }
     };
     captureEl.addEventListener('pointermove', onMove);
     captureEl.addEventListener('pointerup', onUp);
     captureEl.addEventListener('pointercancel', onUp);
-  }, [plantMutation, findPotAtPoint]);
+  }, [plantMutation, findPotAtPoint, triggerPlantFx]);
 
   // Remove canteiro vazio
   const handleRemovePot = useCallback(async (pot: Pot) => {
@@ -1077,12 +1115,23 @@ export default function Garden() {
                 isMoveTarget={barrowDrag && barrowTargetPotId === pot.id}
                 isTrashTarget={trashDrag && trashTargetPotId === pot.id}
                 isSeedTarget={seedDrag && seedTargetPotId === pot.id}
+                isPlanting={plantFx?.potId === pot.id}
                 onClick={handlePotClick(pot)}
                 onDigComplete={handleDigComplete}
               />
             </div>
           );
         })}
+
+        {/* ── Feedback de plantar/regar (terra e gotas na terra do canteiro) ── */}
+        {plantFx && (() => {
+          const p = pots.find((x) => x.id === plantFx.potId);
+          return p ? <PotFx key={`plant-${plantFx.nonce}`} type="plant" x={p.pos_x ?? 50} y={p.pos_y ?? 50} /> : null;
+        })()}
+        {waterFx && (() => {
+          const p = pots.find((x) => x.id === waterFx.potId);
+          return p ? <PotFx key={`water-${waterFx.nonce}`} type="water" x={p.pos_x ?? 50} y={p.pos_y ?? 50} /> : null;
+        })()}
 
         {/* ── Silhueta-fantasma da cava (verde=pode / vermelho=não) ────── */}
         {shovelActive && digPreview && (

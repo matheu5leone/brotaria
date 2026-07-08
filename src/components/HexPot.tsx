@@ -36,6 +36,7 @@ export function HexPot({
   isMoveTarget = false,
   isTrashTarget = false,
   isSeedTarget = false,
+  isPlanting = false,
   onClick,
   onPointerDown,
   onDigComplete,
@@ -48,6 +49,7 @@ export function HexPot({
   isMoveTarget?: boolean;
   isTrashTarget?: boolean;
   isSeedTarget?: boolean;
+  isPlanting?: boolean;
   onClick: (e: React.MouseEvent) => void;
   onPointerDown?: (e: React.PointerEvent) => void;
   onDigComplete?: () => void;
@@ -190,7 +192,7 @@ export function HexPot({
 
       {/* ── Canteiro (imagem PNG) — z-0, fica ATRÁS da planta ── */}
       <div
-        className="absolute bottom-0 left-0 right-0 pointer-events-none z-0"
+        className={`absolute bottom-0 left-0 right-0 pointer-events-none z-0${isPlanting ? ' pot-squash' : ''}`}
         style={{
           height: POT_HEIGHT,
           filter: potGlow,

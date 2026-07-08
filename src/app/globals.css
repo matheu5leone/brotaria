@@ -643,6 +643,37 @@ body {
   .heart-rise { animation: none; opacity: 0; }
 }
 
+/* ── Plantar: distorção rápida do canteiro + terra saindo ─────────────────── */
+@keyframes pot-squash {
+  0%   { transform: scale(1, 1); }
+  28%  { transform: scale(1.14, 0.84); }
+  55%  { transform: scale(0.94, 1.09); }
+  100% { transform: scale(1, 1); }
+}
+.pot-squash { animation: pot-squash 0.42s ease-out; transform-origin: 50% 100%; }
+
+@keyframes dirt-fly {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+  15%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1); }
+}
+.dirt-fly-piece { animation: dirt-fly 0.6s ease-out forwards; }
+
+/* ── Rega: gotas caindo na terra (começam ~40px acima, terminam na base) ──── */
+@keyframes water-drop-fall {
+  0%   { opacity: 0; transform: translate(-50%, var(--drop-start)) scaleY(0.8); }
+  25%  { opacity: 1; }
+  80%  { opacity: 1; transform: translate(-50%, 0) scaleY(1.15); }
+  100% { opacity: 0; transform: translate(-50%, 3px) scaleY(0.4); }
+}
+.water-drop { animation: water-drop-fall 0.55s ease-in forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pot-squash { animation: none; }
+  .dirt-fly-piece { animation: none; opacity: 0; }
+  .water-drop { animation: none; opacity: 0; }
+}
+
 /* Barra de missão pronta para resgate: azul pulsando */
 @keyframes mission-ready-glow {
   0%, 100% { box-shadow: 0 0 4px rgba(37,99,235,0.55); }
