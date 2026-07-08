@@ -208,7 +208,9 @@ export function HexPot({
             quality={90}
             sizes="(max-width: 768px) 60vw, 22vw"
             style={{
-              filter: isSelected ? 'brightness(1.2) saturate(1.3)' : undefined,
+              filter: isSeedTarget
+                ? 'brightness(1.3) saturate(1.5)'
+                : isSelected ? 'brightness(1.2) saturate(1.3)' : undefined,
             }}
           />
         </div>
@@ -225,8 +227,14 @@ export function HexPot({
 
         {state === 'ready' && (
           <div className="absolute inset-0 flex flex-col items-center justify-center z-10 gap-0.5" style={{ paddingBottom: '18%' }}>
-            <span className="text-sm font-bold leading-none" style={{ color: 'rgba(210,165,100,0.8)' }}>+</span>
-            <span className="text-[7px] uppercase tracking-widest font-black" style={{ color: 'rgba(210,165,100,0.65)', fontFamily: 'var(--font-display)' }}>
+            <span
+              className="text-sm font-bold leading-none transition-transform"
+              style={{ color: isSeedTarget ? '#4ade80' : 'rgba(210,165,100,0.8)', transform: isSeedTarget ? 'scale(1.4)' : 'scale(1)' }}
+            >+</span>
+            <span
+              className="text-[7px] uppercase tracking-widest font-black"
+              style={{ color: isSeedTarget ? '#4ade80' : 'rgba(210,165,100,0.65)', fontFamily: 'var(--font-display)' }}
+            >
               Plantar
             </span>
           </div>

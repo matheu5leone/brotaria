@@ -234,7 +234,7 @@ function SlotContent({
         onPointerDown={(e) => { e.stopPropagation(); onSeedDragStart?.(e); }}
         title="Arraste até um canteiro vazio para plantar"
       >
-        <Image src="/imgs/seed.webp" alt="semente" width={34} height={34} className="object-contain pointer-events-none" draggable={false} />
+        <Image src="/imgs/seed.webp" alt="semente" width={24} height={24} className="object-contain pointer-events-none" draggable={false} />
         <span className="text-green-800 text-[9px] font-bold pointer-events-none">×{item.quantity}</span>
       </div>
     );
