@@ -7,11 +7,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import {
   LayoutDashboard, Store, Trophy, Target, Menu, Droplets, X,
-  UserPlus, LogOut, Check, Camera,
+  UserPlus, LogOut, Check, Camera, Heart,
 } from 'lucide-react';
 import { CoinIcon } from '@/components/CoinIcon';
 import { AvatarCircle } from '@/components/AvatarCircle';
 import { AvatarPickerModal } from '@/components/AvatarPickerModal';
+import { useLikes } from '@/hooks/useLikes';
 
 function NavItem({
   href,
@@ -125,6 +126,7 @@ export function BottomNav() {
   };
 
   const avatarInitial = (nickname?.[0] ?? user?.email?.[0])?.toUpperCase();
+  const { data: myLikes } = useLikes(user?.id); // curtidas recebidas no próprio jardim
 
   const secondaryActive = pathname === '/ranking' || pathname === '/missoes' || pathname === '/agua';
 
@@ -210,7 +212,21 @@ export function BottomNav() {
                   </span>
                 </div>
               </button>
-              <button onClick={() => setProfileOpen(false)} aria-label="Fechar" className="ml-auto" style={{ color: 'var(--color-text-muted)' }}>
+              {/* Curtidas recebidas no meu jardim */}
+              <div
+                className="ml-auto flex items-center gap-1 px-2 py-1 rounded-lg font-black text-sm flex-shrink-0"
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  background: 'rgba(248,113,113,0.12)',
+                  color: '#e05252',
+                  border: '1px solid rgba(248,113,113,0.35)',
+                }}
+                title="Curtidas do seu jardim"
+              >
+                <Heart className="w-4 h-4" style={{ fill: '#e05252' }} />
+                {myLikes?.total ?? 0}
+              </div>
+              <button onClick={() => setProfileOpen(false)} aria-label="Fechar" className="flex-shrink-0" style={{ color: 'var(--color-text-muted)' }}>
                 <X className="w-4 h-4" />
               </button>
             </div>

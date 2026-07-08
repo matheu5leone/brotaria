@@ -1157,7 +1157,7 @@ export default function Garden() {
       <div className="absolute top-3 left-3 z-[100] flex flex-col items-start gap-2">
         <button
           onClick={(e) => { e.stopPropagation(); setPlantsGridOpen(true); }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all hover:brightness-110 active:scale-95"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all hover:brightness-110 active:scale-95"
           style={{
             fontFamily: 'var(--font-display)',
             background: 'linear-gradient(135deg, #2a5a1e, #1e4014)',
@@ -1167,26 +1167,28 @@ export default function Garden() {
           }}
           title="Ver todas as suas plantas"
         >
-          <Sprout className="w-4 h-4" />
+          <Sprout className="w-3.5 h-3.5" />
           Minhas Plantas
         </button>
 
-        {/* Curtidas recebidas no meu jardim (só leitura, votos anônimos) */}
-        <div
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-sm"
-          style={{
-            fontFamily: 'var(--font-display)',
-            background: 'rgba(8,14,5,0.72)',
-            color: '#f87171',
-            border: '1px solid rgba(248,113,113,0.35)',
-            boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
-            backdropFilter: 'blur(6px)',
-          }}
-          title="Curtidas do seu jardim"
-        >
-          <Heart className="w-4 h-4" style={{ fill: '#f87171' }} />
-          {myLikes?.total ?? 0}
-        </div>
+        {/* Curtidas recebidas — no mobile isto vive no menu de perfil (BottomNav) */}
+        {isDesktop && (
+          <div
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-sm"
+            style={{
+              fontFamily: 'var(--font-display)',
+              background: 'rgba(8,14,5,0.72)',
+              color: '#f87171',
+              border: '1px solid rgba(248,113,113,0.35)',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+              backdropFilter: 'blur(6px)',
+            }}
+            title="Curtidas do seu jardim"
+          >
+            <Heart className="w-4 h-4" style={{ fill: '#f87171' }} />
+            {myLikes?.total ?? 0}
+          </div>
+        )}
       </div>
 
       {/* ── Painel de ferramentas — canto inferior direito, âncora fixa ────── */}
