@@ -13,6 +13,17 @@ import { CoinIcon } from '@/components/CoinIcon';
 import { AvatarCircle } from '@/components/AvatarCircle';
 import { AvatarPickerModal } from '@/components/AvatarPickerModal';
 import { useLikes } from '@/hooks/useLikes';
+import { useHasClaimableMission } from '@/hooks/useMissions';
+
+/** Bolinha de notificação (sem número) — prêmio de missão pronto para resgatar. */
+function NotifDot({ className = '-top-1 -right-1' }: { className?: string }) {
+  return (
+    <span
+      className={`absolute w-2 h-2 rounded-full pointer-events-none ${className}`}
+      style={{ background: '#ef4444', boxShadow: '0 0 0 2px var(--color-parch-mid)' }}
+    />
+  );
+}
 
 function NavItem({
   href,
@@ -55,12 +66,14 @@ function SheetItem({
   label,
   active,
   onClick,
+  dot = false,
   children,
 }: {
   href: string;
   label: string;
   active: boolean;
   onClick: () => void;
+  dot?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -73,8 +86,9 @@ function SheetItem({
         border: '1px solid rgba(92,58,30,0.15)',
       }}
     >
-      <div style={{ color: active ? 'var(--color-wood-mid)' : 'var(--color-text-muted)' }}>
+      <div className="relative" style={{ color: active ? 'var(--color-wood-mid)' : 'var(--color-text-muted)' }}>
         {children}
+        {dot && <NotifDot />}
       </div>
       <span
         className="text-sm font-bold"
@@ -127,6 +141,7 @@ export function BottomNav() {
 
   const avatarInitial = (nickname?.[0] ?? user?.email?.[0])?.toUpperCase();
   const { data: myLikes } = useLikes(user?.id); // curtidas recebidas no próprio jardim
+  const hasClaimableMission = useHasClaimableMission(); // badge de resgate (Missões fica no "Mais")
 
   const secondaryActive = pathname === '/ranking' || pathname === '/missoes' || pathname === '/agua';
 
@@ -166,7 +181,7 @@ export function BottomNav() {
               <SheetItem href="/ranking" label="Ranking" active={pathname === '/ranking'} onClick={() => setMenuOpen(false)}>
                 <Trophy className="w-5 h-5" />
               </SheetItem>
-              <SheetItem href="/missoes" label="Missões" active={pathname === '/missoes'} onClick={() => setMenuOpen(false)}>
+              <SheetItem href="/missoes" label="Missões" active={pathname === '/missoes'} onClick={() => setMenuOpen(false)} dot={hasClaimableMission}>
                 <Target className="w-5 h-5" />
               </SheetItem>
             </div>
@@ -311,11 +326,12 @@ export function BottomNav() {
         <button
           onClick={() => { setProfileOpen(false); setMenuOpen((o) => !o); }}
           aria-label="Mais opções"
-          className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 rounded-xl transition-all"
+          className="relative flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 rounded-xl transition-all"
           style={{ background: menuOpen || secondaryActive ? 'rgba(92,58,30,0.15)' : 'transparent' }}
         >
-          <div style={{ color: menuOpen || secondaryActive ? 'var(--color-wood-mid)' : 'var(--color-text-muted)' }}>
+          <div className="relative" style={{ color: menuOpen || secondaryActive ? 'var(--color-wood-mid)' : 'var(--color-text-muted)' }}>
             <Menu className="w-5 h-5" />
+            {hasClaimableMission && !menuOpen && <NotifDot />}
           </div>
           <span
             className="text-[8px] uppercase tracking-wide font-black"

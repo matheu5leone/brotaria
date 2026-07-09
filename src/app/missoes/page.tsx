@@ -9,8 +9,15 @@ import { InfoTooltip } from '@/components/InfoTooltip';
 import { useMissions, useClaimMission, MissionView } from '@/hooks/useMissions';
 
 /** Conteúdo do chip de recompensa por tipo de item. */
-function RewardLabel({ reward }: { reward: MissionView['reward'] }) {
-  if (reward === 'seed') {
+function RewardLabel({ mission }: { mission: MissionView }) {
+  if (mission.reward === 'avatar' && mission.avatar) {
+    return (
+      <>
+        <Image src={mission.avatar.image} alt="" width={16} height={16} className="rounded-full object-cover" /> Foto: {mission.avatar.name}
+      </>
+    );
+  }
+  if (mission.reward === 'seed') {
     return (
       <>
         <Image src="/imgs/seed.webp" alt="" width={14} height={14} className="object-contain" /> 1 semente
@@ -65,7 +72,7 @@ function MissionCard({ mission }: { mission: MissionView }) {
           className="flex items-center gap-1 text-xs font-black px-2.5 py-1 rounded-full flex-shrink-0"
           style={{ background: 'rgba(42,90,30,0.12)', color: '#2a5a1e', border: '1px solid rgba(42,90,30,0.25)', fontFamily: 'var(--font-display)' }}
         >
-          <RewardLabel reward={mission.reward} />
+          <RewardLabel mission={mission} />
         </span>
       </div>
 

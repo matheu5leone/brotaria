@@ -15,11 +15,23 @@ import { CoinIcon } from '@/components/CoinIcon';
 import { AvatarCircle } from '@/components/AvatarCircle';
 import { AvatarPickerModal } from '@/components/AvatarPickerModal';
 import { useLikes } from '@/hooks/useLikes';
+import { useHasClaimableMission } from '@/hooks/useMissions';
+
+/** Bolinha de notificação (sem número) — prêmio de missão pronto para resgatar. */
+function NotifDot() {
+  return (
+    <span
+      className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full pointer-events-none"
+      style={{ background: '#ef4444', boxShadow: '0 0 0 2px var(--color-parch-mid)' }}
+    />
+  );
+}
 
 export default function Sidebar() {
   const { user, signOut } = useAuth();
   const { coins, herbo, nickname, referralCode, avatarUrl } = useWallet();
   const { data: myLikes } = useLikes(user?.id); // curtidas recebidas no próprio jardim
+  const hasClaimableMission = useHasClaimableMission(); // badge de resgate no menu Missões
   const myGarden = nickname ? `/jardim/${nickname}` : '/';
   const [pickerOpen, setPickerOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -205,7 +217,10 @@ export default function Sidebar() {
           </NavLink>
 
           <NavLink href="/missoes" title="Missões" className={navItemClass('/missoes')}>
-            <Target className="w-5 h-5 min-w-[20px]" />
+            <span className="relative min-w-[20px] w-5 h-5">
+              <Target className="w-5 h-5" />
+              {hasClaimableMission && <NotifDot />}
+            </span>
             {!isSidebarCollapsed && <span style={{ fontFamily: 'var(--font-body)' }}>Missões</span>}
           </NavLink>
 

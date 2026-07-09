@@ -9,7 +9,8 @@ export type MissionView = {
   title: string;
   description: string;
   goal: number;
-  reward: 'seed' | 'wrapping_kit';
+  reward: 'seed' | 'wrapping_kit' | 'avatar';
+  avatar?: { key: string; name: string; image: string };
   info?: string;
   progress: number;
   claimed: boolean;
@@ -30,6 +31,12 @@ export function useMissions() {
   });
 }
 
+/** Há ao menos uma missão pronta para resgatar? (badge de notificação no menu) */
+export function useHasClaimableMission(): boolean {
+  const { data } = useMissions();
+  return (data ?? []).some((m) => m.claimable);
+}
+
 export function useClaimMission() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -48,6 +55,7 @@ export function useClaimMission() {
       qc.invalidateQueries({ queryKey: ['missions', user?.id] });
       qc.invalidateQueries({ queryKey: ['wallet', user?.id] });
       qc.invalidateQueries({ queryKey: ['inventory', user?.id] });
+      qc.invalidateQueries({ queryKey: ['avatars', user?.id] }); // prêmio de avatar aparece no picker
     },
   });
 }

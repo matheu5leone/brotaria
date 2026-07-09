@@ -86,6 +86,29 @@ export async function selectAvatar(userId: string, avatarId: string): Promise<{ 
 }
 
 /**
+ * Desbloqueia um avatar do catálogo pela `key` (ex.: prêmio de missão). Idempotente.
+ * NÃO define como foto selecionada — o usuário escolhe no picker depois.
+ */
+export async function unlockAvatarByKey(userId: string, key: string): Promise<void> {
+  const { data: cat } = await supabaseAdmin
+    .from('avatar_catalog')
+    .select('id')
+    .eq('key', key)
+    .eq('active', true)
+    .maybeSingle();
+
+  if (!cat) {
+    const e = new Error('Foto de perfil do prêmio não encontrada.') as Error & { code?: string };
+    e.code = 'AVATAR_NOT_FOUND';
+    throw e;
+  }
+
+  await supabaseAdmin
+    .from('user_avatars')
+    .upsert({ user_id: userId, avatar_id: cat.id }, { onConflict: 'user_id,avatar_id', ignoreDuplicates: true });
+}
+
+/**
  * Desbloqueia a foto default para o usuário e a define como foto se ainda não
  * tiver uma. Chamado no onboarding (initializeUser). Idempotente.
  */

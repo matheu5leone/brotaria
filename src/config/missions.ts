@@ -19,7 +19,14 @@ export type MissionMetric =
   | 'gifts_sent'       // presentes enviados (profiles.total_gifts_sent)
   | 'referrals';       // amigos indicados que já qualificaram (chegaram ao broto)
 
-export type MissionReward = 'seed' | 'wrapping_kit';
+export type MissionReward = 'seed' | 'wrapping_kit' | 'avatar';
+
+/** Prêmio de avatar: a `key` casa com `avatar_catalog.key`; `image`/`name` só p/ UI. */
+export interface MissionAvatarReward {
+  key: string;
+  name: string;
+  image: string;
+}
 
 export interface Mission {
   key: string;
@@ -28,6 +35,8 @@ export interface Mission {
   goal: number;
   metric: MissionMetric;
   reward: MissionReward;
+  /** Obrigatório quando reward === 'avatar': qual foto de perfil desbloquear. */
+  avatar?: MissionAvatarReward;
   /** Texto opcional do infobox (?) exibido ao lado da descrição. */
   info?: string;
 }
@@ -36,6 +45,7 @@ const REFERRAL_INFO =
   'Seu amigo deve ter pelo menos uma planta em estágio broto ou superior para contabilizar';
 
 export const MISSIONS: Mission[] = [
+  { key: 'water_50',      title: 'Mão de Jardineiro', description: 'Regue 50 vezes',                   goal: 50,  metric: 'total_waters',   reward: 'avatar', avatar: { key: 'novato', name: 'Novato', image: '/imgs/avatar-novato.webp' } },
   { key: 'water_100',     title: 'Regador Dedicado',  description: 'Regue 100 vezes',                  goal: 100, metric: 'total_waters',   reward: 'seed' },
   { key: 'herbo_100',     title: 'Primeira Colheita', description: 'Junte 100 herbo',                  goal: 100, metric: 'herbo',          reward: 'seed' },
   { key: 'likes_recv_10', title: 'Jardim Querido',    description: 'Receba 10 curtidas no seu jardim', goal: 10,  metric: 'likes_received', reward: 'seed' },

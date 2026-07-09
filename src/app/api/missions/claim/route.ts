@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabaseServer';
 import { getMission } from '@/config/missions';
 import { canClaimMission } from '@/lib/missionStatus';
 import { addStackableItem } from '@/services/inventoryService';
+import { unlockAvatarByKey } from '@/services/avatarService';
 
 /**
  * Resgata a recompensa (semente ou kit de embrulho) de uma missão concluída, uma
@@ -48,9 +49,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Falha ao resgatar.' }, { status: 500 });
   }
 
-  // 3. Entrega a recompensa da missão; se falhar, reverte a claim (compensação)
+  // 3. Entrega a recompensa da missão; se falhar, reverte a claim (compensação).
+  //    Avatar → desbloqueia a foto no catálogo; demais → item empilhável no inventário.
   try {
-    await addStackableItem(user.id, mission.reward);
+    if (mission.reward === 'avatar') {
+      if (!mission.avatar) throw new Error('Missão de avatar sem foto configurada.');
+      await unlockAvatarByKey(user.id, mission.avatar.key);
+    } else {
+      await addStackableItem(user.id, mission.reward);
+    }
   } catch (err) {
     await supabaseAdmin
       .from('mission_claims')
