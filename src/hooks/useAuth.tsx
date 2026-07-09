@@ -58,6 +58,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (_event === 'SIGNED_IN' && currentUser) {
         // NÃO envia avatar do Google: o avatar é por catálogo (imagens locais/
         // supabase). URLs externas ficam inconsistentes e são bloqueadas pelo CSP.
+        // Envia o código de indicação AQUI (1ª init = conta nova). No Google esta é
+        // a primeira init, então é aqui que a indicação precisa chegar — senão ela
+        // se perde (o completar-perfil roda uma 2ª init já "inicializada").
+        let ref: string | null = null;
+        try { ref = localStorage.getItem('brotaria_ref'); } catch { /* storage indisponível */ }
         try {
           await fetch('/api/auth/init', {
             method: 'POST',
@@ -65,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             body: JSON.stringify({
               userId: currentUser.id,
               email: currentUser.email,
+              ref,
             }),
           });
         } catch (err) {
