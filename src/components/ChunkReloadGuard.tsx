@@ -42,7 +42,15 @@ export function ChunkReloadGuard() {
       try { last = Number(sessionStorage.getItem(RELOAD_KEY) ?? '0'); } catch { /* indisponível */ }
       if (Date.now() - last < RELOAD_COOLDOWN_MS) return; // evita loop de reload
       try { sessionStorage.setItem(RELOAD_KEY, String(Date.now())); } catch { /* ignora */ }
-      window.location.reload();
+      // Recarrega FORÇANDO o servidor (cache-bust). No iOS Safari um reload simples
+      // às vezes reentrega o HTML/JS antigo do cache — o param novo garante build atual.
+      try {
+        const u = new URL(window.location.href);
+        u.searchParams.set('_r', String(Date.now()));
+        window.location.replace(u.toString());
+      } catch {
+        window.location.reload();
+      }
     };
 
     const onError = (e: ErrorEvent) => {
