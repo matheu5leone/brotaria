@@ -4,7 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
 import { WalletProvider } from "@/hooks/useWallet";
 import { QueryProvider } from "@/providers/QueryProvider";
-import { ChunkReloadGuard } from "@/components/ChunkReloadGuard";
+import { CHUNK_GUARD_INLINE } from "@/lib/chunkReload";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -55,6 +55,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
+      <head>
+        {/* Recuperação de chunk skew ANTES da hidratação (alternativa grátis ao
+            Vercel Skew Protection). Pega 404 de /_next/static e recarrega c/ cache-bust. */}
+        <script dangerouslySetInnerHTML={{ __html: CHUNK_GUARD_INLINE }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${cinzelDecorative.variable} ${crimsonText.variable} ${imFellEnglish.variable} antialiased`}
       >
@@ -81,7 +86,6 @@ export default function RootLayout({
           </defs>
         </svg>
 
-        <ChunkReloadGuard />
         <QueryProvider>
           <AuthProvider>
             <WalletProvider>
