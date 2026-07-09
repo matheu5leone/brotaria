@@ -68,16 +68,16 @@ Carregadas via `next/font/google`. Nunca usar Geist (fonte padrão do Next.js) n
 
 ### 4.1 HexPot — Célula Hexagonal de Planta
 
-> **Atualização 2026-06-26:** o canteiro agora é a **imagem `empty-pot.png`** (hexágono de madeira achatado), não mais clip-path CSS. A planta renderiza **na frente** do canteiro (`z-10` vs `z-0`).
+> **Atualização 2026-07-09:** o canteiro agora é o **tile de terra hexagonal `hexpot.webp`** (vista isométrica achatada), substituindo o `empty-pot.webp` (arquivado em `public/imgs/_archive/`). A planta brota do **centro visual do tile** (não mais da base). O contrato de render (aspecto, altura da imagem, âncora) vive como tokens em `lib/potGeometry.ts` (`POT_BOX_ASPECT`, `POT_IMG_HEIGHT_PCT`, `PLANT_ANCHOR_PCT`); o `POT_FOOTPRINT` (colisão) é traçado do alpha via `scripts/trace-footprint.mjs` (convex hull + Douglas-Peucker → 8 vértices convexos p/ SAT).
 
-Posicionada livremente pelo sistema de `pos_x / pos_y` da pá. Container retangular alto (`aspect-ratio: 1 / 1.65`), responsivo via `.hex-pot` (36% mobile / 12% desktop).
+Posicionada livremente pelo sistema de `pos_x / pos_y` da pá. Container retangular alto (`aspect-ratio: 1 / POT_BOX_ASPECT` = 1/1.65), responsivo via `.hex-pot` (18% portrait / 14% desktop / 11% landscape-baixo).
 
 **Anatomia:**
-- Canteiro: `empty-pot.png` ancorado embaixo (`POT_HEIGHT 80%`, `object-contain object-bottom`), `z-0`
-- Planta: imagem IA `z-10`, base em `PLANT_BOTTOM 18%` (encaixa na terra); 30% menor no mobile (`.hex-plant-img scale(0.7)`)
-- **Hitbox preciso** (`HITBOX_CLIP`): um div recortado com `clip-path` na silhueta (base do canteiro + coluna central da planta) é o **único** elemento clicável (`pointer-events: auto`); o wrapper é `pointer-events: none`. Evita que o retângulo vazio de um pot roube cliques do vizinho. Carrega o `data-pot-id` (detecção de drop)
-- Badge "Nível X": `bottom: 6%`, encostada na madeira do canteiro
-- Balões de status (💧 rega / 😢 stress): ancorados ao container em `bottom: 48%` (acima do canteiro), não à planta
+- Tile: `hexpot.webp` ancorado embaixo (`POT_HEIGHT = POT_IMG_HEIGHT_PCT` = 80%, `object-contain object-bottom`), `z-0`
+- Planta: imagem IA `z-10`, base em `PLANT_BOTTOM = PLANT_ANCHOR_PCT` (≈20,5% = centro do tile, coincide com o centróide da silhueta); escala por estágio (`transformOrigin: bottom center`)
+- **Hitbox preciso** (`HITBOX_CLIP`): um div recortado com `clip-path` na silhueta (hexágono do tile via `POT_FOOTPRINT` + coluna central 37–63% da planta) é o **único** elemento clicável (`pointer-events: auto`); o wrapper é `pointer-events: none`. Evita que o retângulo vazio de um pot roube cliques do vizinho. Carrega o `data-pot-id` (detecção de drop)
+- Badge "Nível X": `bottom: 6%`, encostada na base do tile
+- Balões de status (💧 rega / 😢 stress): ancorados ao container em `bottom: 48%` (acima do tile), não à planta
 
 **Estados:**
 - **Vazio / Pronto**: `+` + "Plantar" centralizados

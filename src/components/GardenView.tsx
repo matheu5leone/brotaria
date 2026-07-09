@@ -2,6 +2,7 @@
 
 import { usePots } from '@/hooks/useGardenData';
 import { HexPot } from '@/components/HexPot';
+import { POT_BOX_ASPECT } from '@/lib/potGeometry';
 
 const PARTICLES = [
   { x: 4,  y: 8,  s: 18, d: 0,   o: 0.22, dur: 5.2 },
@@ -66,7 +67,7 @@ export function GardenView({ userId }: { userId: string }) {
             className="absolute pointer-events-none"
             style={{
               width: '12%',
-              aspectRatio: '1 / 1.65',
+              aspectRatio: `1 / ${POT_BOX_ASPECT}`,
               left: `${x}%`,
               top: `${y}%`,
               transform: 'translate(-50%, -50%)',

@@ -90,10 +90,13 @@ import { useWallet } from '@/hooks/useWallet';
 import { authFetch } from '@/lib/authFetch';
 import { TutorialCoach } from '@/components/TutorialCoach';
 import { TUTORIAL_STEPS } from '@/config/tutorialSteps';
-import { potPolygonPx, polygonsOverlap, footprintBounds, POT_FOOTPRINT } from '@/lib/potGeometry';
+import { potPolygonPx, polygonsOverlap, footprintBounds, POT_FOOTPRINT, POT_BOX_ASPECT, POT_IMG_HEIGHT_PCT } from '@/lib/potGeometry';
 
-// Pontos do footprint para o SVG da silhueta (viewBox 0 0 100 165 = aspecto da caixa)
-const FOOTPRINT_SVG_POINTS = POT_FOOTPRINT.map(([x, y]) => `${(x * 100).toFixed(1)},${(y * 165).toFixed(1)}`).join(' ');
+// Caixa .hex-pot: aspecto e viewBox derivados do contrato de render (potGeometry).
+const POT_ASPECT_CSS = `1 / ${POT_BOX_ASPECT}`;
+const FOOTPRINT_VIEWBOX_H = 100 * POT_BOX_ASPECT; // altura do viewBox (largura = 100)
+// Pontos do footprint para o SVG da silhueta (viewBox 0 0 100 FOOTPRINT_VIEWBOX_H)
+const FOOTPRINT_SVG_POINTS = POT_FOOTPRINT.map(([x, y]) => `${(x * 100).toFixed(1)},${(y * FOOTPRINT_VIEWBOX_H).toFixed(1)}`).join(' ');
 import { usePlant } from '@/hooks/usePlantData';
 import {
   useDigMutation,
@@ -392,7 +395,7 @@ export default function Garden() {
     const inArea = rawX >= 6 && rawX <= 94 && rawY >= 8 && rawY <= 92;
 
     const boxW = potBoxWidthPx(rect.width);
-    const boxH = boxW * 1.65;
+    const boxH = boxW * POT_BOX_ASPECT;
     const candidate = potPolygonPx((posX / 100) * rect.width, (posY / 100) * rect.height, boxW, boxH);
     const b = footprintBounds(candidate);
     const inside = b.minX >= 0 && b.minY >= 0 && b.maxX <= rect.width && b.maxY <= rect.height;
@@ -1088,7 +1091,7 @@ export default function Garden() {
               key={pot.id}
               className="absolute hex-pot"
               style={{
-                aspectRatio: '1 / 1.65',
+                aspectRatio: POT_ASPECT_CSS,
                 left: `${x}%`,
                 top: `${y}%`,
                 transform: 'translate(-50%, -50%)',
@@ -1137,20 +1140,20 @@ export default function Garden() {
             style={{
               left: `${digPreview.posX}%`,
               top: `${digPreview.posY}%`,
-              aspectRatio: '1 / 1.65',
+              aspectRatio: POT_ASPECT_CSS,
               transform: 'translate(-50%, -50%)',
               zIndex: 999999,
             }}
           >
-            {/* Fantasma do vaso (mesmo render do HexPot: base 80%, object-bottom) */}
-            <div className="absolute bottom-0 left-0 right-0" style={{ height: '80%', opacity: 0.5 }}>
+            {/* Fantasma do tile (mesmo render do HexPot: base POT_IMG_HEIGHT_PCT, object-bottom) */}
+            <div className="absolute bottom-0 left-0 right-0" style={{ height: `${POT_IMG_HEIGHT_PCT * 100}%`, opacity: 0.5 }}>
               <div style={{ position: 'absolute', inset: 0 }}>
-                <Image src="/imgs/empty-pot.webp" alt="" fill className="object-contain object-bottom" draggable={false} />
+                <Image src="/imgs/hexpot.webp" alt="" fill className="object-contain object-bottom" draggable={false} />
               </div>
             </div>
             {/* Contorno do footprint tingido de verde/vermelho */}
             <svg
-              viewBox="0 0 100 165"
+              viewBox={`0 0 100 ${FOOTPRINT_VIEWBOX_H}`}
               preserveAspectRatio="none"
               className="absolute inset-0 w-full h-full"
               style={{ overflow: 'visible' }}
@@ -1178,10 +1181,10 @@ export default function Garden() {
               style={{
                 left: `${x}%`,
                 top: `${y}%`,
-                aspectRatio: '1 / 1.65',
+                aspectRatio: POT_ASPECT_CSS,
                 transform: 'translate(-50%, -50%)',
                 background: 'rgba(136,19,55,0.45)',
-                clipPath: 'polygon(0 38%, 50% 25%, 100% 38%, 100% 100%, 0 100%)',
+                clipPath: 'polygon(9.2% 69.2%, 49.1% 62.1%, 90.4% 69.3%, 95.3% 85.6%, 86.8% 89.6%, 50% 97.1%, 10.1% 89.1%, 5.1% 86%)',
               }}
               onClick={(e) => { e.stopPropagation(); handlePotClick(pot)(e); }}
             >

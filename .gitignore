@@ -48,3 +48,4 @@ ai_requests.log
 .superpowers/
 
 .vercel
+scripts/_*.png

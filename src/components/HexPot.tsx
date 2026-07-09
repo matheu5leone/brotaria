@@ -7,6 +7,7 @@ import { Pot } from '@/types';
 import { usePlant, usePlantVersion } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
 import { lifecycleFromOrder } from '@/config/lifecycle';
+import { POT_IMG_HEIGHT_PCT, PLANT_ANCHOR_PCT } from '@/lib/potGeometry';
 import Loader from './Loader';
 
 const DIG_DURATION_MS = 60_000;
@@ -81,11 +82,11 @@ export function HexPot({
     return () => clearInterval(id);
   }, [state, pot.digging_started_at, onDigComplete]);
 
-  // Canteiro hexagonal — imagem landscape em container portrait
-  const POT_HEIGHT = '80%';
-  // PLANT_BOTTOM = 18%: base da planta encaixa na terra do canteiro hex
-  const PLANT_BOTTOM = '18%';
-  // BALLOON_BOTTOM = 48%: balão flutua logo acima do topo do canteiro
+  // Tile de terra hexagonal — imagem landscape em container portrait
+  const POT_HEIGHT = `${POT_IMG_HEIGHT_PCT * 100}%`;
+  // PLANT_BOTTOM = centro visual do tile: a base da planta brota do meio da terra
+  const PLANT_BOTTOM = `${PLANT_ANCHOR_PCT * 100}%`;
+  // BALLOON_BOTTOM = 48%: balão flutua logo acima do topo do tile
   const BALLOON_BOTTOM = '48%';
 
   // Escala visual da planta por categoria de estágio (renderização no HexPot)
@@ -108,10 +109,11 @@ export function HexPot({
   // Glow do canteiro: alvo (água/mover) tem prioridade sobre seleção
   const potGlow = targetGlow ?? (isSelected ? selectGlow : undefined);
 
-  // Hitbox preciso: canteiro (base larga) + coluna central da planta.
+  // Hitbox preciso: tile (silhueta hexagonal do footprint) + coluna central da planta.
   // clip-path recorta os cantos vazios → não invade o hitbox do pot vizinho.
+  // Segue POT_FOOTPRINT (potGeometry): coluna 37–63% da planta + hexágono do tile.
   const HITBOX_CLIP =
-    'polygon(37% 8%, 63% 8%, 63% 58%, 100% 60%, 100% 100%, 0% 100%, 0% 60%, 37% 58%)';
+    'polygon(37% 8%, 63% 8%, 63% 62%, 90.4% 69.3%, 95.3% 85.6%, 86.8% 89.6%, 50% 97.1%, 10.1% 89.1%, 5.1% 86%, 9.2% 69.2%, 37% 62%)';
 
   return (
     <div className="relative w-full h-full select-none" style={{ pointerEvents: 'none' }}>
@@ -202,7 +204,7 @@ export function HexPot({
       >
         <div style={{ position: 'absolute', inset: 0 }}>
           <Image
-            src="/imgs/empty-pot.webp"
+            src="/imgs/hexpot.webp"
             alt="canteiro"
             fill
             className="object-contain object-bottom"
@@ -220,7 +222,7 @@ export function HexPot({
 
         {/* ── Conteúdo sobreposto ao canteiro ── */}
         {state === 'digging' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-10 gap-0.5" style={{ paddingBottom: '18%' }}>
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-10 gap-0.5" style={{ paddingBottom: '20.5%' }}>
             <Shovel className="w-4 h-4 animate-pulse" style={{ color: '#d4b483' }} />
             <span className="font-mono text-[10px] font-bold" style={{ color: '#f2e8d5' }}>
               {formatSecondsLeft(msLeft)}
@@ -229,7 +231,7 @@ export function HexPot({
         )}
 
         {state === 'ready' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-10 gap-0.5" style={{ paddingBottom: '18%' }}>
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-10 gap-0.5" style={{ paddingBottom: '20.5%' }}>
             <span
               className="text-sm font-bold leading-none transition-transform"
               style={{ color: isSeedTarget ? '#4ade80' : 'rgba(210,165,100,0.8)', transform: isSeedTarget ? 'scale(1.4)' : 'scale(1)' }}

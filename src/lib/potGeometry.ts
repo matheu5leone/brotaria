@@ -1,25 +1,34 @@
 /**
  * Geometria do canteiro (hexpot) para colisão ao cavar.
  *
- * O footprint é a silhueta OPACA do empty-pot.png (não a borda transparente),
- * medida pelo alpha: um hexágono alongado que, na caixa do .hex-pot
- * (aspectRatio 1/1.65, imagem em height:80% object-bottom), ocupa
- * y ≈ 0.586–0.988 e x ≈ 0.026–0.974. Coordenadas em fração da caixa
- * (0,0 = topo-esquerda; 1,1 = base-direita).
+ * O footprint é a silhueta OPACA do tile de terra hexagonal `hexpot.webp`
+ * (não a borda transparente), traçada pelo alpha via `scripts/trace-footprint.mjs`
+ * (convex hull + Douglas-Peucker → 8 vértices convexos, exigência do SAT).
+ * Na caixa do .hex-pot (aspect = POT_BOX_ASPECT, imagem em height:POT_IMG_HEIGHT_PCT
+ * object-contain object-bottom) o tile ocupa y ≈ 0.62–0.97 e x ≈ 0.05–0.95.
+ * Coordenadas em fração da caixa (0,0 = topo-esquerda; 1,1 = base-direita).
  *
  * Puro (sem DOM): usável no cliente e, se preciso, no servidor.
  */
 
 export type Pt = { x: number; y: number };
 
-/** Vértices do footprint em fração da caixa do hex-pot. */
+/** Contrato de render do HexPot — fonte de verdade única (derivar aspectRatio, viewBox, boxH daqui). */
+export const POT_BOX_ASPECT = 1.65;      // altura/largura da caixa .hex-pot (portrait)
+export const POT_IMG_HEIGHT_PCT = 0.80;  // altura da imagem do tile na caixa
+/** Centro visual do tile (fração a partir da BASE) — âncora da base da planta. */
+export const PLANT_ANCHOR_PCT = 0.205;
+
+/** Vértices do footprint em fração da caixa do hex-pot (silhueta opaca do tile). */
 export const POT_FOOTPRINT: ReadonlyArray<readonly [number, number]> = [
-  [0.50, 0.586],
-  [0.974, 0.686],
-  [0.974, 0.887],
-  [0.50, 0.988],
-  [0.026, 0.887],
-  [0.026, 0.686],
+  [0.491, 0.621],
+  [0.904, 0.693],
+  [0.953, 0.856],
+  [0.868, 0.896],
+  [0.500, 0.971],
+  [0.101, 0.891],
+  [0.051, 0.860],
+  [0.092, 0.692],
 ];
 
 /**

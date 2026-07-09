@@ -7,6 +7,7 @@
  *    base e terminam no solo.
  * Posicionado igual aos pots (mesma caixa hex-pot) para acompanhar pan/zoom.
  */
+import { POT_BOX_ASPECT, PLANT_ANCHOR_PCT } from '@/lib/potGeometry';
 const DIRT_COLORS = ['#6b4423', '#8a5a2b', '#4a2e18', '#5c3a1e'];
 const DIRT = Array.from({ length: 9 }, (_, i) => {
   const deg = -165 + (i / 8) * 150; // leque para cima e para os lados
@@ -30,10 +31,10 @@ export function PotFx({ type, x, y }: { type: 'plant' | 'water'; x: number; y: n
   return (
     <div
       className="absolute hex-pot pointer-events-none"
-      style={{ left: `${x}%`, top: `${y}%`, aspectRatio: '1 / 1.65', transform: 'translate(-50%, -50%)', zIndex: 999998 }}
+      style={{ left: `${x}%`, top: `${y}%`, aspectRatio: `1 / ${POT_BOX_ASPECT}`, transform: 'translate(-50%, -50%)', zIndex: 999998 }}
     >
-      {/* Âncora na terra do canteiro (~20% acima da base) */}
-      <div className="absolute" style={{ left: '50%', bottom: '20%', width: 0, height: 0 }}>
+      {/* Âncora no centro da terra do tile (PLANT_ANCHOR_PCT acima da base) */}
+      <div className="absolute" style={{ left: '50%', bottom: `${PLANT_ANCHOR_PCT * 100}%`, width: 0, height: 0 }}>
         {type === 'plant' && DIRT.map((d, i) => (
           <span
             key={i}
