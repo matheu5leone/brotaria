@@ -88,6 +88,16 @@ export async function initializeUser(
     .single();
 
   if (profileError) {
+    // Email já cadastrado sob OUTRO id (mesma pessoa entrou por e-mail e por Google
+    // → dois auth users, um e-mail). Não é motivo para 500/loop de retry: a conta
+    // com esse e-mail já existe e já foi inicializada. Init idempotente: sai sem
+    // recriar. Escopado à constraint de e-mail — outros 23505 (ex.: nickname) ainda
+    // são erro real.
+    const code = (profileError as { code?: string }).code;
+    if (code === '23505' && /email/i.test(profileError.message ?? '')) {
+      console.warn(`[Inventory] E-mail ${email} já cadastrado sob outro id — init idempotente, seguindo sem recriar.`);
+      return { success: true, message: 'Already initialized (email exists)' };
+    }
     console.error('[Inventory] Profile Error:', profileError);
     throw new Error(`Profile initialization failed: ${profileError.message}`);
   }
