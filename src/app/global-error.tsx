@@ -9,7 +9,7 @@
  * globals.css pode não estar carregado → estilos inline com cores literais.
  */
 import { useEffect } from 'react';
-import { isChunkError, reloadWithCacheBust } from '@/lib/chunkReload';
+import { isChunkError, reloadWithCacheBust, reportClientError } from '@/lib/chunkReload';
 
 export default function GlobalError({
   error,
@@ -20,8 +20,9 @@ export default function GlobalError({
   const chunk = isChunkError(error);
 
   useEffect(() => {
+    reportClientError('boundary-global', error);
     if (chunk) reloadWithCacheBust();
-  }, [chunk]);
+  }, [chunk, error]);
 
   return (
     <html lang="pt-BR">

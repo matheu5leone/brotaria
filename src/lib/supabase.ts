@@ -1,6 +1,7 @@
 'use client';
 
 import { createClient } from '@supabase/supabase-js';
+import { reportClientError } from '@/lib/chunkReload';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -20,7 +21,11 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
  * Isso cobre qualquer library que chame `new Headers({ key: badValue })`.
  */
 
-// Camada 1: Patch do construtor global Headers — sanitiza valores não-ASCII no ponto do throw
+// Camada 1: Patch do construtor global Headers — sanitiza valores não-ASCII no ponto do throw.
+// BLINDADO: reescrever/subclassar o Headers global é frágil entre navegadores (ex.: Firefox).
+// Se lançar, NÃO pode matar o boot do app inteiro — apenas seguimos sem o patch (a Camada 3,
+// safeFetch, ainda sanitiza) e reportamos para termos visibilidade.
+try {
 if (typeof globalThis !== 'undefined' && typeof (globalThis as { Headers?: unknown }).Headers === 'function') {
   const NativeHeaders = (globalThis as { Headers: typeof Headers }).Headers;
 
@@ -53,6 +58,10 @@ if (typeof globalThis !== 'undefined' && typeof (globalThis as { Headers?: unkno
   }
 
   (globalThis as { Headers: typeof Headers }).Headers = SafeHeaders as unknown as typeof Headers;
+}
+} catch (e) {
+  // Patch de Headers falhou neste navegador — segue sem ele (safeFetch cobre).
+  reportClientError('boot', e);
 }
 
 // Camada 2: Sanitizar process.version antes que supabase-js o leia

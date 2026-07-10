@@ -13,6 +13,9 @@ function sanitize(v: string): string {
   return v.replace(/[^\x20-\x7E]/g, '');
 }
 
+// BLINDADO: se subclassar/reescrever o Headers global lançar no runtime, não pode
+// derrubar a rota inteira — segue sem o patch (safeFetch ainda sanitiza).
+try {
 if (typeof globalThis !== 'undefined' && typeof (globalThis as { Headers?: unknown }).Headers === 'function') {
   const NativeHeaders = (globalThis as { Headers: typeof Headers }).Headers;
 
@@ -44,6 +47,9 @@ if (typeof globalThis !== 'undefined' && typeof (globalThis as { Headers?: unkno
   }
 
   (globalThis as { Headers: typeof Headers }).Headers = SafeHeaders as unknown as typeof Headers;
+}
+} catch (e) {
+  console.error('[supabaseServer] patch de Headers falhou — seguindo sem ele:', e);
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';

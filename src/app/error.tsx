@@ -7,7 +7,7 @@
  * cache-bust; senão mostra um fallback estilizado com botão de recarregar.
  */
 import { useEffect } from 'react';
-import { isChunkError, reloadWithCacheBust } from '@/lib/chunkReload';
+import { isChunkError, reloadWithCacheBust, reportClientError } from '@/lib/chunkReload';
 
 export default function Error({
   error,
@@ -19,8 +19,9 @@ export default function Error({
   const chunk = isChunkError(error);
 
   useEffect(() => {
+    reportClientError('boundary', error);
     if (chunk) reloadWithCacheBust();
-  }, [chunk]);
+  }, [chunk, error]);
 
   return (
     <div
