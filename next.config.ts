@@ -13,7 +13,10 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob: https://*.supabase.co",
-      "connect-src 'self' https://*.supabase.co https://openrouter.ai",
+      // wss:// explícito p/ o realtime do Supabase: Chrome relaxa https->wss, mas
+      // Firefox/Safari são estritos e bloqueiam o WebSocket sem isto (SecurityError
+      // "The operation is insecure" → crash). Ver client-error-telemetry.
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://openrouter.ai",
       "frame-src 'self' https://challenges.cloudflare.com",
     ].join('; '),
   },

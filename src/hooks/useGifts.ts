@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PlantDNA } from '@/types';
 import { authFetch } from '@/lib/authFetch';
 import { supabase } from '@/lib/supabase';
+import { reportClientError } from '@/lib/chunkReload';
 
 export type PendingGift = {
   id: string;
@@ -26,15 +27,29 @@ export function usePendingGifts(userId: string | undefined) {
   // próprios presentes chegam a este cliente.
   useEffect(() => {
     if (!userId) return;
-    const channel = supabase
-      .channel(`gifts-${userId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'gifts', filter: `recipient_id=eq.${userId}` },
-        () => qc.invalidateQueries({ queryKey: ['gifts', 'pending', userId] }),
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    // Realtime é OPCIONAL: se o WebSocket for bloqueado (CSP/ETP do Firefox, ITP do
+    // Safari, modo privado), o new WebSocket() lança SÍNCRONO (SecurityError) aqui.
+    // Sem o try/catch isso subia pro error boundary e derrubava a página inteira.
+    // O polling (refetchInterval) cobre a chegada de presentes — só perdemos o "ao vivo".
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel(`gifts-${userId}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'gifts', filter: `recipient_id=eq.${userId}` },
+          () => qc.invalidateQueries({ queryKey: ['gifts', 'pending', userId] }),
+        )
+        .subscribe((status) => {
+          // Erro assíncrono de canal → para de insistir (evita tempestade de reconexão).
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            try { if (channel) supabase.removeChannel(channel); } catch { /* ignora */ }
+          }
+        });
+    } catch (err) {
+      reportClientError('realtime', err); // degrada pro polling; não quebra a página
+    }
+    return () => { try { if (channel) supabase.removeChannel(channel); } catch { /* ignora */ } };
   }, [userId, qc]);
 
   return useQuery<PendingGift[]>({
