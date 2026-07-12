@@ -58,11 +58,11 @@ const TrashIcon = () => (
 const SpinnerIcon = () => (
   <Loader2 className="animate-spin text-amber-200" style={{ width: '1.4em', height: '1.4em' }} />
 );
-// Chevron do toggle do painel: vertical em portrait, horizontal em landscape/desktop.
+// Chevron do toggle do painel: vertical em mobile portrait, horizontal em desktop.
 const PainelToggleIcon = ({ expanded }: { expanded: boolean }) => {
   // Seta de madeira (asset gerado no estilo do jogo, apontando pra CIMA).
-  // As 4 direções saem por rotação: mobile abre pra cima/baixo, desktop
-  // (e landscape) pra esquerda/direita.
+  // As direções saem por rotação: mobile abre pra cima/baixo, desktop
+  // pra esquerda/direita.
   const arrow = (deg: number) => (
     <span
       className="relative inline-block transition-transform duration-300"
@@ -73,10 +73,10 @@ const PainelToggleIcon = ({ expanded }: { expanded: boolean }) => {
   );
   return (
     <>
-      <span className="inline-flex landscape:hidden md:hidden">
+      <span className="inline-flex md:hidden">
         {arrow(expanded ? 180 : 0)}
       </span>
-      <span className="hidden landscape:inline-flex md:inline-flex">
+      <span className="hidden md:inline-flex">
         {arrow(expanded ? 90 : -90)}
       </span>
     </>
@@ -379,9 +379,7 @@ export default function Garden() {
   const potBoxWidthPx = useCallback((rectWidth: number) => {
     const el = canvasRef.current?.querySelector('.hex-pot') as HTMLElement | null;
     if (el) return el.getBoundingClientRect().width / zoomRef.current;
-    const pct = window.matchMedia('(min-width: 768px) and (min-height: 600px)').matches ? 0.14
-      : window.matchMedia('(orientation: landscape) and (max-height: 600px)').matches ? 0.11
-      : 0.18;
+    const pct = window.matchMedia('(min-width: 768px) and (min-height: 600px)').matches ? 0.14 : 0.18;
     return pct * rectWidth;
   }, []);
 

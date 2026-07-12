@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 
 /**
  * Desktop = mesma regra do layout (sidebar em vez de bottom-nav):
- * largura ≥ 768px E altura ≥ 600px. Mobile (portrait ou landscape) usa drag;
- * desktop usa clique-clique.
+ * largura ≥ 768px E altura ≥ 600px. Mobile portrait usa drag; desktop usa
+ * clique-clique. (Landscape mobile não é suportado — bloqueado pelo .rotate-lock.)
  */
 const DESKTOP_QUERY = '(min-width: 768px) and (min-height: 600px)';
 

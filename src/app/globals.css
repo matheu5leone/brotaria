@@ -178,7 +178,8 @@ html, body {
 }
 
 /* ---------- Layout shell — sidebar só no desktop real ----------
-   Celular deitado (largura > 768 mas altura baixa) usa BottomNav, não sidebar. */
+   Mobile = SEMPRE portrait (landscape é bloqueado pelo .rotate-lock). Celular
+   deitado cai aqui como mobile e o overlay o cobre pedindo pra girar. */
 .app-shell { flex-direction: column; }
 .shell-sidebar { display: none; }
 .shell-bottomnav { display: flex; }
@@ -188,24 +189,54 @@ html, body {
   .shell-bottomnav { display: none; }
 }
 
+/* ---------- Portrait-lock — mobile só funciona em pé ----------
+   O Brotaria suporta APENAS desktop e mobile portrait. Em celular deitado, este
+   overlay cobre tudo pedindo pra girar. Guardas: max-height:600 exclui desktop;
+   pointer:coarse restringe a touch (janela de desktop baixa não é bloqueada). */
+.rotate-lock { display: none; }
+@media (orientation: landscape) and (max-height: 600px) and (pointer: coarse) {
+  .rotate-lock {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    text-align: center;
+    padding: 24px;
+    background: linear-gradient(160deg, var(--color-garden-mid, #1e3a1a) 0%, var(--color-garden-deep, #0f2010) 60%, var(--color-garden-light, #24421f) 100%);
+    color: var(--color-text-light, #f2e8d5);
+  }
+  /* Impede scroll/interação por baixo do overlay */
+  body:has(.rotate-lock) { overflow: hidden; }
+}
+.rotate-lock-icon { font-size: 44px; animation: rotate-hint 2.4s ease-in-out infinite; }
+.rotate-lock-title { font-family: var(--font-display); font-weight: 900; font-size: 18px; }
+.rotate-lock-sub { font-family: var(--font-body); font-size: 13px; opacity: 0.8; max-width: 320px; }
+@keyframes rotate-hint {
+  0%, 55%, 100% { transform: rotate(0deg); }
+  70%, 85%      { transform: rotate(-90deg); }
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    PAINEL de ferramentas — canto inferior direito, âncora fixa + grupo colapsável
-   - Portrait (base): coluna, expande pra cima, 10px acima da navbar (62px)
-   - Desktop/Landscape: linha, expande pra esquerda, encostado no bottom
+   - Mobile portrait (base): coluna, expande pra cima, 10px acima da navbar (62px)
+   - Desktop: linha, expande pra esquerda, encostado no bottom
    ══════════════════════════════════════════════════════════════════════════ */
 .painel {
   position: fixed;
   right: 0;
-  bottom: 72px;                 /* mobile (portrait + landscape): 10px acima da navbar de 62px */
+  bottom: 72px;                 /* mobile portrait: 10px acima da navbar de 62px */
   z-index: 60;
   display: flex;
   flex-direction: column-reverse; /* âncora (1º DOM) embaixo, fixa */
   align-items: center;
   gap: 0;                       /* gap âncora↔grupo vem do padding do inner */
 }
-/* Desktop e landscape: linha (âncora à direita, expande p/ esquerda) */
-@media (min-width: 768px) and (min-height: 600px),
-       (orientation: landscape) and (max-height: 600px) {
+/* Desktop: linha (âncora à direita, expande p/ esquerda) */
+@media (min-width: 768px) and (min-height: 600px) {
   .painel { flex-direction: row-reverse; }
 }
 /* Só desktop (sem navbar): encosta no fundo da tela */
@@ -217,7 +248,7 @@ html, body {
    imagem do hexágono (img em fluxo, width auto) → a caixa == hexágono exatamente,
    sem área transparente; badge/tooltip ancoram no hexágono real.
    Altura = 100px base / 120px desktop. */
-/* Mobile (portrait + landscape): 50px (−50% do tamanho anterior de 100px) */
+/* Mobile portrait: 50px (−50% do tamanho anterior de 100px) */
 .painel .painel-btn { height: 50px; font-size: 13px; }
 /* Desktop: mantém 120px */
 @media (min-width: 768px) and (min-height: 600px) {
@@ -246,8 +277,7 @@ html, body {
   padding-bottom: 10px;          /* gap âncora↔1º botão (some quando colapsado) */
 }
 
-@media (min-width: 768px) and (min-height: 600px),
-       (orientation: landscape) and (max-height: 600px) {
+@media (min-width: 768px) and (min-height: 600px) {
   .painel-group {
     grid-template-rows: none;
     grid-template-columns: 1fr;  /* horizontal: colapsa a largura */
@@ -293,16 +323,9 @@ html, body {
 
 /* ---------- Canteiro — tamanho responsivo ---------- */
 
-/* Portrait: 18% */
+/* Mobile portrait: 18% */
 .hex-pot {
   width: 18%;
-}
-
-/* Celular deitado: 11% (tela larga → % menor evita colisão) */
-@media (orientation: landscape) and (max-height: 600px) {
-  .hex-pot {
-    width: 11%;
-  }
 }
 
 /* Desktop real (largura E altura): 14% */
@@ -335,8 +358,8 @@ html, body {
   background-position: center center;
 }
 
-/* Desktop ou mobile deitado → imagem horizontal */
-@media (min-width: 768px), (orientation: landscape) {
+/* Desktop → imagem horizontal */
+@media (min-width: 768px) {
   .garden-bg {
     background-image: url('/imgs/bg-garden.webp');
   }

@@ -164,7 +164,7 @@ export function PlantsGridModal({
             </button>
           </div>
 
-          {/* Grid — 3 cols (portrait) → 5 (landscape/tablet) → 6 → 8 (desktop).
+          {/* Grid — 3 cols (mobile) → 5 (sm) → 6 (md) → 8 (lg). Breakpoints por LARGURA.
               padding + overflow-x-hidden dão folga ao hover:scale sem gerar
               scrollbar lateral flutuante. */}
           {plantIds.length === 0 ? (

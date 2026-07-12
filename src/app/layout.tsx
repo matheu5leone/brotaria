@@ -86,6 +86,14 @@ export default function RootLayout({
           </defs>
         </svg>
 
+        {/* Portrait-lock: em celular deitado cobre tudo (CSS-only, ver .rotate-lock).
+            Suportamos apenas desktop e mobile portrait. */}
+        <div className="rotate-lock" aria-hidden="true">
+          <span className="rotate-lock-icon">📱</span>
+          <span className="rotate-lock-title">Gire o celular</span>
+          <span className="rotate-lock-sub">O Brotaria funciona no modo retrato 🌱 — vire o aparelho para cima.</span>
+        </div>
+
         <QueryProvider>
           <AuthProvider>
             <WalletProvider>
