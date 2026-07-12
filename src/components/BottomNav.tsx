@@ -311,7 +311,7 @@ export function BottomNav() {
             className="text-sm font-black leading-none"
             style={{ fontFamily: 'var(--font-display)', color: 'var(--color-gold)' }}
           >
-            <CoinIcon size={16} className="inline-block mr-1" />{coins} · 🍃 {herbo}
+            <CoinIcon size={16} className="inline-block mr-1" />{coins} · <span data-herbo-target>🍃 {herbo}</span>
           </span>
         </NavLink>
 

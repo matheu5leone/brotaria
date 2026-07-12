@@ -56,28 +56,29 @@ export interface LifecycleProgress {
   name: string;
   tier: number;
   isFinal: boolean;
-  nextName: string | null;
   progressWaters: number;
   totalWaters: number;
   progressPct: number;
 }
 
-/** Progresso do estágio visível: regas feitas / regas até a próxima mudança real. */
-export function getLifecycle(orderIndex: number, currentWaters: number): LifecycleProgress {
+/**
+ * Progresso do SUB-PASSO atual (rega): regas feitas / sede atual da planta.
+ * A barra enche por sub-passo e reseta a cada transição (broto_1→broto_2…),
+ * mostrando só o ATUAL (o plano futuro é secreto). Adulta (order ≥ 11) = terminal.
+ * `currentTarget` = plants.current_target (sede do sub-passo); fallback = 3.
+ */
+export function getLifecycle(orderIndex: number, currentWaters: number, currentTarget?: number | null): LifecycleProgress {
   const stage = lifecycleFromOrder(orderIndex);
-  const idx = LIFECYCLE.indexOf(stage);
-  const next = LIFECYCLE[idx + 1] ?? null;
-  const phaseInTier = Math.max(0, orderIndex - stage.startOrder);
-  const totalWaters = stage.steps * WATERS_PER_STEP;
-  const progressWaters = Math.min(totalWaters, phaseInTier * WATERS_PER_STEP + Math.max(0, currentWaters));
+  const isFinal = orderIndex >= LIFECYCLE[4].startOrder; // adulta (order ≥ 11) não se rega
+  const total = Math.max(1, currentTarget ?? WATERS_PER_STEP);
+  const progress = Math.min(total, Math.max(0, currentWaters));
   return {
     key: stage.key,
     name: stage.name,
     tier: stage.tier,
-    isFinal: !next,
-    nextName: next?.name ?? null,
-    progressWaters,
-    totalWaters,
-    progressPct: Math.round((progressWaters / totalWaters) * 100),
+    isFinal,
+    progressWaters: isFinal ? total : progress,
+    totalWaters: total,
+    progressPct: isFinal ? 100 : Math.round((progress / total) * 100),
   };
 }

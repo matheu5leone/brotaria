@@ -375,6 +375,26 @@ html, body {
 
 /* ---------- Jardim — balão de água (estilo PvZ) ---------- */
 
+/* Herbo voando — "+N 🍃" sai da planta e vai até o contador do menu */
+@keyframes herbo-fly {
+  0%   { transform: translate(0,0) scale(0.7); opacity: 0; }
+  12%  { opacity: 1; transform: translate(0,0) scale(1.1); }
+  50%  { transform: translate(calc(var(--dx) * 0.5), calc(var(--dy) * 0.5 - 55px)) scale(1.15); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0.5); opacity: 0; }
+}
+.herbo-fly { animation: herbo-fly 0.95s cubic-bezier(0.35, 0, 0.35, 1) forwards; will-change: transform, opacity; }
+@keyframes herbo-target-pop { 0%,100% { transform: scale(1); } 40% { transform: scale(1.35); } }
+.herbo-target-pop { animation: herbo-target-pop 0.4s ease-out; }
+@media (prefers-reduced-motion: reduce) { .herbo-fly, .herbo-target-pop { animation: none; } }
+
+/* Cronômetro de rega — pulso do estado "pode regar" */
+@keyframes water-ready-pulse {
+  0%, 100% { transform: scale(1);    box-shadow: 0 6px 18px rgba(26,107,160,0.45); }
+  50%      { transform: scale(1.05); box-shadow: 0 8px 26px rgba(59,130,246,0.7); }
+}
+.water-ready-pulse { animation: water-ready-pulse 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .water-ready-pulse { animation: none; } }
+
 @keyframes water-bubble {
   /* sobe, pausa no topo, desce — estilo Plants vs. Zombies */
   0%   { transform: translateX(-50%) translateY(0px)  scale(1);    }

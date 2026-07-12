@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { generateRandomDNA } from './dnaService';
-import { WATER_COOLDOWN_MS } from '@/config/economy';
+import { rollSede } from '@/config/economy';
 import { recordPendingReferral } from './referralService';
 import { grantDefaultAvatar } from './avatarService';
 
@@ -191,7 +191,11 @@ export async function plantSeed(userId: string, potId: string) {
 
   if (!stage) throw new Error('Initial stage not found');
 
-  // 5. Cria planta
+  // 5. Sorteia a SEDE da planta (regas por sub-passo + período), tudo no plantio.
+  //    O plano completo vai para plant_sede (protegido); a planta guarda só o ATUAL.
+  const sede = rollSede();
+
+  // 6. Cria planta — enterrada exige waters[1] (=3), período próprio da planta
   const { data: plant, error: plantError } = await supabaseAdmin
     .from('plants')
     .insert({
@@ -199,13 +203,23 @@ export async function plantSeed(userId: string, potId: string) {
       pot_id: potId,
       dna: dna,
       current_stage_id: stage.id,
+      current_stage_waters: 0,
+      current_target: sede.waters[1],
+      water_period_ms: sede.periodMs,
       hydration_status: 'hydrated',
-      next_water_needed_at: new Date(Date.now() + WATER_COOLDOWN_MS).toISOString(),
+      next_water_needed_at: new Date(Date.now() + sede.periodMs).toISOString(),
     })
     .select()
     .single();
 
   if (plantError) throw plantError;
+
+  // Plano futuro protegido (RLS: só service role). Falha aqui não pode perder a
+  // planta — sem sede o servidor cai no fallback (waters_required/cooldown fixos).
+  const { error: sedeError } = await supabaseAdmin
+    .from('plant_sede')
+    .insert({ plant_id: plant.id, waters: sede.waters });
+  if (sedeError) console.error('[Inventory] Falha ao gravar plant_sede:', sedeError);
 
   // 6. Atualiza pot e remove semente do inventário
   await supabaseAdmin.from('pots').update({ plant_id: plant.id }).eq('id', potId);

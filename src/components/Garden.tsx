@@ -116,12 +116,19 @@ import { useWrapPlant } from '@/hooks/useInventory';
 import { HexButton } from '@/components/HexButton';
 import { HexPot, getPotState } from '@/components/HexPot';
 import { PotFx } from '@/components/PotFx';
+import { HerboFly, HerboFlight } from '@/components/HerboFly';
 import { lifecycleFromCode, isVisibleStageChange } from '@/config/lifecycle';
 import { usePendingGifts } from '@/hooks/useGifts';
 import { GiftReceiveModal } from '@/components/GiftReceiveModal';
 import type { PendingGift } from '@/hooks/useGifts';
 
 const HEX_CLIP = 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)';
+
+/** Contador de herbo VISÍVEL (sidebar no desktop / bottomnav no mobile; o outro é display:none). */
+function visibleHerboTarget(): HTMLElement | null {
+  const els = Array.from(document.querySelectorAll('[data-herbo-target]')) as HTMLElement[];
+  return els.find((el) => el.offsetParent !== null) ?? els[0] ?? null;
+}
 
 /** Fundo estendido (140% = 1.4) — usado no clamp de pan */
 const GARDEN_BG_EXTENT = 1.4;
@@ -223,6 +230,8 @@ export default function Garden() {
   // Feedback visual rápido no canteiro: plantar (terra) / regar (gotas)
   const [plantFx, setPlantFx]                       = useState<{ potId: string; nonce: number } | null>(null);
   const [waterFx, setWaterFx]                       = useState<{ potId: string; nonce: number } | null>(null);
+  const [herboFlights, setHerboFlights]             = useState<HerboFlight[]>([]);
+  const herboFlyId = useRef(0);
   const fxNonce = useRef(0);
   const plantFxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const waterFxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -497,6 +506,27 @@ export default function Garden() {
     if (waterFxTimer.current) clearTimeout(waterFxTimer.current);
     waterFxTimer.current = setTimeout(() => setWaterFx(null), 700);
   }, []);
+
+  // Herbo voando: "+N 🍃" da planta (rect do pot) até o contador do menu.
+  const triggerHerboFly = useCallback((potId: string, amount: number) => {
+    if (typeof window === 'undefined' || !amount) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const src = document.querySelector(`[data-pot-id="${potId}"]`)?.getBoundingClientRect();
+    const tgt = visibleHerboTarget()?.getBoundingClientRect();
+    if (!src || !tgt || tgt.width === 0) return;
+    const x = src.left + src.width / 2;
+    const y = src.top + src.height * 0.32;
+    const id = ++herboFlyId.current;
+    setHerboFlights((prev) => [
+      ...prev,
+      { id, amount, x, y, dx: (tgt.left + tgt.width / 2) - x, dy: (tgt.top + tgt.height / 2) - y },
+    ]);
+  }, []);
+  const removeHerboFlight = useCallback((id: number) => {
+    setHerboFlights((prev) => prev.filter((f) => f.id !== id));
+    const el = visibleHerboTarget(); // pulso no contador quando o herbo "chega"
+    if (el) { el.classList.remove('herbo-target-pop'); void el.offsetWidth; el.classList.add('herbo-target-pop'); }
+  }, []);
   useEffect(() => () => {
     if (plantFxTimer.current) clearTimeout(plantFxTimer.current);
     if (waterFxTimer.current) clearTimeout(waterFxTimer.current);
@@ -515,7 +545,7 @@ export default function Garden() {
       (!!cached.next_water_needed_at && new Date(cached.next_water_needed_at) < new Date())
     );
     const willEvolve = !!cached && needsWater &&
-      cached.current_stage_waters + 1 >= cached.current_stage.waters_required;
+      cached.current_stage_waters + 1 >= (cached.current_target ?? cached.current_stage.waters_required);
     const willCallAI = willEvolve && IMAGE_STAGE_ORDERS.has(cached!.current_stage.order_index + 1);
 
     if (willCallAI) setEvolvingPlant(true);
@@ -525,14 +555,12 @@ export default function Garden() {
         { evolved?: boolean; nextStage?: string; herbo?: number } | undefined;
       if (result) triggerWaterFx(pot.id); // gotas na terra sempre que a rega dá certo
       if (result?.evolved) {
-        const herbo = result.herbo ? `+${result.herbo} 🍃` : '';
+        // Herbo voando a CADA sub-passo/evolução (o feedback da recompensa)
+        if (result.herbo) triggerHerboFly(pot.id, result.herbo);
         if (result.nextStage && isVisibleStageChange(result.nextStage)) {
-          // Mudança VISÍVEL de estágio (a planta muda na tela)
+          // Mudança VISÍVEL de estágio → toast comemorativo (o herbo já voa)
           const name = lifecycleFromCode(result.nextStage).name;
-          showToast(`🌿 Sua planta virou ${name}!${herbo ? ' · ' + herbo : ''}`, 'success');
-        } else if (herbo) {
-          // Fase interna (nada muda na tela) → feedback discreto de recompensa
-          showToast(herbo, 'success');
+          showToast(`🌿 Sua planta virou ${name}!`, 'success');
         }
       }
     } catch (err: unknown) {
@@ -545,7 +573,7 @@ export default function Garden() {
     } finally {
       setEvolvingPlant(false);
     }
-  }, [canWaterToday, waterMutation, showToast, qc, triggerWaterFx]);
+  }, [canWaterToday, waterMutation, showToast, qc, triggerWaterFx, triggerHerboFly]);
 
   // Encontra o pot pelo ponto na tela usando data-pot-id
   const findPotAtPoint = useCallback((x: number, y: number): Pot | null => {
@@ -1473,6 +1501,9 @@ export default function Garden() {
           }}
         />
       )}
+
+      {/* ── Herbo voando (planta → contador do menu) ─────────────────────── */}
+      <HerboFly flights={herboFlights} onDone={removeHerboFlight} />
 
       {/* ── Tela de evolução (raios solares + logo) durante a geração da IA ─ */}
       <EvolutionLoader open={evolvingPlant} />

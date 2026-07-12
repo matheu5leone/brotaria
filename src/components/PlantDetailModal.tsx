@@ -6,6 +6,7 @@ import { usePlant, usePlantVersion } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
 import { calcPlantScore } from '@/lib/scoring';
 import { getLifecycle } from '@/config/lifecycle';
+import { WaterCountdown } from '@/components/WaterCountdown';
 
 const RARITY_LABELS: Record<string, string> = {
   comum: 'Comum', incomum: 'Incomum', raro: 'Raro',
@@ -20,14 +21,6 @@ const BIOME_LABELS: Record<string, string> = {
 function formatDate(iso: string) {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
-function formatNextWater(iso: string) {
-  const diff = new Date(iso).getTime() - Date.now();
-  if (diff <= 0) return 'agora';
-  const h = Math.floor(diff / 3_600_000);
-  const m = Math.floor((diff % 3_600_000) / 60_000);
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
 export function PlantDetailModal({
@@ -51,7 +44,7 @@ export function PlantDetailModal({
   if (!plant) return null;
 
   const stage = plant.current_stage;
-  const lc = getLifecycle(stage.order_index, plant.current_stage_waters);
+  const lc = getLifecycle(stage.order_index, plant.current_stage_waters, plant.current_target);
   const rarity = plant.dna.rarity as string;
   const biome = plant.dna.biome as string;
   const progressPct = lc.progressPct;
@@ -172,30 +165,16 @@ export function PlantDetailModal({
               }}
             />
           </div>
-          <div className="flex items-center justify-between mt-1.5">
-            <span
-              className="text-[9px]"
-              style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}
-            >
-              {lc.isFinal
-                ? `${lc.progressWaters}/${lc.totalWaters} regas · crescimento máximo`
-                : `${lc.progressWaters}/${lc.totalWaters} regas até virar ${lc.nextName}`}
-            </span>
-            {canWater ? (
-              <span
-                className="text-[9px] font-bold"
-                style={{ color: '#d97706', fontFamily: 'var(--font-display)' }}
-              >
-                Pode regar agora! 💧
-              </span>
-            ) : (
-              <span
-                className="text-[9px]"
-                style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)' }}
-              >
-                Próxima rega em: {formatNextWater(plant.next_water_needed_at)}
-              </span>
-            )}
+          <div className="mt-1.5 text-[9px]" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
+            {lc.isFinal ? 'Crescimento máximo' : `${lc.progressWaters}/${lc.totalWaters} regas neste passo`}
+          </div>
+          <div className="mt-2 flex justify-center">
+            <WaterCountdown
+              nextWaterAt={plant.next_water_needed_at}
+              periodMs={plant.water_period_ms}
+              canWater={canWater}
+              isFinal={lc.isFinal}
+            />
           </div>
         </div>
 

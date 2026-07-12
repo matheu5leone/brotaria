@@ -6,6 +6,10 @@ export type PlantRow = {
   id: string;
   hydration_status: string;
   current_stage_waters: number;
+  /** Sede do sub-passo ATUAL (per-planta, aleatória). Fallback: waters_required. */
+  current_target: number | null;
+  /** Período próprio da planta entre regas (ms). Fallback: cooldown global. */
+  water_period_ms: number | null;
   current_stage: { id: string; code: string; name: string; order_index: number; waters_required: number };
   dna: PlantDNA;
   created_at: string;

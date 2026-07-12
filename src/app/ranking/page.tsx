@@ -18,6 +18,8 @@ function rankingEntryToPlantRow(entry: RankingEntry): PlantRow {
     id: entry.plant_id,
     hydration_status: 'hydrated',
     current_stage_waters: 0,
+    current_target: null,
+    water_period_ms: null,
     current_stage: { id: '', code: '', name: entry.stage_name, order_index: entry.stage_order, waters_required: 3 },
     dna: entry.dna,
     created_at: '',

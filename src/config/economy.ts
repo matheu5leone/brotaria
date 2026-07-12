@@ -150,6 +150,59 @@ export const GAME = {
   STRESS_PENALTY: -1,
 } as const;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. SEDE — rega aleatória por planta (ver docs/superpowers/specs/2026-07-12…)
+//
+//    Cada planta sorteia no plantio: (1) quantas regas cada SUB-PASSO exige
+//    (faixa pelo tier visível) e (2) o período que pede água (5–12h). O cliente
+//    só enxerga o sub-passo ATUAL — o plano futuro fica na tabela protegida
+//    plant_sede (RLS). Adulta (order ≥ 11) é TERMINAL: não se rega.
+// ─────────────────────────────────────────────────────────────────────────────
+export const THIRST = {
+  PERIOD_MIN_HOURS: 5,
+  PERIOD_MAX_HOURS: 12,
+  /** Faixa [min,max] inclusiva de regas por sub-passo, por tier visível. */
+  WATERS_BY_TIER: {
+    semente: [3, 3],
+    broto:   [3, 6],
+    muda:    [4, 9],
+    jovem:   [5, 10],
+  },
+} as const;
+
+export type ThirstTier = keyof typeof THIRST.WATERS_BY_TIER | 'adulta';
+
+/** Tier visível a partir do order_index interno (1–13). */
+export function tierOfOrder(order: number): ThirstTier {
+  if (order <= 1) return 'semente';
+  if (order <= 4) return 'broto';
+  if (order <= 7) return 'muda';
+  if (order <= 10) return 'jovem';
+  return 'adulta';
+}
+
+const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+/** Regas exigidas no sub-passo `order`. null = terminal (adulta, não rega). */
+export function rollWatersForOrder(order: number): number | null {
+  const tier = tierOfOrder(order);
+  if (tier === 'adulta') return null;
+  const [min, max] = THIRST.WATERS_BY_TIER[tier];
+  return randInt(min, max);
+}
+
+/** Sorteia a sede completa da planta (chamado no plantio). */
+export function rollSede(): { periodMs: number; waters: Record<number, number> } {
+  // granularidade de minuto → não é sempre hora cheia
+  const periodMs = randInt(THIRST.PERIOD_MIN_HOURS * 60, THIRST.PERIOD_MAX_HOURS * 60) * 60_000;
+  const waters: Record<number, number> = {};
+  for (let o = 1; o <= 10; o++) waters[o] = rollWatersForOrder(o)!;
+  return { periodMs, waters };
+}
+
+/** Sentinela de "adulta terminal": next_water_needed_at que nunca dispara rega. */
+export const ADULT_NO_WATER_AT = '2999-01-01T00:00:00+00:00';
+
 // ── Helpers derivados ─────────────────────────────────────────────────────────
 
 /** Milissegundos de cooldown de rega. */

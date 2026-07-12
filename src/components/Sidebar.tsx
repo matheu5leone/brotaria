@@ -176,6 +176,7 @@ export default function Sidebar() {
 
         {/* Herbo chip */}
         <div
+          data-herbo-target
           className={`flex items-center rounded-xl ${
             isSidebarCollapsed ? 'justify-center p-2.5 w-12 h-12 mx-auto' : 'gap-2 px-3 py-2'
           }`}

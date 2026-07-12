@@ -7,6 +7,7 @@ import { lifecycleFromOrder, getLifecycle } from '@/config/lifecycle';
 import { calcPlantScore } from '@/lib/scoring';
 import { PlantRow, PlantVersionHistoryRow, usePlantHistory } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
+import { WaterCountdown } from '@/components/WaterCountdown';
 import { Rarity } from '@/types';
 
 // ── Raridade — ícones mockados (sem assets externos) ─────────────────────────
@@ -66,14 +67,6 @@ function formatDate(iso: string) {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function formatNextWater(iso: string) {
-  const diff = new Date(iso).getTime() - Date.now();
-  if (diff <= 0) return 'agora';
-  const h = Math.floor(diff / 3_600_000);
-  const m = Math.floor((diff % 3_600_000) / 60_000);
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
-}
-
 const BIOME_LABEL: Record<string, string> = {
   planicie: 'Planície', floresta: 'Floresta', deserto: 'Deserto',
   montanha: 'Montanha', pantano: 'Pântano',
@@ -95,11 +88,12 @@ function VersionCard({
   const biome = version.dna_snapshot?.biome as string;
   const description = generateDescription(version);
 
-  // Progress: estágios passados = 100%; estágio atual = ao vivo (por estágio visível)
+  // Progress: estágios passados = 100%; estágio atual = ao vivo (sub-passo, sede atual)
   const progressPct = isLast
-    ? getLifecycle(plant.current_stage.order_index, plant.current_stage_waters).progressPct
+    ? getLifecycle(plant.current_stage.order_index, plant.current_stage_waters, plant.current_target).progressPct
     : 100;
   const canWater = isLast && plant.hydration_status === 'waiting_water';
+  const isFinal = plant.current_stage.order_index >= 11;
 
   return (
     <div className="flex gap-4 h-full items-stretch">
@@ -168,23 +162,22 @@ function VersionCard({
               style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg, #2a7a2a, #4ade80)' }}
             />
           </div>
-          <div className="mt-1 text-right">
-            {isLast ? (
-              canWater ? (
-                <span className="text-[8px] font-bold" style={{ color: '#d97706', fontFamily: 'var(--font-display)' }}>
-                  Pode regar agora! 💧
-                </span>
-              ) : (
-                <span className="text-[8px]" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)' }}>
-                  Próxima rega em: {formatNextWater(plant.next_water_needed_at)}
-                </span>
-              )
-            ) : (
-              <span className="text-[8px]" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)' }}>
-                Estágio concluído ✓
-              </span>
-            )}
+          <div className="mt-1 text-[9px] text-right" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
+            {isLast
+              ? (isFinal ? '' : `${plant.current_stage_waters}/${plant.current_target ?? plant.current_stage.waters_required} regas`)
+              : 'Estágio concluído ✓'}
           </div>
+          {isLast && (
+            <div className="mt-2 flex justify-center">
+              <WaterCountdown
+                nextWaterAt={plant.next_water_needed_at}
+                periodMs={plant.water_period_ms}
+                canWater={canWater}
+                isFinal={isFinal}
+                size={88}
+              />
+            </div>
+          )}
         </div>
 
         {/* Rewards */}
@@ -237,9 +230,8 @@ function VersionCard({
 // ── Card de planta enterrada (sem versões) — SÓ o progresso de rega ─────────
 
 function BuriedCard({ plant }: { plant: PlantRow }) {
-  const progressPct = Math.round(
-    (plant.current_stage_waters / plant.current_stage.waters_required) * 100,
-  );
+  const target = plant.current_target ?? plant.current_stage.waters_required;
+  const progressPct = Math.round((plant.current_stage_waters / Math.max(1, target)) * 100);
   const canWater = plant.hydration_status === 'waiting_water';
 
   return (
@@ -255,7 +247,7 @@ function BuriedCard({ plant }: { plant: PlantRow }) {
           className="text-[10px]"
           style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}
         >
-          {plant.current_stage_waters}/{plant.current_stage.waters_required} regas
+          {plant.current_stage_waters}/{target} regas
         </span>
       </div>
       <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(92,58,30,0.15)' }}>
@@ -264,16 +256,12 @@ function BuriedCard({ plant }: { plant: PlantRow }) {
           style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg, #2a7a2a, #4ade80)' }}
         />
       </div>
-      <div className="mt-1.5 text-right">
-        {canWater ? (
-          <span className="text-[9px] font-bold" style={{ color: '#d97706', fontFamily: 'var(--font-display)' }}>
-            Pode regar agora! 💧
-          </span>
-        ) : (
-          <span className="text-[9px]" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-caption)' }}>
-            Próxima rega em: {formatNextWater(plant.next_water_needed_at)}
-          </span>
-        )}
+      <div className="mt-3 flex justify-center">
+        <WaterCountdown
+          nextWaterAt={plant.next_water_needed_at}
+          periodMs={plant.water_period_ms}
+          canWater={canWater}
+        />
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { mutateDNA } from '@/services/dnaService';
 import { generatePlantEvolution } from './aiService';
-import { WATER_COOLDOWN_MS } from '@/config/economy';
+import { WATER_COOLDOWN_MS, ADULT_NO_WATER_AT } from '@/config/economy';
 import { calcPlantScore } from '@/lib/scoring';
 import { qualifyReferralIfPending } from '@/services/referralService';
 
@@ -31,6 +31,13 @@ export async function waterPlant(plantId: string, userId: string) {
     .single();
 
   if (fetchError || !plant) throw new Error('Plant not found');
+
+  // Adulta (order ≥ 11) é TERMINAL: não se rega mais.
+  if (plant.current_stage.order_index >= 11) {
+    const err = new Error('Esta planta já é adulta e não precisa mais de água.') as Error & { code: string };
+    err.code = 'IS_ADULT';
+    throw err;
+  }
 
   // Verifica prontidão por timestamp (não depende do cron ter rodado)
   const isReady =
@@ -80,10 +87,12 @@ export async function waterPlant(plantId: string, userId: string) {
       .update({ water_balance: newBalance + 1, total_waters: totalWaters })
       .eq('id', userId);
 
-  // 3. Regar / evoluir
+  // 3. Regar / evoluir — meta é a SEDE do sub-passo atual (per-planta), com
+  //    fallback para o waters_required global se a planta não tiver sede.
   const newWatersCount = plant.current_stage_waters + 1;
+  const target = plant.current_target ?? plant.current_stage.waters_required;
 
-  if (newWatersCount >= plant.current_stage.waters_required) {
+  if (newWatersCount >= target) {
     try {
       return await evolvePlant(plantId);
     } catch (err) {
@@ -100,7 +109,7 @@ export async function waterPlant(plantId: string, userId: string) {
       current_stage_waters: newWatersCount,
       hydration_status: 'hydrated',
       last_watered_at: new Date().toISOString(),
-      next_water_needed_at: new Date(Date.now() + WATER_COOLDOWN_MS).toISOString(),
+      next_water_needed_at: new Date(Date.now() + (plant.water_period_ms ?? WATER_COOLDOWN_MS)).toISOString(),
     })
     .eq('id', plantId);
 
@@ -168,6 +177,20 @@ export async function evolvePlant(plantId: string) {
     }
   }
 
+  // Sede do PRÓXIMO sub-passo (plano protegido em plant_sede). Adulta (order ≥ 11)
+  // é TERMINAL: current_target 0 + sentinela distante (nunca mais pede água).
+  const isAdultNext = nextStage.order_index >= 11;
+  const periodMs = plant.water_period_ms ?? WATER_COOLDOWN_MS;
+  let nextTarget = 0;
+  let nextWaterAt = ADULT_NO_WATER_AT;
+  if (!isAdultNext) {
+    const { data: sede } = await supabaseAdmin
+      .from('plant_sede').select('waters').eq('plant_id', plantId).maybeSingle();
+    const w = (sede?.waters ?? {}) as Record<string, number>;
+    nextTarget = w[String(nextStage.order_index)] ?? nextStage.waters_required ?? 3;
+    nextWaterAt = new Date(Date.now() + periodMs).toISOString();
+  }
+
   // 2) Avança estágio + versão + herbo numa transação única (RPC atômica):
   //    ou tudo persiste, ou nada — sem estados parciais se algo falhar no meio.
   const herboReward = calcPlantScore(newDNA, nextStage.order_index);
@@ -175,11 +198,12 @@ export async function evolvePlant(plantId: string) {
     p_plant_id: plantId,
     p_stage_id: nextStage.id,
     p_dna: newDNA,
-    p_next_water: new Date(Date.now() + WATER_COOLDOWN_MS).toISOString(),
+    p_next_water: nextWaterAt,
     p_image_url: evolution?.imageUrl ?? null,
     p_prompt: evolution?.visualDescription ?? null,
     p_model: evolution?.modelUsed ?? null,
     p_herbo: herboReward,
+    p_current_target: nextTarget,
   });
 
   if (evolveError) {
