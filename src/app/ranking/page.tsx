@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Trophy } from 'lucide-react';
@@ -8,25 +7,8 @@ import { CoinIcon } from '@/components/CoinIcon';
 import { AppShell } from '@/components/AppShell';
 import { useRanking, RankingEntry } from '@/hooks/useRanking';
 import { RarityEffect } from '@/components/RarityEffect';
-import { PlantHistoryModal } from '@/components/PlantHistoryModal';
-import { PlantRow } from '@/hooks/usePlantData';
 import { lifecycleFromOrder } from '@/config/lifecycle';
 import { Rarity } from '@/types';
-
-function rankingEntryToPlantRow(entry: RankingEntry): PlantRow {
-  return {
-    id: entry.plant_id,
-    hydration_status: 'hydrated',
-    current_stage_waters: 0,
-    current_target: null,
-    water_period_ms: null,
-    current_stage: { id: '', code: '', name: entry.stage_name, order_index: entry.stage_order, waters_required: 3 },
-    dna: entry.dna,
-    created_at: '',
-    next_water_needed_at: '',
-    satisfacao: 0,
-  };
-}
 
 function RarityBadge({ rarity }: { rarity: Rarity }) {
   const labels: Record<Rarity, string> = {
@@ -48,11 +30,10 @@ function RarityBadge({ rarity }: { rarity: Rarity }) {
   );
 }
 
-function RankingCard({ entry, onOpen }: { entry: RankingEntry; onOpen: () => void }) {
+function RankingCard({ entry }: { entry: RankingEntry }) {
   return (
-    <button
-      onClick={onOpen}
-      className="relative w-full flex items-center gap-4 rounded-2xl p-4 transition-all text-left active:scale-[0.99] hover:brightness-[1.03]"
+    <div
+      className="relative w-full flex items-center gap-4 rounded-2xl p-4 text-left"
       style={{
         background: 'linear-gradient(180deg, var(--color-parch-light) 0%, var(--color-parch-dark) 100%)',
         border: '1.5px solid var(--color-wood-light)',
@@ -92,7 +73,6 @@ function RankingCard({ entry, onOpen }: { entry: RankingEntry; onOpen: () => voi
           {entry.nickname ? (
             <Link
               href={`/jardim/${entry.nickname}`}
-              onClick={(e) => e.stopPropagation()}
               className="font-bold hover:underline truncate transition-colors"
               style={{ color: 'var(--color-wood-mid)', fontFamily: 'var(--font-display)' }}
             >
@@ -111,13 +91,12 @@ function RankingCard({ entry, onOpen }: { entry: RankingEntry; onOpen: () => voi
         <CoinIcon size={16} />
         {entry.score.toLocaleString('pt-BR')}
       </div>
-    </button>
+    </div>
   );
 }
 
 export default function RankingPage() {
   const { data: ranking = [], isPending } = useRanking();
-  const [selectedEntry, setSelectedEntry] = useState<RankingEntry | null>(null);
 
   return (
     <AppShell>
@@ -141,24 +120,11 @@ export default function RankingPage() {
         ) : (
           <div className="flex flex-col gap-3">
             {ranking.map((entry) => (
-              <RankingCard
-                key={entry.plant_id}
-                entry={entry}
-                onOpen={() => setSelectedEntry(entry)}
-              />
+              <RankingCard key={entry.plant_id} entry={entry} />
             ))}
           </div>
         )}
       </div>
-
-      {selectedEntry && (
-        <PlantHistoryModal
-          key={selectedEntry.plant_id}
-          plant={rankingEntryToPlantRow(selectedEntry)}
-          open={selectedEntry !== null}
-          onClose={() => setSelectedEntry(null)}
-        />
-      )}
     </AppShell>
   );
 }
