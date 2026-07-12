@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { authFetch } from '@/lib/authFetch';
+import { WATER_COLLECT_COOLDOWN_MS } from '@/config/economy';
 
 export type WaterStatusView = {
   balance: number;
@@ -30,9 +31,15 @@ export function useWaterStatus() {
   });
 }
 
+/**
+ * Coleta 1 de água com atualização OTIMISTA (mesmo padrão do curtir jardim):
+ * o saldo sobe na hora no cache (feedback instantâneo, sem esperar o banco) e o
+ * cooldown já começa a contar; se o servidor falhar, rollback.
+ */
 export function useCollectWater() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const key = ['water', user?.id];
   return useMutation({
     mutationFn: async () => {
       const res = await authFetch('/api/water/collect', { method: 'POST' });
@@ -40,8 +47,30 @@ export function useCollectWater() {
       if (!res.ok) throw Object.assign(new Error(data.error ?? 'Erro ao coletar'), { code: data.code });
       return data as { balance: number; cooldownRemainingMs: number };
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['water', user?.id] });
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<WaterStatusView>(key);
+      qc.setQueryData<WaterStatusView>(key, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          balance: Math.min(old.max, old.balance + 1),
+          cooldownRemainingMs: WATER_COLLECT_COOLDOWN_MS,
+          collectableNow: false,
+        };
+      });
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      const prev = (ctx as { prev?: WaterStatusView } | undefined)?.prev;
+      if (prev) qc.setQueryData(key, prev);
+    },
+    onSuccess: (data) => {
+      // Sincroniza com o servidor (autoritativo) sem refetch extra.
+      qc.setQueryData<WaterStatusView>(key, (old) =>
+        old ? { ...old, balance: data.balance, cooldownRemainingMs: data.cooldownRemainingMs, collectableNow: false } : old);
+    },
+    onSettled: () => {
       // O regador do jardim lê o mesmo saldo por outra query.
       qc.invalidateQueries({ queryKey: ['garden', 'watering', user?.id] });
     },

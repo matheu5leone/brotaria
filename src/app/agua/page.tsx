@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Droplets } from 'lucide-react';
+import { Droplets, X } from 'lucide-react';
 import Image from 'next/image';
 import { AppShell } from '@/components/AppShell';
 import { GAME } from '@/config/economy';
@@ -25,6 +25,7 @@ export default function AguaPage() {
   const status = statusQuery.data;
   const collect = useCollectWater();
 
+  const [modalOpen, setModalOpen] = useState(false);
   const [fill, setFill] = useState(0);
   const [now, setNow] = useState(() => Date.now());
   const collectingRef = useRef(false);
@@ -46,121 +47,229 @@ export default function AguaPage() {
 
   // Decaimento contínuo da barra (exige cliques rápidos). Reset feito no callback.
   useEffect(() => {
+    if (!modalOpen) return;
     const id = setInterval(() => {
       setFill((f) => (canFill && f > 0 ? Math.max(0, f - DECAY_PER_TICK) : 0));
     }, TICK_MS);
     return () => clearInterval(id);
-  }, [canFill]);
+  }, [canFill, modalOpen]);
 
-  // Clique bombeia; ao cruzar 100% dispara a coleta e reseta a barra.
+  // Clique bombeia (updater PURO — sem side-effect: o StrictMode invoca updaters
+  // 2x em dev e disparava coleta dupla quando o disparo morava aqui dentro).
   const pump = useCallback(() => {
     if (!canFill || collectingRef.current) return;
-    setFill((f) => {
-      const next = f + FILL_PER_CLICK;
-      if (next >= 100) {
-        collectingRef.current = true;
-        queueMicrotask(() => {
-          collect.mutateAsync()
-            .catch(() => { /* erro tratado pelo status/refetch */ })
-            .finally(() => { collectingRef.current = false; });
-        });
-        return 0;
-      }
-      return next;
-    });
-  }, [canFill, collect]);
+    setFill((f) => Math.min(100, f + FILL_PER_CLICK));
+  }, [canFill]);
 
-  const statusLabel = isFull
+  // Cruzou 100% → coleta UMA vez (guarda por ref) e reseta a barra.
+  // O saldo sobe OTIMISTA na hora (onMutate no hook); rollback se o servidor negar.
+  useEffect(() => {
+    if (fill < 100 || collectingRef.current) return;
+    collectingRef.current = true;
+    setFill(0);
+    collect.mutateAsync()
+      .catch(() => { /* rollback automático no hook */ })
+      .finally(() => { collectingRef.current = false; });
+  }, [fill, collect]);
+
+  const openModal = () => { setFill(0); setModalOpen(true); };
+
+  // Chip de estado sob o poço (fora do modal)
+  const wellHint = isFull
     ? 'Regador cheio!'
     : onCooldown
       ? `Recarrega em ${formatCd(remaining)}`
-      : 'Clique rápido no balde para encher!';
+      : '💧 Coletar água';
+
+  const statusLabel = isFull
+    ? 'Regador cheio! Volte quando usar sua água.'
+    : onCooldown
+      ? `O poço recarrega em ${formatCd(remaining)}`
+      : 'Clique rápido no regador para encher!';
 
   return (
-    <AppShell>
-      <div className="max-w-md mx-auto px-6 py-8 flex flex-col items-center">
-        <div className="flex items-center gap-3 mb-2 self-start">
-          <Droplets className="w-8 h-8" style={{ color: '#3b82f6' }} />
-          <div>
-            <h1 className="text-3xl font-black" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-light)' }}>
-              Coleta de Água
-            </h1>
-            <p className="text-sm" style={{ color: 'rgba(232,213,160,0.45)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
-              Encha o regador para regar suas plantas
-            </p>
-          </div>
-        </div>
-
-        {/* Saldo */}
-        <div
-          className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 my-4"
-          style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)' }}
-        >
-          <Droplets className="w-5 h-5" style={{ color: '#3b82f6' }} />
-          <span className="font-black text-lg" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-light)' }}>
-            {balance}<span className="text-sm" style={{ color: 'rgba(232,213,160,0.55)' }}> / {max} água</span>
-          </span>
-        </div>
-
-        {/* Cena: barra vertical + balde */}
-        <div
-          className="w-full rounded-2xl p-6 flex flex-col items-center gap-5"
-          style={{
-            background: 'linear-gradient(180deg, var(--color-parch-light) 0%, var(--color-parch-dark) 100%)',
-            border: '1.5px solid var(--color-wood-light)',
-            boxShadow: '0 6px 20px rgba(0,0,0,0.3), inset 0 1px 1px rgba(242,232,213,0.7)',
-          }}
-        >
-          {/* Barra vertical */}
-          <div
-            className="relative rounded-xl overflow-hidden"
-            style={{ width: 88, height: 240, background: 'rgba(92,58,30,0.15)', border: '2px solid var(--color-wood-light)' }}
+    <AppShell scrollable={false}>
+      {/* ── Cena: clareira com o poço (imagem de fundo) ─────────────────── */}
+      <div
+        className="relative w-full h-full overflow-hidden select-none"
+        style={{
+          backgroundImage: "url('/imgs/bg-coleta-agua.webp')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          boxShadow: 'inset 0 0 80px rgba(0,0,0,0.35)',
+        }}
+      >
+        {/* Título — canto superior esquerdo */}
+        <div className="absolute top-4 left-5 z-10">
+          <h1
+            className="text-2xl font-black leading-none"
+            style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-light)', textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}
           >
-            <div
-              className="absolute bottom-0 left-0 right-0 transition-[height] duration-75 ease-linear"
-              style={{
-                height: `${fill}%`,
-                background: 'linear-gradient(180deg, #60a5fa, #2563eb)',
-                boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.4)',
-              }}
-            />
-            <div
-              className="absolute inset-0 flex items-center justify-center font-black text-lg pointer-events-none"
-              style={{ fontFamily: 'var(--font-display)', color: fill > 55 ? '#fff' : 'var(--color-text-dark)' }}
-            >
-              {Math.round(fill)}%
-            </div>
-          </div>
-
-          {/* Balde / poço — clique para bombear água */}
-          <button
-            onClick={pump}
-            disabled={!canFill}
-            aria-label="Bombear água"
-            className="select-none rounded-full p-4 transition-transform active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{
-              background: 'radial-gradient(circle at 50% 35%, rgba(59,130,246,0.18), rgba(59,130,246,0.06))',
-              border: '2px solid rgba(59,130,246,0.4)',
-              touchAction: 'manipulation',
-            }}
-          >
-            <Image src="/imgs/watering-can.webp" alt="balde" width={64} height={64} className="object-contain" draggable={false} />
-          </button>
-
+            Coleta de Água
+          </h1>
           <p
-            className="text-sm font-bold text-center"
-            style={{
-              fontFamily: 'var(--font-display)',
-              color: isFull ? '#2a5a1e' : onCooldown ? 'var(--color-wood-mid)' : 'var(--color-text-mid)',
-            }}
+            className="text-xs mt-1"
+            style={{ color: 'rgba(232,213,160,0.75)', fontFamily: 'var(--font-caption)', fontStyle: 'italic', textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
           >
-            {statusLabel}
+            Toque no poço para coletar
           </p>
         </div>
 
-        <p className="mt-4 text-xs text-center" style={{ color: 'rgba(232,213,160,0.4)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
+        {/* Saldo — canto superior direito (pop a cada mudança) */}
+        <div
+          key={balance}
+          className="count-pop absolute top-4 right-4 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+          style={{
+            background: 'rgba(8,14,5,0.72)',
+            border: '1px solid rgba(96,165,250,0.45)',
+            backdropFilter: 'blur(6px)',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+          }}
+        >
+          <Droplets className="w-4 h-4" style={{ color: '#60a5fa' }} />
+          <span className="font-black text-base leading-none" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-light)' }}>
+            {balance}<span className="text-xs font-bold" style={{ color: 'rgba(232,213,160,0.55)' }}> / {max}</span>
+          </span>
+        </div>
+
+        {/* ── Poço — hotspot clicável no centro da cena ──────────────────── */}
+        <button
+          onClick={openModal}
+          aria-label="Abrir coleta de água"
+          className="absolute z-10 flex flex-col items-center justify-end group"
+          style={{
+            left: '50%',
+            top: '48%',
+            transform: 'translate(-50%, -50%)',
+            width: 'min(42vmin, 300px)',
+            height: 'min(42vmin, 300px)',
+            cursor: 'pointer',
+            background: 'transparent',
+            touchAction: 'manipulation',
+          }}
+        >
+          {/* Glow que respira sobre o poço (some no hover, vira ring) */}
+          <span
+            className="well-breathe absolute inset-0 rounded-full pointer-events-none group-hover:opacity-0 transition-opacity"
+            style={{ background: 'radial-gradient(circle, rgba(96,165,250,0.16), transparent 62%)' }}
+          />
+          <span
+            className="absolute inset-[8%] rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{ border: '2.5px solid rgba(96,165,250,0.65)', boxShadow: '0 0 24px rgba(96,165,250,0.45), inset 0 0 24px rgba(96,165,250,0.2)' }}
+          />
+          {/* Chip de estado logo abaixo do poço */}
+          <span
+            className="relative translate-y-3 px-3.5 py-1.5 rounded-full text-sm font-black whitespace-nowrap transition-transform group-hover:scale-105"
+            style={{
+              fontFamily: 'var(--font-display)',
+              color: isFull ? '#d9f0c8' : onCooldown ? 'var(--color-text-light)' : '#bfe3ff',
+              background: isFull ? 'rgba(42,90,30,0.85)' : onCooldown ? 'rgba(8,14,5,0.75)' : 'rgba(26,107,160,0.9)',
+              border: `1.5px solid ${isFull ? 'rgba(74,222,128,0.4)' : onCooldown ? 'rgba(92,58,30,0.6)' : 'rgba(96,165,250,0.55)'}`,
+              boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
+              backdropFilter: 'blur(4px)',
+            }}
+          >
+            {wellHint}
+          </span>
+        </button>
+
+        {/* Rodapé informativo */}
+        <p
+          className="absolute bottom-3 inset-x-0 z-10 text-center text-[11px] px-6"
+          style={{ color: 'rgba(232,213,160,0.6)', fontFamily: 'var(--font-caption)', fontStyle: 'italic', textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}
+        >
           Cada regador cheio rende 1 água · limite de {max} · nova coleta a cada {GAME.WATER_COLLECT_COOLDOWN_HOURS}h
         </p>
+
+        {/* ── Modal do minigame (abre ao clicar no poço) ─────────────────── */}
+        {modalOpen && (
+          <div
+            className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+            style={{ background: 'rgba(5,8,3,0.55)', backdropFilter: 'blur(4px)' }}
+            onClick={() => setModalOpen(false)}
+          >
+            <div
+              className="relative w-full rounded-3xl p-6 pt-8 flex flex-col items-center gap-5"
+              style={{
+                maxWidth: 360,
+                background: 'linear-gradient(180deg, var(--color-parch-light) 0%, var(--color-parch-dark) 100%)',
+                border: '1.5px solid var(--color-wood-light)',
+                boxShadow: '0 32px 80px rgba(0,0,0,0.5), inset 0 1px 1px rgba(242,232,213,0.9)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Acento dourado + fechar */}
+              <div
+                className="absolute top-0 left-8 right-8 h-px pointer-events-none"
+                style={{ background: 'linear-gradient(90deg, transparent, var(--color-gold), transparent)' }}
+              />
+              <button
+                onClick={() => setModalOpen(false)}
+                aria-label="Fechar"
+                className="absolute top-3 right-3 p-1.5 rounded-full transition-all active:scale-90 hover:bg-black/10"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="text-center">
+                <h2 className="text-lg font-black" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}>
+                  Poço do Jardim
+                </h2>
+                {/* Saldo dentro do modal — feedback instantâneo (otimista) */}
+                <div key={balance} className="count-pop mt-1 inline-flex items-center gap-1.5 text-sm font-black" style={{ fontFamily: 'var(--font-display)', color: '#1a6ba0' }}>
+                  <Droplets className="w-4 h-4" /> {balance} / {max} água
+                </div>
+              </div>
+
+              {/* Barra vertical */}
+              <div
+                className="relative rounded-xl overflow-hidden"
+                style={{ width: 88, height: 220, background: 'rgba(92,58,30,0.15)', border: '2px solid var(--color-wood-light)' }}
+              >
+                <div
+                  className="absolute bottom-0 left-0 right-0 transition-[height] duration-75 ease-linear"
+                  style={{
+                    height: `${fill}%`,
+                    background: 'linear-gradient(180deg, #60a5fa, #2563eb)',
+                    boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.4)',
+                  }}
+                />
+                <div
+                  className="absolute inset-0 flex items-center justify-center font-black text-lg pointer-events-none"
+                  style={{ fontFamily: 'var(--font-display)', color: fill > 55 ? '#fff' : 'var(--color-text-dark)' }}
+                >
+                  {Math.round(fill)}%
+                </div>
+              </div>
+
+              {/* Regador — clique para bombear */}
+              <button
+                onClick={pump}
+                disabled={!canFill}
+                aria-label="Bombear água"
+                className="select-none rounded-full p-4 transition-transform active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  background: 'radial-gradient(circle at 50% 35%, rgba(59,130,246,0.18), rgba(59,130,246,0.06))',
+                  border: '2px solid rgba(59,130,246,0.4)',
+                  touchAction: 'manipulation',
+                }}
+              >
+                <Image src="/imgs/watering-can.webp" alt="regador" width={64} height={64} className="object-contain" draggable={false} />
+              </button>
+
+              <p
+                className="text-sm font-bold text-center"
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  color: isFull ? '#2a5a1e' : onCooldown ? 'var(--color-wood-mid)' : 'var(--color-text-mid)',
+                }}
+              >
+                {statusLabel}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </AppShell>
   );

@@ -387,6 +387,16 @@ html, body {
 .herbo-target-pop { animation: herbo-target-pop 0.4s ease-out; }
 @media (prefers-reduced-motion: reduce) { .herbo-fly, .herbo-target-pop { animation: none; } }
 
+/* Coleta de água — pop do contador (key muda a cada saldo) + respiração do poço */
+@keyframes count-pop { 0%,100% { transform: scale(1); } 40% { transform: scale(1.22); } }
+.count-pop { animation: count-pop 0.35s ease-out; }
+@keyframes well-breathe {
+  0%, 100% { opacity: 0.55; transform: scale(0.96); }
+  50%      { opacity: 1;    transform: scale(1.04); }
+}
+.well-breathe { animation: well-breathe 2.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .count-pop, .well-breathe { animation: none; } }
+
 /* Cronômetro de rega — pulso do estado "pode regar" */
 @keyframes water-ready-pulse {
   0%, 100% { transform: scale(1);    box-shadow: 0 6px 18px rgba(26,107,160,0.45); }
