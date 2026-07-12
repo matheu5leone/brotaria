@@ -25,7 +25,7 @@ function PlantCell({
   onZoom,
 }: {
   plantId: string;
-  onClick: () => void;
+  onClick?: () => void;
   onZoom: (url: string, alt: string) => void;
 }) {
   const { data: plant } = usePlant(plantId);
@@ -48,7 +48,7 @@ function PlantCell({
   return (
     <div
       onClick={onClick}
-      className="flex flex-col rounded-2xl p-2 cursor-pointer transition-transform duration-200 hover:scale-[1.03] active:scale-95 text-left"
+      className={`flex flex-col rounded-2xl p-2 text-left transition-transform duration-200 ${onClick ? 'cursor-pointer hover:scale-[1.03] active:scale-95' : ''}`}
       style={{
         background: 'rgba(92,58,30,0.07)',
         border: '1px solid rgba(92,58,30,0.15)',
@@ -113,11 +113,14 @@ export function PlantsGridModal({
   plantIds,
   onSelectPlant,
   onClose,
+  title = 'Minhas Plantas',
 }: {
   open: boolean;
   plantIds: string[];
-  onSelectPlant: (plantId: string) => void;
+  /** Ao clicar numa planta (abre o card story). Omitido = células só exibem (lupa continua). */
+  onSelectPlant?: (plantId: string) => void;
   onClose: () => void;
+  title?: string;
 }) {
   const [zoomed, setZoomed] = useState<{ url: string; alt: string } | null>(null);
 
@@ -153,7 +156,7 @@ export function PlantsGridModal({
               className="text-lg font-black"
               style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
             >
-              Minhas Plantas
+              {title}
             </h2>
             <button
               onClick={onClose}
@@ -172,7 +175,7 @@ export function PlantsGridModal({
               className="text-sm text-center py-10"
               style={{ fontFamily: 'var(--font-caption)', fontStyle: 'italic', color: 'var(--color-text-muted)' }}
             >
-              Você ainda não plantou nada. Use a pá para começar! 🌱
+              Nenhuma planta neste jardim ainda. 🌱
             </p>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2.5 overflow-y-auto overflow-x-hidden p-1.5">
@@ -180,7 +183,7 @@ export function PlantsGridModal({
                 <PlantCell
                   key={pid}
                   plantId={pid}
-                  onClick={() => onSelectPlant(pid)}
+                  onClick={onSelectPlant ? () => onSelectPlant(pid) : undefined}
                   onZoom={(url, alt) => setZoomed({ url, alt })}
                 />
               ))}
