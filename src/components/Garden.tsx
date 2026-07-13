@@ -279,13 +279,16 @@ export default function Garden() {
     }
   }, [tutorialSeen, qc, user?.id]);
 
-  // Auto 1x: após a semente (welcomeAck) e se ainda não viu. setState em callback.
+  // Auto 1x para contas novas (mobile E desktop): após a semente (welcomeAck) e
+  // se ainda não viu. Delay curto para o WelcomeSeedModal (z acima) desmontar e o
+  // painel renderizar/medir antes de abrir o coach — senão no desktop o tutorial
+  // abre ATRÁS do modal de boas-vindas e parece que não iniciou.
   useEffect(() => {
     if (tutorialAutoRan.current) return;
     if (welcomeAck && !tutorialSeen) {
       tutorialAutoRan.current = true;
-      const raf = requestAnimationFrame(() => { setPainelOpen(true); setTutorialOpen(true); });
-      return () => cancelAnimationFrame(raf);
+      const t = setTimeout(() => { setPainelOpen(true); setTutorialOpen(true); }, 650);
+      return () => clearTimeout(t);
     }
   }, [welcomeAck, tutorialSeen]);
   // Toast central de feedback (evolução de fase, erros de rega, etc.)
