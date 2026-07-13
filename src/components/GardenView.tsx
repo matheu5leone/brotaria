@@ -71,7 +71,9 @@ export function GardenView({ userId }: { userId: string }) {
               left: `${x}%`,
               top: `${y}%`,
               transform: 'translate(-50%, -50%)',
-              zIndex: 2,
+              // Profundidade: quem está mais pra baixo (maior pos_y = frente)
+              // fica por cima da planta/canteiro de trás (menor pos_y).
+              zIndex: Math.round(y * 10),
             }}
           >
             <HexPot pot={pot} isSelected={false} onClick={() => {}} />

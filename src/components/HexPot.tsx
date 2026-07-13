@@ -90,13 +90,13 @@ export function HexPot({
   const BALLOON_BOTTOM = '48%';
 
   // Escala visual da planta por categoria de estágio (renderização no HexPot)
-  // broto -50% · pequena -25% · media 0% · grande +25%
+  // broto (jovem) 0.375 · pequena 0.75 · media 1.0 · grande 1.25
   const stageCode = plant?.current_stage.code ?? '';
   const plantScale =
-    stageCode.startsWith('grande')  ? 1.25 :
-    stageCode.startsWith('media')   ? 1.0  :
-    stageCode.startsWith('pequena') ? 0.75 :
-    0.5; // broto (e fallback)
+    stageCode.startsWith('grande')  ? 1.25  :
+    stageCode.startsWith('media')   ? 1.0   :
+    stageCode.startsWith('pequena') ? 0.75  :
+    0.375; // broto/jovem (−25% do 0.5 anterior) e fallback
 
   // Glow seguindo a silhueta real das imagens (drop-shadow respeita o alpha do PNG).
   // Aplicado tanto ao canteiro quanto à planta para realçar o hitbox exato.
