@@ -5,6 +5,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { WalletProvider } from "@/hooks/useWallet";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { CHUNK_GUARD_INLINE } from "@/lib/chunkReload";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,12 +41,28 @@ const imFellEnglish = IM_Fell_English({
 });
 
 export const metadata: Metadata = {
-  title: "Brotaria - Seu Jardim Virtual",
+  metadataBase: new URL(getSiteUrl()),
+  title: {
+    default: "Brotaria - Seu Jardim Virtual",
+    template: "%s",
+  },
   description: "Cultive plantas únicas geradas por IA",
   icons: {
     icon: "/imgs/brotaria.png",
     apple: "/imgs/brotaria.png",
-  }
+  },
+  openGraph: {
+    title: "Brotaria - Seu Jardim Virtual",
+    description: "Cultive plantas únicas geradas por IA",
+    type: "website",
+    siteName: "Brotaria",
+    locale: "pt_BR",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Brotaria - Seu Jardim Virtual",
+    description: "Cultive plantas únicas geradas por IA",
+  },
 };
 
 export default function RootLayout({
