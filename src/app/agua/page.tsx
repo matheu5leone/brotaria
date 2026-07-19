@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Droplets, X } from 'lucide-react';
 import Image from 'next/image';
 import { AppShell } from '@/components/AppShell';
+import { HexButton } from '@/components/HexButton';
+import { WaterUpgradesModal } from '@/components/WaterUpgradesModal';
 import { GAME } from '@/config/economy';
 import { useWaterStatus, useCollectWater } from '@/hooks/useWater';
 
@@ -26,6 +28,7 @@ export default function AguaPage() {
   const collect = useCollectWater();
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [upgradesOpen, setUpgradesOpen] = useState(false);
   const [fill, setFill] = useState(0);
   const [now, setNow] = useState(() => Date.now());
   const collectingRef = useRef(false);
@@ -180,6 +183,20 @@ export default function AguaPage() {
         >
           Cada regador cheio rende 1 água · limite de {max} · nova coleta a cada {GAME.WATER_COLLECT_COOLDOWN_HOURS}h
         </p>
+
+        {/* ── Botão flutuante de melhorias — canto inferior direito ───────── */}
+        <div className="painel" onClick={(e) => e.stopPropagation()}>
+          <HexButton
+            className="painel-btn"
+            icon={<Droplets style={{ width: '1em', height: '1em' }} />}
+            label="Melhorias"
+            onClick={(e) => { e.stopPropagation(); setUpgradesOpen(true); }}
+            title="Melhorias do poço"
+          />
+        </div>
+
+        {/* Modal de upgrades (herbo) */}
+        {upgradesOpen && <WaterUpgradesModal onClose={() => setUpgradesOpen(false)} />}
 
         {/* ── Modal do minigame (abre ao clicar no poço) ─────────────────── */}
         {modalOpen && (

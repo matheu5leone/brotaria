@@ -25,6 +25,7 @@ export async function POST(request: Request) {
       success: true,
       balance: result.balance,
       cooldownRemainingMs: result.cooldownRemainingMs,
+      bonus: result.bonus,
     });
   } catch (err) {
     console.error('[Water Collect API] Error:', err);

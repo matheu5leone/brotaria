@@ -151,6 +151,86 @@ export const GAME = {
 } as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 3b. UPGRADES DA COLETA DE ÁGUA (pagos em herbo)
+//
+//    Melhorias compráveis na página /agua. Fonte única de verdade: custo e efeito
+//    de cada nível vivem aqui; o servidor deriva max/chance a partir do nível
+//    guardado em `user_upgrades`. Ver docs/plano-upgrades-agua.md.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Teto BASE de água (sem upgrades). Igual a GAME.WATER_MAX_BALANCE. */
+export const WATER_BASE_MAX = GAME.WATER_MAX_BALANCE;
+
+export type WaterUpgradeId = 'water_capacity' | 'water_bonus';
+
+export interface WaterUpgradeLevel {
+  /** Custo em herbo para ATINGIR este nível (índice 0 = nível 1). */
+  cost_herbo: number;
+  /** Só em water_capacity: quanto soma ao teto de água. */
+  capacity_bonus?: number;
+  /** Só em water_bonus: chance TOTAL de +1 água por coleta neste nível (0..1). */
+  bonus_chance?: number;
+}
+
+export interface WaterUpgradeDef {
+  id: WaterUpgradeId;
+  name: string;
+  description: string;
+  maxLevel: number;
+  levels: WaterUpgradeLevel[];
+}
+
+export const WATER_UPGRADES: Record<WaterUpgradeId, WaterUpgradeDef> = {
+  water_capacity: {
+    id: 'water_capacity',
+    name: 'Poço Fundo',
+    description: 'Aumenta a capacidade máxima do regador em +5.',
+    maxLevel: 1,
+    levels: [
+      { cost_herbo: 50, capacity_bonus: 5 }, // nível 1
+    ],
+  },
+  water_bonus: {
+    id: 'water_bonus',
+    name: 'Coleta Farta',
+    description: 'Chance de coletar +1 água extra a cada coleta.',
+    maxLevel: 2,
+    levels: [
+      { cost_herbo: 50,  bonus_chance: 0.20 }, // nível 1
+      { cost_herbo: 100, bonus_chance: 0.40 }, // nível 2 (total)
+    ],
+  },
+};
+
+export function getWaterUpgrade(id: string): WaterUpgradeDef | undefined {
+  return (WATER_UPGRADES as Record<string, WaterUpgradeDef>)[id];
+}
+
+/** Teto de água efetivo dado o nível do upgrade de capacidade. */
+export function waterMaxFor(capacityLevel: number): number {
+  const bonus = capacityLevel > 0
+    ? (WATER_UPGRADES.water_capacity.levels[0].capacity_bonus ?? 0)
+    : 0;
+  return WATER_BASE_MAX + bonus;
+}
+
+/** Chance (0..1) de coletar +1 água extra, dado o nível do upgrade de bônus. */
+export function waterBonusChanceFor(bonusLevel: number): number {
+  if (bonusLevel <= 0) return 0;
+  return WATER_UPGRADES.water_bonus.levels[bonusLevel - 1]?.bonus_chance ?? 0;
+}
+
+/**
+ * Custo em herbo do PRÓXIMO nível de um upgrade, dado o nível atual.
+ * null = já está no nível máximo (nada a comprar).
+ */
+export function nextWaterUpgradeCost(id: WaterUpgradeId, currentLevel: number): number | null {
+  const def = WATER_UPGRADES[id];
+  if (currentLevel >= def.maxLevel) return null;
+  return def.levels[currentLevel]?.cost_herbo ?? null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 4. SEDE — rega aleatória por planta (ver docs/superpowers/specs/2026-07-12…)
 //
 //    Cada planta sorteia no plantio: (1) quantas regas cada SUB-PASSO exige
