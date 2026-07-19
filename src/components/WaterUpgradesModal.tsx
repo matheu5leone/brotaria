@@ -4,6 +4,7 @@ import { X, Check } from 'lucide-react';
 import { WATER_UPGRADES, WATER_BASE_MAX, nextWaterUpgradeCost, type WaterUpgradeId } from '@/config/economy';
 import { useWaterUpgrades, useBuyWaterUpgrade } from '@/hooks/useWaterUpgrades';
 import { useWallet } from '@/hooks/useWallet';
+import { HerboIcon } from '@/components/HerboIcon';
 
 /** Faixa verde no topo com o saldo de herbo. */
 function HerboBanner({ herbo }: { herbo: number }) {
@@ -20,8 +21,8 @@ function HerboBanner({ herbo }: { herbo: number }) {
       <span className="text-xs font-bold uppercase tracking-wider" style={{ fontFamily: 'var(--font-display)', color: 'rgba(217,240,200,0.75)' }}>
         Seu saldo
       </span>
-      <span className="text-xl font-black" style={{ fontFamily: 'var(--font-display)', color: '#d9f0c8' }}>
-        🍃 {herbo} <span className="text-sm font-bold" style={{ color: 'rgba(217,240,200,0.7)' }}>herbo</span>
+      <span className="text-xl font-black inline-flex items-center gap-1.5" style={{ fontFamily: 'var(--font-display)', color: '#d9f0c8' }}>
+        <HerboIcon size={20} /> {herbo} <span className="text-sm font-bold" style={{ color: 'rgba(217,240,200,0.7)' }}>herbo</span>
       </span>
     </div>
   );
@@ -90,7 +91,7 @@ function UpgradeCard({
         <button
           onClick={() => onBuy(id)}
           disabled={!canAfford || pending}
-          className="mt-1 w-full rounded-xl py-2.5 text-sm font-black transition-all active:scale-95 disabled:cursor-not-allowed"
+          className="mt-1 w-full rounded-xl py-2.5 text-sm font-black transition-all active:scale-95 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1"
           style={{
             fontFamily: 'var(--font-display)',
             background: canAfford ? 'linear-gradient(135deg, #2a5a1e, #1e4014)' : 'rgba(92,58,30,0.2)',
@@ -100,8 +101,8 @@ function UpgradeCard({
           }}
         >
           {canAfford
-            ? `Comprar${def.maxLevel > 1 ? ` nível ${currentLevel + 1}` : ''} · 🍃 ${nextCost}`
-            : `🍃 ${nextCost} — herbo insuficiente`}
+            ? <>Comprar{def.maxLevel > 1 ? ` nível ${currentLevel + 1}` : ''} · <HerboIcon size={14} /> {nextCost}</>
+            : <><HerboIcon size={14} /> {nextCost} — herbo insuficiente</>}
         </button>
       )}
     </div>

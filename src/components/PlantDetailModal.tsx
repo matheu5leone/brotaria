@@ -7,6 +7,7 @@ import { RarityEffect } from '@/components/RarityEffect';
 import { calcPlantScore } from '@/lib/scoring';
 import { getLifecycle } from '@/config/lifecycle';
 import { WaterCountdown } from '@/components/WaterCountdown';
+import { HerboIcon } from '@/components/HerboIcon';
 
 const RARITY_LABELS: Record<string, string> = {
   comum: 'Comum', incomum: 'Incomum', raro: 'Raro',
@@ -196,7 +197,7 @@ export function PlantDetailModal({
                 fontFamily: 'var(--font-display)',
               }}
             >
-              🍃 {herboReward} herbo
+              <HerboIcon size={14} /> {herboReward} herbo
             </div>
           </div>
         </div>

@@ -8,6 +8,7 @@ import { RarityEffect } from '@/components/RarityEffect';
 import { calcPlantScore } from '@/lib/scoring';
 import { lifecycleFromOrder } from '@/config/lifecycle';
 import { Rarity } from '@/types';
+import { HerboIcon } from '@/components/HerboIcon';
 
 const RARITY_CONFIG: Record<Rarity, { Icon: React.ElementType; color: string; label: string }> = {
   comum:    { Icon: Leaf,     color: '#8a8f98', label: 'Comum'    },
@@ -97,7 +98,7 @@ function PlantCell({
         className="text-[11px] font-bold"
         style={{ color: 'var(--color-wood-mid)', fontFamily: 'var(--font-display)' }}
       >
-        🍃 {value}
+        <HerboIcon size={11} /> {value}
       </span>
     </div>
   );

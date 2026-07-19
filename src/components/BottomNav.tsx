@@ -10,6 +10,7 @@ import {
   UserPlus, LogOut, Check, Camera, Heart,
 } from 'lucide-react';
 import { CoinIcon } from '@/components/CoinIcon';
+import { HerboIcon } from '@/components/HerboIcon';
 import { AvatarCircle } from '@/components/AvatarCircle';
 import { AvatarPickerModal } from '@/components/AvatarPickerModal';
 import { useLikes } from '@/hooks/useLikes';
@@ -311,7 +312,7 @@ export function BottomNav() {
             className="text-sm font-black leading-none"
             style={{ fontFamily: 'var(--font-display)', color: 'var(--color-gold)' }}
           >
-            <CoinIcon size={16} className="inline-block mr-1" />{coins} · <span data-herbo-target>🍃 {herbo}</span>
+            <CoinIcon size={16} className="inline-block mr-1" />{coins} · <span data-herbo-target><HerboIcon size={16} className="mr-1" />{herbo}</span>
           </span>
         </NavLink>
 

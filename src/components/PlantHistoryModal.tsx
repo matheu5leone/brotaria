@@ -9,6 +9,7 @@ import { PlantRow, PlantVersionHistoryRow, usePlantHistory } from '@/hooks/usePl
 import { RarityEffect } from '@/components/RarityEffect';
 import { WaterCountdown } from '@/components/WaterCountdown';
 import { Rarity } from '@/types';
+import { HerboIcon } from '@/components/HerboIcon';
 
 // ── Raridade — ícones mockados (sem assets externos) ─────────────────────────
 
@@ -186,7 +187,7 @@ function VersionCard({
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold"
             style={{ background: 'rgba(201,162,39,0.14)', color: 'var(--color-wood-dark)', border: '1px solid rgba(201,162,39,0.3)', fontFamily: 'var(--font-display)' }}
           >
-            🍃 {calcPlantScore(version.dna_snapshot, version.stage?.order_index ?? 0)}
+            <HerboIcon size={11} /> {calcPlantScore(version.dna_snapshot, version.stage?.order_index ?? 0)}
           </div>
         </div>
       </div>

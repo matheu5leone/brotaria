@@ -12,6 +12,7 @@ import {
   MoreVertical, UserPlus, Check, Droplets, Camera, Heart,
 } from 'lucide-react';
 import { CoinIcon } from '@/components/CoinIcon';
+import { HerboIcon } from '@/components/HerboIcon';
 import { AvatarCircle } from '@/components/AvatarCircle';
 import { AvatarPickerModal } from '@/components/AvatarPickerModal';
 import { useLikes } from '@/hooks/useLikes';
@@ -183,7 +184,7 @@ export default function Sidebar() {
           style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)' }}
           title={`Herbo: ${herbo}`}
         >
-          <span className="text-lg min-w-[20px] text-center">🍃</span>
+          <HerboIcon size={22} className="min-w-[16px]" />
           {!isSidebarCollapsed && (
             <span className="font-black text-base" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-wood-dark)' }}>
               {herbo}{' '}

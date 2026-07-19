@@ -1,8 +1,10 @@
 'use client';
 
+import { HerboIcon } from '@/components/HerboIcon';
+
 /**
- * Feedback de herbo voando: a cada sub-passo/evolução, um "+N 🍃" sai da planta
- * e voa até o contador de herbo no menu (data-herbo-target), pulsando ao chegar.
+ * Feedback de herbo voando: a cada sub-passo/evolução, um "+N" com o ícone do herbo
+ * sai da planta e voa até o contador de herbo no menu (data-herbo-target), pulsando ao chegar.
  * Overlay fixo, sem interação. As posições/delta são calculadas no Garden.
  */
 export type HerboFlight = { id: number; amount: number; x: number; y: number; dx: number; dy: number };
@@ -14,7 +16,7 @@ export function HerboFly({ flights, onDone }: { flights: HerboFlight[]; onDone: 
       {flights.map((f) => (
         <span
           key={f.id}
-          className="herbo-fly absolute"
+          className="herbo-fly absolute inline-flex items-center gap-1"
           style={{
             left: f.x,
             top: f.y,
@@ -29,7 +31,7 @@ export function HerboFly({ flights, onDone }: { flights: HerboFlight[]; onDone: 
           }}
           onAnimationEnd={() => onDone(f.id)}
         >
-          +{f.amount} 🍃
+          +{f.amount} <HerboIcon size={18} />
         </span>
       ))}
     </div>
