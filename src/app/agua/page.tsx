@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { AppShell } from '@/components/AppShell';
 import { HexButton } from '@/components/HexButton';
 import { WaterUpgradesModal } from '@/components/WaterUpgradesModal';
+import { WaterOverflowFx, type OverflowBurst } from '@/components/WaterOverflowFx';
 import { GAME } from '@/config/economy';
 import { useWaterStatus, useCollectWater } from '@/hooks/useWater';
 
@@ -32,6 +33,8 @@ export default function AguaPage() {
   const [fill, setFill] = useState(0);
   const [now, setNow] = useState(() => Date.now());
   const collectingRef = useRef(false);
+  const [overflowBursts, setOverflowBursts] = useState<OverflowBurst[]>([]);
+  const burstIdRef = useRef(0);
 
   const balance = status?.balance ?? 0;
   const max = status?.max ?? GAME.WATER_MAX_BALANCE;
@@ -70,10 +73,18 @@ export default function AguaPage() {
     if (fill < 100 || collectingRef.current) return;
     collectingRef.current = true;
     setFill(0);
+    setOverflowBursts((b) => [...b, { id: ++burstIdRef.current, bonus: false }]);
     collect.mutateAsync()
+      .then((data) => {
+        if (data.bonus) setOverflowBursts((b) => [...b, { id: ++burstIdRef.current, bonus: true }]);
+      })
       .catch(() => { /* rollback automático no hook */ })
       .finally(() => { collectingRef.current = false; });
   }, [fill, collect]);
+
+  const removeOverflowBurst = useCallback((id: number) => {
+    setOverflowBursts((b) => b.filter((x) => x.id !== id));
+  }, []);
 
   const openModal = () => { setFill(0); setModalOpen(true); };
 
@@ -239,25 +250,28 @@ export default function AguaPage() {
                 </div>
               </div>
 
-              {/* Barra vertical */}
-              <div
-                className="relative rounded-xl overflow-hidden"
-                style={{ width: 88, height: 220, background: 'rgba(92,58,30,0.15)', border: '2px solid var(--color-wood-light)' }}
-              >
+              {/* Barra vertical (wrapper sem clip para as gotas transbordarem pelo topo) */}
+              <div className="relative" style={{ width: 88, height: 220 }}>
                 <div
-                  className="absolute bottom-0 left-0 right-0 transition-[height] duration-75 ease-linear"
-                  style={{
-                    height: `${fill}%`,
-                    background: 'linear-gradient(180deg, #60a5fa, #2563eb)',
-                    boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.4)',
-                  }}
-                />
-                <div
-                  className="absolute inset-0 flex items-center justify-center font-black text-lg pointer-events-none"
-                  style={{ fontFamily: 'var(--font-display)', color: fill > 55 ? '#fff' : 'var(--color-text-dark)' }}
+                  className="relative rounded-xl overflow-hidden"
+                  style={{ width: 88, height: 220, background: 'rgba(92,58,30,0.15)', border: '2px solid var(--color-wood-light)' }}
                 >
-                  {Math.round(fill)}%
+                  <div
+                    className="absolute bottom-0 left-0 right-0 transition-[height] duration-75 ease-linear"
+                    style={{
+                      height: `${fill}%`,
+                      background: 'linear-gradient(180deg, #60a5fa, #2563eb)',
+                      boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.4)',
+                    }}
+                  />
+                  <div
+                    className="absolute inset-0 flex items-center justify-center font-black text-lg pointer-events-none"
+                    style={{ fontFamily: 'var(--font-display)', color: fill > 55 ? '#fff' : 'var(--color-text-dark)' }}
+                  >
+                    {Math.round(fill)}%
+                  </div>
                 </div>
+                <WaterOverflowFx bursts={overflowBursts} onDone={removeOverflowBurst} />
               </div>
 
               {/* Regador — clique para bombear */}

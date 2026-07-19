@@ -45,7 +45,7 @@ export function useCollectWater() {
       const res = await authFetch('/api/water/collect', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw Object.assign(new Error(data.error ?? 'Erro ao coletar'), { code: data.code });
-      return data as { balance: number; cooldownRemainingMs: number };
+      return data as { balance: number; cooldownRemainingMs: number; bonus: boolean };
     },
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: key });
