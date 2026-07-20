@@ -792,17 +792,11 @@ body {
 }
 .upg-grow-in { animation: upg-grow-in 0.4s cubic-bezier(0.2,0.7,0.3,1) both; }
 
-/* Conector vertical (layout empilhado): cano que enche de água de cima pra baixo. */
-.upg-connector { position: relative; background: rgba(92,58,30,0.18); border-radius: 999px; overflow: hidden; }
-.upg-connector-fill { position: absolute; inset: 0; background: linear-gradient(180deg, #60a5fa, #2563eb); transform-origin: top; }
-@keyframes upg-fill { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-.upg-connector-fill.filled { animation: upg-fill 0.5s ease-out both; }
-
-/* Conector radial (canvas): barra horizontal que enche do centro (esq.) pra fora. */
-.upg-conn-h { position: absolute; background: rgba(92,58,30,0.28); border-radius: 999px; overflow: hidden; }
-.upg-conn-h-fill { position: absolute; inset: 0; background: linear-gradient(90deg, #60a5fa, #2563eb); transform-origin: left; }
-@keyframes upg-fill-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-.upg-conn-h-fill.filled { animation: upg-fill-x 0.55s ease-out both; }
+/* Conector radial (canvas): linha azul sólida contínua que passa POR BAIXO dos
+   hexágonos (z abaixo dos nós). "surge" = brilho rápido ao comprar. */
+.upg-conn { position: absolute; border-radius: 999px; background: linear-gradient(90deg, #4aa8ea, #2f7fe0); box-shadow: 0 0 8px rgba(74,168,234,0.45); }
+@keyframes upg-conn-surge { 0% { filter: brightness(1); } 30% { filter: brightness(1.85); } 100% { filter: brightness(1); } }
+.upg-conn.surge { animation: upg-conn-surge 0.6s ease-out; }
 
 /* Orbe de água central: respiração sutil do brilho. */
 @keyframes upg-orb-breathe {
@@ -812,5 +806,5 @@ body {
 .upg-orb-breathe { animation: upg-orb-breathe 2.8s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
-  .upg-glow, .upg-pop, .upg-shake, .upg-grow-in, .upg-connector-fill.filled, .upg-conn-h-fill.filled, .upg-orb-breathe { animation: none; }
+  .upg-glow, .upg-pop, .upg-shake, .upg-grow-in, .upg-conn.surge, .upg-orb-breathe { animation: none; }
 }

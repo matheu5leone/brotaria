@@ -112,33 +112,30 @@ export function UpgradeCanvas({ categoryId }: { categoryId: UpgradeCategoryId })
 
           const distAt = (j: number) => ROOT_R + j * NODE_GAP;
 
-          // Conectores CONTÍNUOS (centro→centro), passam ATRÁS dos nós.
-          // Cheios de água até o nível comprado; o trecho até o próximo fica vazio.
-          const connectors: { from: number; to: number; filled: boolean }[] = [
-            { from: 0, to: distAt(0), filled: ownedLevel >= 1 },
-          ];
+          // Conectores CONTÍNUOS (centro→centro), linha azul sólida que passa
+          // ATRÁS dos nós (z abaixo). Do orbe até cada nó visível, ponta a ponta.
+          const segments: { from: number; to: number }[] = [{ from: 0, to: distAt(0) }];
           for (let j = 1; j < visible.length; j++) {
-            connectors.push({ from: distAt(j - 1), to: distAt(j), filled: visible[j].level <= ownedLevel });
+            segments.push({ from: distAt(j - 1), to: distAt(j) });
           }
+          const surge = justBought?.trackId === track.id;
 
           return (
             <div key={track.id}>
-              {/* Conectores — z abaixo dos nós */}
-              {connectors.map((c, ci) => {
+              {/* Conectores — linha azul sólida, z abaixo dos nós */}
+              {segments.map((c, ci) => {
                 const mid = (c.from + c.to) / 2;
                 const len = Math.max(0, c.to - c.from);
                 return (
                   <div
                     key={ci}
-                    className="upg-conn-h"
+                    className={`upg-conn ${surge ? 'surge' : ''}`}
                     style={{
-                      left: ux * mid, top: uy * mid, width: len, height: 7,
+                      left: ux * mid, top: uy * mid, width: len, height: 9,
                       transform: `translate(-50%, -50%) rotate(${angleDeg}deg)`,
                       zIndex: 1,
                     }}
-                  >
-                    <div className={`upg-conn-h-fill ${c.filled ? 'filled' : ''}`} style={{ transform: c.filled ? 'scaleX(1)' : 'scaleX(0)' }} />
-                  </div>
+                  />
                 );
               })}
 
