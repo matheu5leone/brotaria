@@ -112,11 +112,13 @@ export function UpgradeCanvas({ categoryId }: { categoryId: UpgradeCategoryId })
 
           const distAt = (j: number) => ROOT_R + j * NODE_GAP;
 
-          // Conectores CONTÍNUOS (centro→centro), linha azul sólida que passa
-          // ATRÁS dos nós (z abaixo). Do orbe até cada nó visível, ponta a ponta.
-          const segments: { from: number; to: number }[] = [{ from: 0, to: distAt(0) }];
+          // Conectores CONTÍNUOS (centro→centro) que passam ATRÁS dos nós (z abaixo).
+          // Aceso até o nível comprado; o trecho até o próximo nível fica apagado.
+          const segments: { from: number; to: number; bright: boolean }[] = [
+            { from: 0, to: distAt(0), bright: ownedLevel >= 1 },
+          ];
           for (let j = 1; j < visible.length; j++) {
-            segments.push({ from: distAt(j - 1), to: distAt(j) });
+            segments.push({ from: distAt(j - 1), to: distAt(j), bright: visible[j].level <= ownedLevel });
           }
           const surge = justBought?.trackId === track.id;
 
@@ -129,7 +131,7 @@ export function UpgradeCanvas({ categoryId }: { categoryId: UpgradeCategoryId })
                 return (
                   <div
                     key={ci}
-                    className={`upg-conn ${surge ? 'surge' : ''}`}
+                    className={`upg-conn ${c.bright ? '' : 'dim'} ${c.bright && surge ? 'surge' : ''}`}
                     style={{
                       left: ux * mid, top: uy * mid, width: len, height: 9,
                       transform: `translate(-50%, -50%) rotate(${angleDeg}deg)`,
@@ -143,16 +145,21 @@ export function UpgradeCanvas({ categoryId }: { categoryId: UpgradeCategoryId })
               {visible.map((node, j) => {
                 const d = distAt(j);
                 return (
-                  <div key={node.level} data-upg-node className="absolute upg-grow-in" style={{ left: ux * d, top: uy * d, transform: 'translate(-50%, -50%)', zIndex: 2 }}>
-                    <UpgradeNode
-                      node={node}
-                      trackName={track.name}
-                      isMobile={isMobile}
-                      onBuy={() => doBuy(track.id)}
-                      pending={pendingId === track.id}
-                      onRequestInfo={(n) => setInfoNode({ trackId: track.id, node: n })}
-                      justBought={justBought?.trackId === track.id && justBought.level === node.level}
-                    />
+                  // Posicionamento (translate de centralização) fica NO DE FORA e a
+                  // animação de entrada NO DE DENTRO: um `transform` animado
+                  // sobrescreveria o translate e descentralizaria o hexágono.
+                  <div key={node.level} data-upg-node className="absolute" style={{ left: ux * d, top: uy * d, transform: 'translate(-50%, -50%)', zIndex: 2 }}>
+                    <div className="upg-grow-in">
+                      <UpgradeNode
+                        node={node}
+                        trackName={track.name}
+                        isMobile={isMobile}
+                        onBuy={() => doBuy(track.id)}
+                        pending={pendingId === track.id}
+                        onRequestInfo={(n) => setInfoNode({ trackId: track.id, node: n })}
+                        justBought={justBought?.trackId === track.id && justBought.level === node.level}
+                      />
+                    </div>
                   </div>
                 );
               })}

@@ -795,6 +795,8 @@ body {
 /* Conector radial (canvas): linha azul sólida contínua que passa POR BAIXO dos
    hexágonos (z abaixo dos nós). "surge" = brilho rápido ao comprar. */
 .upg-conn { position: absolute; border-radius: 999px; background: linear-gradient(90deg, #4aa8ea, #2f7fe0); box-shadow: 0 0 8px rgba(74,168,234,0.45); }
+/* Trecho até o próximo nível (ainda não comprado): apagado. */
+.upg-conn.dim { background: rgba(74,168,234,0.22); box-shadow: none; }
 @keyframes upg-conn-surge { 0% { filter: brightness(1); } 30% { filter: brightness(1.85); } 100% { filter: brightness(1); } }
 .upg-conn.surge { animation: upg-conn-surge 0.6s ease-out; }
 
