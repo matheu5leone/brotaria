@@ -3,6 +3,8 @@
 **Data:** 2026-07-19
 **Escopo desta entrega:** Fase 1 (categoria `well` / coleta de água). Categoria `garden` e o ramo "Eficiência Natural" ficam para depois, mas a arquitetura já os acomoda.
 
+> **Atualização (2026-07-19):** deixou de ser um modal. A árvore virou um **canvas em tela cheia que substitui a cena do poço** (`/agua`), com **layout radial** (poço no centro, trilhas irradiando) e **pan (arrastar)** para explorar — cresce para todos os lados conforme novas trilhas/categorias entrarem. Implementado em `src/components/upgrades/UpgradeCanvas.tsx`; os componentes de layout vertical/modal (`UpgradeHub`, `UpgradeTree`, `UpgradeTrack`, `WaterUpgradesModal`) foram removidos. `UpgradeNode`, `UpgradeInfo`, a config e `trackView` continuam iguais.
+
 ## Objetivo
 
 Substituir o `WaterUpgradesModal` atual (lista de cards) por uma **árvore de habilidades** dirigida por config, genérica o bastante para que o poço (coleta de água) seja apenas **uma categoria** de upgrades — no futuro entra a categoria `garden` sem reescrever nada.

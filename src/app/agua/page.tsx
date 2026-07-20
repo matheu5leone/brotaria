@@ -5,7 +5,7 @@ import { Droplets, X } from 'lucide-react';
 import Image from 'next/image';
 import { AppShell } from '@/components/AppShell';
 import { HexButton } from '@/components/HexButton';
-import { WaterUpgradesModal } from '@/components/WaterUpgradesModal';
+import { UpgradeCanvas } from '@/components/upgrades/UpgradeCanvas';
 import { WaterOverflowFx, type OverflowBurst } from '@/components/WaterOverflowFx';
 import { GAME } from '@/config/economy';
 import { useWaterStatus, useCollectWater } from '@/hooks/useWater';
@@ -206,8 +206,8 @@ export default function AguaPage() {
           />
         </div>
 
-        {/* Modal de upgrades (herbo) */}
-        {upgradesOpen && <WaterUpgradesModal onClose={() => setUpgradesOpen(false)} />}
+        {/* Árvore de melhorias — canvas em tela cheia (substitui a cena do poço) */}
+        {upgradesOpen && <UpgradeCanvas categoryId="well" onClose={() => setUpgradesOpen(false)} />}
 
         {/* ── Modal do minigame (abre ao clicar no poço) ─────────────────── */}
         {modalOpen && (
