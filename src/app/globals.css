@@ -757,3 +757,47 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .mission-bar-ready { animation: none; box-shadow: 0 0 8px rgba(96,165,250,0.8); }
 }
+
+/* ── Árvore de upgrades ──────────────────────────────────────────────────── */
+/* Glow verde no nó comprável (há saldo). */
+@keyframes upg-glow {
+  0%, 100% { box-shadow: 0 0 6px 1px rgba(74,222,128,0.45); }
+  50%      { box-shadow: 0 0 16px 4px rgba(74,222,128,0.85); }
+}
+.upg-glow { animation: upg-glow 1.8s ease-in-out infinite; border-radius: 14px; }
+
+/* Pop ao comprar um nó. */
+@keyframes upg-pop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.28); }
+  60%  { transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+.upg-pop { animation: upg-pop 0.5s cubic-bezier(0.3,1.4,0.5,1); }
+
+/* Shake ao tentar comprar sem saldo. */
+@keyframes upg-shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-5px); }
+  40%      { transform: translateX(5px); }
+  60%      { transform: translateX(-3px); }
+  80%      { transform: translateX(3px); }
+}
+.upg-shake { animation: upg-shake 0.4s ease-in-out; }
+
+/* Nós entrando ao abrir o hub (crescem do poço pra fora). */
+@keyframes upg-grow-in {
+  0%   { opacity: 0; transform: scale(0.4); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.upg-grow-in { animation: upg-grow-in 0.4s cubic-bezier(0.2,0.7,0.3,1) both; }
+
+/* Conector entre nós: cano que enche de água. */
+.upg-connector { position: relative; background: rgba(92,58,30,0.18); border-radius: 999px; overflow: hidden; }
+.upg-connector-fill { position: absolute; inset: 0; background: linear-gradient(180deg, #60a5fa, #2563eb); transform-origin: top; }
+@keyframes upg-fill { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.upg-connector-fill.filled { animation: upg-fill 0.5s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .upg-glow, .upg-pop, .upg-shake, .upg-grow-in, .upg-connector-fill.filled { animation: none; }
+}
