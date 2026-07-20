@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Droplets, X } from 'lucide-react';
+import { Droplets, X, ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import { AppShell } from '@/components/AppShell';
 import { HexButton } from '@/components/HexButton';
@@ -195,19 +195,21 @@ export default function AguaPage() {
           Cada regador cheio rende 1 água · limite de {max} · nova coleta a cada {GAME.WATER_COLLECT_COOLDOWN_HOURS}h
         </p>
 
-        {/* ── Botão flutuante de melhorias — canto inferior direito ───────── */}
+        {/* ── Botão flutuante — alterna entre abrir Melhorias e voltar ao poço ─ */}
         <div className="painel" onClick={(e) => e.stopPropagation()}>
           <HexButton
             className="painel-btn"
-            icon={<Droplets style={{ width: '1em', height: '1em' }} />}
-            label="Melhorias"
-            onClick={(e) => { e.stopPropagation(); setUpgradesOpen(true); }}
-            title="Melhorias do poço"
+            icon={upgradesOpen
+              ? <ArrowLeft style={{ width: '1em', height: '1em' }} />
+              : <Droplets style={{ width: '1em', height: '1em' }} />}
+            label={upgradesOpen ? 'Poço' : 'Melhorias'}
+            onClick={(e) => { e.stopPropagation(); setUpgradesOpen((v) => !v); }}
+            title={upgradesOpen ? 'Voltar ao poço' : 'Melhorias do poço'}
           />
         </div>
 
         {/* Árvore de melhorias — canvas em tela cheia (substitui a cena do poço) */}
-        {upgradesOpen && <UpgradeCanvas categoryId="well" onClose={() => setUpgradesOpen(false)} />}
+        {upgradesOpen && <UpgradeCanvas categoryId="well" />}
 
         {/* ── Modal do minigame (abre ao clicar no poço) ─────────────────── */}
         {modalOpen && (

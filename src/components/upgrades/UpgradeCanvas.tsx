@@ -1,8 +1,6 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import Image from 'next/image';
-import { ArrowLeft } from 'lucide-react';
 import { UPGRADE_TREE, type UpgradeCategoryId } from '@/config/upgrades';
 import { trackView, type NodeView } from '@/lib/upgradeTree';
 import { UpgradeNode } from '@/components/upgrades/UpgradeNode';
@@ -12,18 +10,18 @@ import { useWallet } from '@/hooks/useWallet';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
 import { HerboIcon } from '@/components/HerboIcon';
 
-const ROOT_R = 132;   // distância do centro (poço) até o 1º nó
+const ROOT_R = 132;   // distância do centro (orbe) até o 1º nó
 const NODE_GAP = 98;  // distância entre nós ao longo da trilha
-const HEX = 64;       // tamanho do hexágono (igual ao UpgradeNode)
 const PAN_LIMIT = 900;
 
 /**
  * Árvore de upgrades como CANVAS em tela cheia (não é modal): substitui a cena
- * do poço. Layout radial — o poço no centro, cada trilha irradia num ângulo,
- * e o usuário arrasta (pan) para explorar. Cresce para todos os lados conforme
- * novas trilhas/categorias entrarem.
+ * do poço. Layout radial — um orbe de água no centro, cada trilha irradia num
+ * ângulo, conectores azuis passam ATRÁS dos hexágonos, e o usuário arrasta (pan)
+ * para explorar. Só o próximo nível comprável aparece à frente dos comprados
+ * (sem slot "?"). Fechar a tela é pelo botão flutuante (toggle no /agua).
  */
-export function UpgradeCanvas({ categoryId, onClose }: { categoryId: UpgradeCategoryId; onClose: () => void }) {
+export function UpgradeCanvas({ categoryId }: { categoryId: UpgradeCategoryId }) {
   const category = UPGRADE_TREE[categoryId];
   const { data } = useWaterUpgrades();
   const { herbo: walletHerbo } = useWallet();
@@ -49,8 +47,7 @@ export function UpgradeCanvas({ categoryId, onClose }: { categoryId: UpgradeCate
   const clamp = (v: number) => Math.max(-PAN_LIMIT, Math.min(PAN_LIMIT, v));
 
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    // Não faz pan se o toque começou num nó (deixa o clique do nó agir).
-    if ((e.target as HTMLElement).closest('[data-upg-node]')) return;
+    if ((e.target as HTMLElement).closest('[data-upg-node]')) return; // deixa o clique do nó agir
     drag.current = { id: e.pointerId, startX: e.clientX, startY: e.clientY, panX: panRef.current.x, panY: panRef.current.y };
     moved.current = false;
     try { (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId); } catch { /* noop */ }
@@ -110,24 +107,23 @@ export function UpgradeCanvas({ categoryId, onClose }: { categoryId: UpgradeCate
           const ux = Math.cos(rad);
           const uy = Math.sin(rad);
           const ownedLevel = levels[track.id] ?? 0;
-          const { nodes, hasFog } = trackView(track, ownedLevel, herbo);
+          const { nodes } = trackView(track, ownedLevel, herbo);
           const visible = nodes.filter((n) => n.status !== 'fog');
 
           const distAt = (j: number) => ROOT_R + j * NODE_GAP;
 
-          // Conectores: raiz→nó0 e entre nós visíveis consecutivos.
-          const connectors: { from: number; to: number; filled: boolean }[] = [];
-          connectors.push({ from: HEX * 0.4, to: distAt(0) - HEX / 2, filled: ownedLevel >= 1 });
+          // Conectores CONTÍNUOS (centro→centro), passam ATRÁS dos nós.
+          // Cheios de água até o nível comprado; o trecho até o próximo fica vazio.
+          const connectors: { from: number; to: number; filled: boolean }[] = [
+            { from: 0, to: distAt(0), filled: ownedLevel >= 1 },
+          ];
           for (let j = 1; j < visible.length; j++) {
-            connectors.push({ from: distAt(j - 1) + HEX / 2, to: distAt(j) - HEX / 2, filled: visible[j].level - 1 <= ownedLevel });
-          }
-          if (hasFog) {
-            const fogDist = ROOT_R + visible.length * NODE_GAP;
-            connectors.push({ from: distAt(visible.length - 1) + HEX / 2, to: fogDist - 22, filled: false });
+            connectors.push({ from: distAt(j - 1), to: distAt(j), filled: visible[j].level <= ownedLevel });
           }
 
           return (
             <div key={track.id}>
+              {/* Conectores — z abaixo dos nós */}
               {connectors.map((c, ci) => {
                 const mid = (c.from + c.to) / 2;
                 const len = Math.max(0, c.to - c.from);
@@ -136,8 +132,9 @@ export function UpgradeCanvas({ categoryId, onClose }: { categoryId: UpgradeCate
                     key={ci}
                     className="upg-conn-h"
                     style={{
-                      left: ux * mid, top: uy * mid, width: len, height: 6,
+                      left: ux * mid, top: uy * mid, width: len, height: 7,
                       transform: `translate(-50%, -50%) rotate(${angleDeg}deg)`,
+                      zIndex: 1,
                     }}
                   >
                     <div className={`upg-conn-h-fill ${c.filled ? 'filled' : ''}`} style={{ transform: c.filled ? 'scaleX(1)' : 'scaleX(0)' }} />
@@ -145,11 +142,11 @@ export function UpgradeCanvas({ categoryId, onClose }: { categoryId: UpgradeCate
                 );
               })}
 
-              {/* Nós visíveis */}
+              {/* Nós visíveis (comprados + o próximo) — z acima dos conectores */}
               {visible.map((node, j) => {
                 const d = distAt(j);
                 return (
-                  <div key={node.level} data-upg-node className="absolute upg-grow-in" style={{ left: ux * d, top: uy * d, transform: 'translate(-50%, -50%)' }}>
+                  <div key={node.level} data-upg-node className="absolute upg-grow-in" style={{ left: ux * d, top: uy * d, transform: 'translate(-50%, -50%)', zIndex: 2 }}>
                     <UpgradeNode
                       node={node}
                       trackName={track.name}
@@ -163,25 +160,10 @@ export function UpgradeCanvas({ categoryId, onClose }: { categoryId: UpgradeCate
                 );
               })}
 
-              {/* Tampa de névoa (há mais níveis) */}
-              {hasFog && (
-                <div
-                  className="absolute flex items-center justify-center rounded-xl"
-                  style={{
-                    left: ux * (ROOT_R + visible.length * NODE_GAP), top: uy * (ROOT_R + visible.length * NODE_GAP),
-                    transform: 'translate(-50%, -50%)', width: 44, height: 44,
-                    background: 'rgba(0,0,0,0.35)', border: '1.5px dashed rgba(217,240,200,0.35)',
-                    color: 'rgba(217,240,200,0.6)', fontFamily: 'var(--font-display)', fontWeight: 900,
-                  }}
-                >
-                  ?
-                </div>
-              )}
-
-              {/* Rótulo do ramo (nível X/N) perto do 1º nó */}
+              {/* Rótulo do ramo (nível X/N) acima do 1º nó */}
               <div
                 className="absolute text-center whitespace-nowrap"
-                style={{ left: ux * (ROOT_R - 34), top: uy * (ROOT_R - 34) - 44, transform: 'translate(-50%, -50%)' }}
+                style={{ left: ux * (ROOT_R - 34), top: uy * (ROOT_R - 34) - 44, transform: 'translate(-50%, -50%)', zIndex: 2 }}
               >
                 <span className="text-[11px] font-black" style={{ fontFamily: 'var(--font-display)', color: '#d9f0c8', textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}>
                   {track.name} {ownedLevel}/{track.levels.length}
@@ -191,24 +173,21 @@ export function UpgradeCanvas({ categoryId, onClose }: { categoryId: UpgradeCate
           );
         })}
 
-        {/* Root — o poço, no centro */}
-        <div className="absolute upg-grow-in flex flex-col items-center" style={{ left: 0, top: 0, transform: 'translate(-50%, -50%)' }}>
-          <div className="rounded-full p-3" style={{ background: 'rgba(96,165,250,0.14)', border: '2px solid rgba(96,165,250,0.5)', boxShadow: '0 0 30px rgba(96,165,250,0.35)' }}>
-            <Image src={category.rootIcon} alt={category.name} width={72} height={72} className="object-contain" draggable={false} />
-          </div>
+        {/* Orbe de água no centro (âncora do meio) */}
+        <div className="absolute" style={{ left: 0, top: 0, transform: 'translate(-50%, -50%)', zIndex: 3 }}>
+          <div
+            className="upg-orb-breathe"
+            style={{
+              width: 78, height: 78, borderRadius: '50%',
+              background: 'radial-gradient(circle at 50% 32%, #bfe3ff 0%, #60a5fa 44%, #2563eb 76%, #1e40af 100%)',
+              border: '2px solid rgba(191,227,255,0.85)',
+              boxShadow: '0 0 36px rgba(96,165,250,0.65), inset 0 -9px 16px rgba(0,0,0,0.35), inset 0 7px 13px rgba(255,255,255,0.5)',
+            }}
+          />
         </div>
       </div>
 
       {/* ── Overlay fixo (não sofre pan) ─────────────────────────────────────── */}
-      <button
-        onClick={onClose}
-        aria-label="Voltar ao poço"
-        className="absolute top-4 left-4 z-40 flex items-center gap-1.5 px-3 py-2 rounded-xl font-black text-sm transition-all active:scale-95"
-        style={{ fontFamily: 'var(--font-display)', color: '#d9f0c8', background: 'rgba(8,14,5,0.72)', border: '1px solid rgba(217,240,200,0.3)', backdropFilter: 'blur(6px)' }}
-      >
-        <ArrowLeft className="w-4 h-4" /> Poço
-      </button>
-
       <div
         key={herbo}
         className="count-pop absolute top-4 right-4 z-40 flex items-center gap-1.5 px-3 py-2 rounded-xl"
@@ -231,7 +210,7 @@ export function UpgradeCanvas({ categoryId, onClose }: { categoryId: UpgradeCate
         </p>
       )}
 
-      {/* Bottom sheet de info (mobile) */}
+      {/* Bottom sheet de info (mobile) — inclui nós já comprados */}
       {isMobile && infoNode && (
         <div className="absolute inset-0 z-50 flex items-end" style={{ background: 'rgba(5,8,3,0.5)' }} onClick={() => setInfoNode(null)}>
           <div
@@ -245,6 +224,7 @@ export function UpgradeCanvas({ categoryId, onClose }: { categoryId: UpgradeCate
               onBuy={() => doBuy(infoNode.trackId)}
               pending={pendingId === infoNode.trackId}
               canBuy={infoNode.node.affordable}
+              owned={infoNode.node.status === 'owned'}
             />
           </div>
         </div>

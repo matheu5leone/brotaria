@@ -39,8 +39,10 @@ export function UpgradeNode({
   const doShake = () => { setShake(true); setTimeout(() => setShake(false), 400); };
 
   const handleClick = () => {
-    if (owned) return;
+    // Mobile: qualquer nó (inclusive comprado) abre o sheet de info.
     if (isMobile) { onRequestInfo(node); return; }
+    // Desktop: comprado só mostra info no hover; próximo sem saldo faz shake.
+    if (owned) return;
     if (!canBuy) doShake();
   };
 
@@ -77,7 +79,7 @@ export function UpgradeNode({
         )}
       </button>
 
-      {!isMobile && hover && !owned && (
+      {!isMobile && hover && (
         <div
           className="absolute z-50 left-1/2 -translate-x-1/2 mt-1 rounded-2xl p-3"
           style={{
@@ -87,7 +89,7 @@ export function UpgradeNode({
             boxShadow: '0 12px 32px rgba(0,0,0,0.35)',
           }}
         >
-          <UpgradeInfo trackName={trackName} node={node} onBuy={handleBuy} pending={pending} canBuy={canBuy} />
+          <UpgradeInfo trackName={trackName} node={node} onBuy={handleBuy} pending={pending} canBuy={canBuy} owned={owned} />
         </div>
       )}
     </div>

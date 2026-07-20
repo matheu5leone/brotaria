@@ -804,6 +804,13 @@ body {
 @keyframes upg-fill-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 .upg-conn-h-fill.filled { animation: upg-fill-x 0.55s ease-out both; }
 
+/* Orbe de água central: respiração sutil do brilho. */
+@keyframes upg-orb-breathe {
+  0%, 100% { box-shadow: 0 0 30px rgba(96,165,250,0.5), inset 0 -9px 16px rgba(0,0,0,0.35), inset 0 7px 13px rgba(255,255,255,0.5); }
+  50%      { box-shadow: 0 0 44px rgba(96,165,250,0.85), inset 0 -9px 16px rgba(0,0,0,0.35), inset 0 7px 13px rgba(255,255,255,0.5); }
+}
+.upg-orb-breathe { animation: upg-orb-breathe 2.8s ease-in-out infinite; }
+
 @media (prefers-reduced-motion: reduce) {
-  .upg-glow, .upg-pop, .upg-shake, .upg-grow-in, .upg-connector-fill.filled, .upg-conn-h-fill.filled { animation: none; }
+  .upg-glow, .upg-pop, .upg-shake, .upg-grow-in, .upg-connector-fill.filled, .upg-conn-h-fill.filled, .upg-orb-breathe { animation: none; }
 }
