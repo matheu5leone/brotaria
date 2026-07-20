@@ -31,7 +31,13 @@ export function GardenView({ userId }: { userId: string }) {
   return (
     <div
       className="garden-bg relative w-full h-full overflow-hidden select-none"
-      style={{ boxShadow: 'inset 0 0 80px rgba(0,0,0,0.35)' }}
+      style={{
+        boxShadow: 'inset 0 0 80px rgba(0,0,0,0.35)',
+        // Confina a profundidade dos vasos (zIndex = pos_y) a ESTE canvas: sem um
+        // stacking context próprio, os z-index (até ~1000) subiriam para a página
+        // e passariam por cima da navbar / menu hamburguer.
+        isolation: 'isolate',
+      }}
     >
       {/* Partículas decorativas */}
       {PARTICLES.map((p, i) => (

@@ -1068,6 +1068,10 @@ export default function Garden() {
           // will-change só durante interação → parado, re-rasteriza nítido no zoom
           willChange: interacting ? 'transform' : 'auto',
           touchAction: 'none',
+          // Confina a profundidade dos vasos (zIndex = pos_y) a ESTE canvas. Hoje o
+          // `transform` acima já cria o stacking context; explicitar evita que
+          // remover o pan/zoom faça os z-index vazarem por cima da navbar/menu.
+          isolation: 'isolate',
         }}
         onPointerDown={handleCanvasPointerDown}
         onPointerMove={handleCanvasPointerMove}
