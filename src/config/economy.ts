@@ -183,21 +183,24 @@ export interface WaterUpgradeDef {
 export const WATER_UPGRADES: Record<WaterUpgradeId, WaterUpgradeDef> = {
   water_capacity: {
     id: 'water_capacity',
-    name: 'Poço Fundo',
-    description: 'Aumenta a capacidade máxima do regador em +5.',
-    maxLevel: 1,
+    name: 'Capacidade',
+    description: 'Aumenta a capacidade máxima do regador.',
+    maxLevel: 3,
     levels: [
-      { cost_herbo: 50, capacity_bonus: 5 }, // nível 1
+      { cost_herbo: 50,  capacity_bonus: 5 }, // nível 1: +5 (teto 5→10)
+      { cost_herbo: 100, capacity_bonus: 5 }, // nível 2: +5 (teto 10→15)
+      { cost_herbo: 200, capacity_bonus: 5 }, // nível 3: +5 (teto 15→20)
     ],
   },
   water_bonus: {
     id: 'water_bonus',
     name: 'Coleta Farta',
     description: 'Chance de coletar +1 água extra a cada coleta.',
-    maxLevel: 2,
+    maxLevel: 3,
     levels: [
-      { cost_herbo: 50,  bonus_chance: 0.20 }, // nível 1
-      { cost_herbo: 100, bonus_chance: 0.40 }, // nível 2 (total)
+      { cost_herbo: 50,  bonus_chance: 0.20 }, // nível 1: 20%
+      { cost_herbo: 100, bonus_chance: 0.40 }, // nível 2: 40%
+      { cost_herbo: 200, bonus_chance: 0.60 }, // nível 3: 60%
     ],
   },
 };
@@ -206,11 +209,13 @@ export function getWaterUpgrade(id: string): WaterUpgradeDef | undefined {
   return (WATER_UPGRADES as Record<string, WaterUpgradeDef>)[id];
 }
 
-/** Teto de água efetivo dado o nível do upgrade de capacidade. */
+/** Teto de água efetivo: soma o capacity_bonus de todos os níveis comprados. */
 export function waterMaxFor(capacityLevel: number): number {
-  const bonus = capacityLevel > 0
-    ? (WATER_UPGRADES.water_capacity.levels[0].capacity_bonus ?? 0)
-    : 0;
+  const levels = WATER_UPGRADES.water_capacity.levels;
+  let bonus = 0;
+  for (let i = 0; i < capacityLevel && i < levels.length; i++) {
+    bonus += levels[i].capacity_bonus ?? 0;
+  }
   return WATER_BASE_MAX + bonus;
 }
 
