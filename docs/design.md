@@ -1,8 +1,8 @@
 # Brotaria — Design System
 
 **Identidade visual:** Herbário Vitoriano Druídico  
-**Referência de arte:** Don't Starve Together  
-**Data:** 2026-06-23
+**Referência de arte:** Ilustração fantasia de grimório druídico (herbário vitoriano encantado)  
+**Data:** 2026-06-23 · **Atualizado:** 2026-07-19
 
 ---
 
@@ -12,9 +12,16 @@ A Brotaria é um jardim virtual de espécimes mágicos. A identidade visual une 
 
 - **Herbário Vitoriano** — molduras de latão e cobre, pergaminho envelhecido, tipografia Cinzel, catalogação científica com toque mágico
 - **Arte Druídica Gótica** — plantas com personalidade sombria, madeira entalhada, folhas vivas, atmosfera de grimório encantado
-- **Don't Starve Together** — estilo visual de referência para as plantas geradas por IA: traço de tinta espessa, cores levemente dessaturadas dentro de contornos pretos fortes, textura de livro ilustrado sombrio
+- **Ilustração fantasia de grimório** — estilo das plantas geradas por IA: traço de tinta pen-and-ink, contorno preto forte e uniforme, cores ricas e **sólidas** dentro dos contornos, detalhe botânico de gravura vitoriana com viés de fantasia gótica
 
 O resultado é um jogo que parece um **grimório botânico vivo** — sério, mágico, levemente sinistro.
+
+> **Atualização 2026-07-19:** a referência "Don't Starve Together" foi aposentada em
+> favor de uma **estética de fantasia própria** (grimório druídico / herbário vitoriano
+> encantado). Duas regras absolutas na arte das plantas: **(1) nunca humanizar**
+> (sem rostos, olhos, bocas ou expressões) e **(2) só sólido/opaco** — proibido brilho,
+> aura, fumaça, névoa, partículas flutuantes e translucidez, que renderizavam como
+> blocos sólidos. Ver `docs/dna.md` §Traits e os prompts em `src/prompts/`.
 
 ---
 
@@ -272,17 +279,19 @@ Contém os dois botões hexagonais separados por um divisor vertical sutil.
 
 ### 5.1 Estilo visual
 
-**Referência:** Don't Starve Together  
+**Referência:** Ilustração fantasia de grimório druídico (herbário vitoriano encantado)  
 **Características obrigatórias:**
-- Contorno preto espesso e sólido em todos os elementos (folhas, caule, raízes, flores)
-- Linha com qualidade de tinta à mão, ligeiramente imperfeita
-- Cores ricas mas levemente dessaturadas dentro dos contornos
-- Hachura e textura de tinta para profundidade
-- Atmosfera druídica/mística: plantas com personalidade sombria
-- Bioluminescência mágica onde os traits da planta indicam
+- Contorno preto sólido e de espessura **uniforme** em todos os elementos (folhas, caule, flores, frutos)
+- Linha com qualidade de tinta pen-and-ink à mão, ligeiramente imperfeita
+- Cores ricas e **sólidas/opacas** dentro dos contornos
+- Hachura e textura de tinta (traços sólidos) para profundidade
+- Atmosfera druídica/mística: plantas com personalidade, viés de fantasia gótica
+- O visual "mágico" de um trait vem de **cor e estrutura sólidas** (marcação colorida, cristal opaco, ponta de folha em cor de fogo) — nunca de luz/brilho/partícula
 
 **Proibido:**
 - Cartoon sem contornos, flat vector, anime, 3D render, pastel, cute kawaii, pintura realista, arte digital moderna
+- **Humanização:** rostos, olhos, bocas, expressões (a planta nunca é antropomorfizada)
+- **Efeitos não-sólidos:** brilho, bioluminescência, aura, halo, fumaça, névoa, faíscas, brasas, pólen, partículas flutuantes, translucidez ou transparência parcial (renderizam como blocos sólidos). O **fundo** é transparente; a **planta** é 100% opaca.
 
 ### 5.2 Background / Transparência
 
@@ -310,14 +319,15 @@ Aplicar em todo `<Image>` de planta em `Garden.tsx`, `PlantHistoryModal.tsx` e `
 
 **Arquivo:** `src/prompts/DESCRIPTION_PLANT.md`  
 **Voz:** oráculo botânico de uma ordem druídica — parte diário de campo encantado, parte catalogação científica de grimório vitoriano  
-**Tom:** vivido, reverente, específico; referencia brilhos mágicos, auras e significado druídico onde o DNA permite
+**Tom:** vivido, reverente, específico; expressa o caráter mágico por **cor, postura e forma sólidas** (nunca por brilhos, auras, partículas ou rostos — ver regra sólido-only em §5.1)
 
 ### 5.4 Prompt de geração de imagem
 
 **Arquivo:** `src/prompts/IMAGE_GENERATOR.md`  
-**Estilo declarado:** Don't Starve Together + ilustração botânica gótica + grimório druídico encantado  
-**Background:** transparent PNG (alpha channel)  
-**Contorno:** "Very thick, bold, solid black ink outline (3–4px equivalent) around every single element"
+**Estilo declarado:** ilustração fantasia de grimório druídico + gravura de herbário vitoriano  
+**Background:** transparent PNG (alpha channel) — mas a planta é 100% opaca  
+**Contorno:** contorno preto sólido de espessura média e **uniforme** (~2–3px equivalente), igual em todas as plantas e estágios  
+**Regra sólido-only:** o prompt proíbe explicitamente glow/aura/fumaça/névoa/partículas/translucidez e humanização (rostos/olhos)
 
 ---
 
