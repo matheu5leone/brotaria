@@ -17,6 +17,8 @@ const RARITY_LABELS: Record<string, string> = {
 const BIOME_LABELS: Record<string, string> = {
   planicie: 'Planície', floresta: 'Floresta', deserto: 'Deserto',
   montanha: 'Montanha', pantano: 'Pântano',
+  oceano: 'Oceano', vulcao: 'Vulcão', tundra: 'Tundra',
+  selva: 'Selva', caverna: 'Caverna',
 };
 
 function formatDate(iso: string) {

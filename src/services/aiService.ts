@@ -114,16 +114,21 @@ function buildLlmUserContent(dna: PlantDNA, stageCode: string, previousDescripti
     : '  - (none)';
 
   const f = dna.form;
+  // Flores dependem do estágio: fase jovem (≤35% da altura) usa has_flowers_young;
+  // fase média/grande usa has_flowers. Frutos só quando bem maduro.
+  const early = fraction <= 0.35;
+  const flowersNow = early ? f.has_flowers_young : f.has_flowers;
+  const fruitNow = !early && f.has_fruit;
   return `
 Plant DNA (source of truth — reproduce these exactly, identity has NO image reference):
 - Biome: ${dna.biome}
 - Personality: ${dna.personality}
 - Rarity: ${dna.rarity}
-- Colors: primary ${dna.color.primary_hex}, secondary ${dna.color.secondary_hex} (${dna.color.name})
+- Colors: primary ${dna.color.primary_hex}, secondary ${dna.color.secondary_hex}
 - Leaf style: ${f.leaf_style}, density: ${f.leaf_density}
 - Stem style: ${f.stem_style}, adult thickness: ${f.stem_thickness_grown}
 - Growth pattern: ${f.growth_pattern}, adult height: ~${f.max_height_cm}cm
-- Flowers: ${f.has_flowers ? `yes (color ${f.flower_color_hex})` : 'no'} | Fruit: ${f.has_fruit ? `yes (color ${f.fruit_color_hex})` : 'no'}
+- Flowers at this stage: ${flowersNow ? `yes (color ${f.flower_color_hex})` : 'no'} | Fruit at this stage: ${fruitNow ? `yes (color ${f.fruit_color_hex})` : 'no'}
 - Traits (expressed at THIS stage's strength):
 ${traitLines}
 

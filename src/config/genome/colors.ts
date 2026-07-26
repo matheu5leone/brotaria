@@ -25,3 +25,13 @@ export function colorFromName(name: string): DNAColor {
   const entry = COLOR_PALETTE[name] ?? COLOR_PALETTE.verde;
   return { name, primary_hex: entry.primary_hex, secondary_hex: entry.secondary_hex };
 }
+
+/**
+ * Cor 100% aleatória: primário e secundário são hex livres (16,7M cada).
+ * A paleta nomeada acima fica só como referência — o gerador usa esta função,
+ * então cada planta tem uma combinação de cores praticamente única.
+ */
+export function randomColor(): DNAColor {
+  const hex = () => '#' + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0');
+  return { name: 'personalizada', primary_hex: hex(), secondary_hex: hex() };
+}

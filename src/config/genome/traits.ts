@@ -21,31 +21,28 @@ import type { TraitDef } from '@/types';
  *   { key, type:'color' }           // hex aleatório
  * =========================================================================
  */
+// NOTA DE ESTILO (2026-07): nada de humanização (sem rostos/olhos) e nada de
+// efeitos com opacidade não-sólida (brilhos, auras, fumaça, partículas flutuantes,
+// translucidez, gotejamento). Todo perk é descrito como PIGMENTO/ESTRUTURA SÓLIDA
+// e OPACA dentro do contorno preto — o modelo renderiza alpha parcial como sólido.
 export const TRAITS: TraitDef[] = [
   {
     name: 'feliz',
     params: [
-      { key: 'has_face', type: 'bool', chance: 0.9 },
-      { key: 'rosy_cheeks', type: 'bool', chance: 0.5 },
+      { key: 'plump_leaves', type: 'bool', chance: 0.6 },
     ],
     render: (p) =>
-      [
-        p.has_face ? 'a cute smiling face with big friendly eyes' : 'a cheerful, lively look',
-        p.rosy_cheeks ? 'soft rosy cheeks' : '',
-      ]
-        .filter(Boolean)
-        .join(', '),
+      'boldly saturated, vivid coloring and a lively, upright, healthy posture with leaves turned upward' +
+      (p.plump_leaves ? ', rounded plump leaves' : ''),
   },
   {
     name: 'misteriosa',
     params: [
-      { key: 'glowing_eyes', type: 'bool', chance: 0.7 },
-      { key: 'eye_count', type: 'int', min: 1, max: 4 },
+      { key: 'tangled', type: 'bool', chance: 0.7 },
     ],
-    render: (p, f) =>
-      p.glowing_eyes && f > 0.3
-        ? `${Math.max(1, Math.round(p.eye_count * f))} faint glowing eyes peeking through the foliage`
-        : 'a mysterious, secretive aura',
+    render: (p) =>
+      'deep, dark solid foliage and an intricate, secretive silhouette' +
+      (p.tangled ? ' with tightly tangled, concealing forms' : ''),
   },
   {
     name: 'perigosa',
@@ -57,21 +54,21 @@ export const TRAITS: TraitDef[] = [
     render: (p, f) => {
       const n = Math.max(1, Math.round(p.thorn_count * f));
       return (
-        `${n} ${p.thorn_size} sharp thorns along the stem` +
-        (p.dark_leaf_tips ? ', dark menacing leaf tips' : '')
+        `${n} ${p.thorn_size} sharp solid thorns along the stem` +
+        (p.dark_leaf_tips ? ', darkened solid leaf tips' : '')
       );
     },
   },
   {
     name: 'sombria',
     params: [
-      { key: 'shadow_aura', type: 'bool', chance: 0.8 },
-      { key: 'palette_darkened', type: 'bool', chance: 0.7 },
+      { key: 'palette_darkened', type: 'bool', chance: 0.8 },
+      { key: 'black_edges', type: 'bool', chance: 0.6 },
     ],
     render: (p) =>
       [
-        p.palette_darkened ? 'a darkened, desaturated version of its colors' : 'shadowy tones',
-        p.shadow_aura ? 'a subtle dark aura around it' : '',
+        p.palette_darkened ? 'a darkened, desaturated solid palette' : 'shadowy solid tones',
+        p.black_edges ? 'solid blackened leaf edges' : '',
       ]
         .filter(Boolean)
         .join(', '),
@@ -83,62 +80,49 @@ export const TRAITS: TraitDef[] = [
       { key: 'crystal_color_hex', type: 'color' },
     ],
     render: (p, f) =>
-      `${Math.max(1, Math.round(p.crystal_count * f))} translucent crystals (color ${p.crystal_color_hex}) growing from the plant`,
+      `${Math.max(1, Math.round(p.crystal_count * f))} solid, opaque faceted crystals (color ${p.crystal_color_hex}) growing from the plant`,
   },
   {
     name: 'luminosa',
     params: [
-      { key: 'glow_color_hex', type: 'color' },
-      { key: 'glow_intensity', type: 'enum', values: ['soft', 'bright'] },
+      { key: 'accent_color_hex', type: 'color' },
+      { key: 'intensity', type: 'enum', values: ['soft', 'bold'] },
     ],
     render: (p, f) =>
-      `a ${f > 0.6 ? p.glow_intensity : 'soft'} glow (color ${p.glow_color_hex}) emanating from the leaves`,
+      `bright, boldly ${f > 0.6 ? p.intensity : 'soft'} colored solid markings (color ${p.accent_color_hex}) painted across the leaves`,
   },
   {
     name: 'venenosa',
     params: [
-      { key: 'toxic_spots', type: 'bool', chance: 0.8 },
       { key: 'spot_count', type: 'int', min: 3, max: 14 },
-      { key: 'drip_color_hex', type: 'color' },
+      { key: 'spot_color_hex', type: 'color' },
     ],
     render: (p, f) =>
-      [
-        p.toxic_spots ? `${Math.max(1, Math.round(p.spot_count * f))} toxic colored spots on the leaves` : '',
-        f > 0.5 ? `dripping toxic sap (color ${p.drip_color_hex})` : '',
-      ]
-        .filter(Boolean)
-        .join(', ') || 'a faintly toxic appearance',
+      `${Math.max(1, Math.round(p.spot_count * f))} solid toxic-colored spots (color ${p.spot_color_hex}) on the leaves`,
   },
   {
     name: 'angelical',
     params: [
-      { key: 'halo', type: 'bool', chance: 0.7 },
-      { key: 'soft_glow', type: 'bool', chance: 0.9 },
-      { key: 'extra_petals', type: 'bool', chance: 0.5 },
+      { key: 'pale', type: 'bool', chance: 0.7 },
+      { key: 'extra_petals', type: 'bool', chance: 0.6 },
     ],
-    render: (p, f) =>
+    render: (p) =>
       [
-        p.halo && f > 0.4 ? 'a delicate halo floating above it' : '',
-        p.soft_glow ? 'a gentle angelic glow' : '',
+        p.pale ? 'pristine pale, light-colored solid foliage' : 'serene light-toned foliage',
         p.extra_petals ? 'extra soft light-colored petals' : '',
       ]
         .filter(Boolean)
-        .join(', ') || 'a serene, angelic presence',
+        .join(', '),
   },
   {
     name: 'flamejante',
     params: [
-      { key: 'flame_tips', type: 'bool', chance: 0.9 },
-      { key: 'ember_count', type: 'int', min: 2, max: 10 },
       { key: 'flame_color_hex', type: 'color' },
+      { key: 'fiery_gradient', type: 'bool', chance: 0.7 },
     ],
-    render: (p, f) =>
-      [
-        p.flame_tips ? `flame-like leaf tips (color ${p.flame_color_hex})` : '',
-        f > 0.5 ? `${Math.max(1, Math.round(p.ember_count * f))} floating embers around it` : '',
-      ]
-        .filter(Boolean)
-        .join(', ') || 'a warm, fiery hue',
+    render: (p) =>
+      `solid flame-colored (warm red-orange) leaf tips (color ${p.flame_color_hex})` +
+      (p.fiery_gradient ? ', with a fiery solid gradient across the foliage' : ''),
   },
 ];
 

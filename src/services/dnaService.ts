@@ -1,7 +1,6 @@
 import { PlantDNA, Biome, Rarity, DNAForm, TraitInstance, TraitDef, TraitParamSpec } from '../types';
 import {
-  COLOR_NAMES,
-  colorFromName,
+  randomColor,
   LEAF_STYLES,
   LEAF_DENSITIES,
   STEM_STYLES,
@@ -10,12 +9,29 @@ import {
   MAX_HEIGHT_CM_RANGE,
   FLOWER_CHANCE,
   FRUIT_CHANCE,
+  YOUNG_FLOWER_CHANCE,
+  TREE_POTENTIAL_CHANCE,
   TRAITS,
-  TRAITS_BY_NAME,
 } from '../config/genome';
 
-const BIOMES: Biome[] = ['planicie', 'floresta', 'deserto', 'montanha', 'pantano'];
-const PERSONALITIES = ['feliz', 'misteriosa', 'perigosa', 'sombria', 'tranquila', 'agitada', 'sabia', 'curiosa'];
+const BIOMES: Biome[] = [
+  'planicie', 'floresta', 'deserto', 'montanha', 'pantano',
+  'oceano', 'vulcao', 'tundra', 'selva', 'caverna',
+];
+
+// Personalidade é só um rótulo de "sabor" (alimenta a descrição). Não está mais
+// ligada ao perk inicial (perks agora são 100% aleatórios — ver rollInitialTraits).
+const PERSONALITIES = [
+  'feliz', 'misteriosa', 'perigosa', 'sombria', 'tranquila', 'agitada', 'sabia', 'curiosa',
+  'raiva', 'medo', 'angustia', 'descolada', 'gotica', 'tropical', 'gelada', 'cavernosa',
+  'cyber', 'carnivora', 'melancolica', 'radiante', 'selvagem', 'ancestral', 'majestosa',
+  'brincalhona', 'timida', 'orgulhosa', 'mistica', 'festiva', 'guerreira', 'sonhadora',
+  'rebelde', 'serena', 'noturna', 'faminta', 'real', 'zen',
+];
+
+// Perks no plantio: 1 garantido; 33% de um 2º; se veio o 2º, 11% de um 3º.
+const SECOND_PERK_CHANCE = 0.33;
+const THIRD_PERK_CHANCE = 0.11;
 
 /* ------------------------------------------------------------------ */
 /* Helpers de sorteio                                                  */
@@ -66,6 +82,8 @@ function instantiateTrait(def: TraitDef): TraitInstance {
 
 function randomForm(): DNAForm {
   const has_flowers = Math.random() < FLOWER_CHANCE;
+  const has_flowers_young = Math.random() < YOUNG_FLOWER_CHANCE;
+  const anyFlowers = has_flowers || has_flowers_young;
   const has_fruit = Math.random() < FRUIT_CHANCE;
   return {
     leaf_style: pick(LEAF_STYLES),
@@ -75,27 +93,41 @@ function randomForm(): DNAForm {
     growth_pattern: pick(GROWTH_PATTERNS),
     max_height_cm: randInt(MAX_HEIGHT_CM_RANGE.min, MAX_HEIGHT_CM_RANGE.max),
     has_flowers,
-    flower_color_hex: has_flowers ? randomHex() : undefined,
+    has_flowers_young,
+    flower_color_hex: anyFlowers ? randomHex() : undefined,
     has_fruit,
     fruit_color_hex: has_fruit ? randomHex() : undefined,
+    tree_potential: Math.random() < TREE_POTENTIAL_CHANCE,
   };
 }
 
+/**
+ * Perks de nascença: 1 garantido (aleatório); 33% de um 2º; se o 2º veio,
+ * 11% de um 3º. Todos distintos (sem repetição).
+ */
+function rollInitialTraits(): TraitInstance[] {
+  const pool = [...TRAITS];
+  const chosen: TraitDef[] = [];
+  const take = () => chosen.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+
+  take(); // 1º garantido
+  if (Math.random() < SECOND_PERK_CHANCE && pool.length) {
+    take(); // 2º
+    if (Math.random() < THIRD_PERK_CHANCE && pool.length) {
+      take(); // 3º (só se o 2º saiu)
+    }
+  }
+  return chosen.map(instantiateTrait);
+}
+
 export function generateRandomDNA(): PlantDNA {
-  const rarity = calculateRarity();
-  const personality = pick(PERSONALITIES);
-
-  // Trait inicial: se a personalidade existir no catálogo, começa com ela (sabor);
-  // caso contrário, sorteia um perk qualquer do catálogo.
-  const initialDef = TRAITS_BY_NAME[personality] ?? pick(TRAITS);
-
   return {
     biome: pick(BIOMES),
-    rarity,
-    personality,
-    color: colorFromName(pick(COLOR_NAMES)),
+    rarity: calculateRarity(),
+    personality: pick(PERSONALITIES),
+    color: randomColor(),
     form: randomForm(),
-    traits: [instantiateTrait(initialDef)],
+    traits: rollInitialTraits(),
   };
 }
 

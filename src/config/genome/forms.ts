@@ -25,3 +25,10 @@ export const MAX_HEIGHT_CM_RANGE = { min: 35, max: 90 };
 /** Chance (0..1) de a planta ter flores / frutos quando adulta. */
 export const FLOWER_CHANCE = 0.55;
 export const FRUIT_CHANCE = 0.3;
+
+/** Chance (0..1) de a planta já exibir flores na fase JOVEM (porte pequeno). */
+export const YOUNG_FLOWER_CHANCE = 0.1;
+
+/** Chance (0..1) de a planta nascer com potencial de virar árvore no porte grande.
+ *  Guardado no DNA para uma feature futura (ainda não implementada). */
+export const TREE_POTENTIAL_CHANCE = 0.17;

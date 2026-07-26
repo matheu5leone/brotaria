@@ -1,4 +1,6 @@
-export type Biome = 'planicie' | 'floresta' | 'deserto' | 'montanha' | 'pantano';
+export type Biome =
+  | 'planicie' | 'floresta' | 'deserto' | 'montanha' | 'pantano'
+  | 'oceano' | 'vulcao' | 'tundra' | 'selva' | 'caverna';
 export type Rarity = 'comum' | 'incomum' | 'raro' | 'epico' | 'lendario' | 'brotaria';
 export type HydrationStatus = 'hydrated' | 'waiting_water' | 'paused';
 
@@ -23,10 +25,14 @@ export interface DNAForm {
   stem_thickness_grown: StemThickness; // grossura do caule principal na fase grande
   growth_pattern: GrowthPattern;
   max_height_cm: number; // altura final (fase grande), randomizada
-  has_flowers: boolean;
+  has_flowers: boolean;          // flores na fase adulta (média/grande)
+  has_flowers_young: boolean;    // flores já na fase jovem/broto (chance menor)
   flower_color_hex?: string;
   has_fruit: boolean;
   fruit_color_hex?: string;
+  /** Rolado no plantio: potencial de virar árvore ao atingir o porte grande.
+   *  Guardado para uma feature futura (ainda não implementada). */
+  tree_potential: boolean;
 }
 
 /** Instância de um perk no DNA, com params já sorteados (forma adulta). */
