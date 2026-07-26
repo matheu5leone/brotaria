@@ -51,6 +51,11 @@ const BIOME_TEXT: Record<string, string> = {
   deserto:   'climas áridos e quentes',
   montanha:  'altitudes frias e ventos fortes',
   pantano:   'terras alagadas e misteriosas',
+  oceano:    'águas profundas e salgadas',
+  vulcao:    'encostas quentes e vulcânicas',
+  tundra:    'planícies geladas e nevadas',
+  selva:     'matas densas e tropicais',
+  caverna:   'grutas escuras e subterrâneas',
 };
 
 function generateDescription(version: PlantVersionHistoryRow): string {
@@ -71,6 +76,8 @@ function formatDate(iso: string) {
 const BIOME_LABEL: Record<string, string> = {
   planicie: 'Planície', floresta: 'Floresta', deserto: 'Deserto',
   montanha: 'Montanha', pantano: 'Pântano',
+  oceano: 'Oceano', vulcao: 'Vulcão', tundra: 'Tundra',
+  selva: 'Selva', caverna: 'Caverna',
 };
 
 // ── Card interno — uma versão/estágio ────────────────────────────────────────
@@ -168,6 +175,14 @@ function VersionCard({
               ? (isFinal ? '' : `${plant.current_stage_waters}/${plant.current_target ?? plant.current_stage.waters_required} regas`)
               : 'Estágio concluído ✓'}
           </div>
+          {isLast && !isFinal && (
+            <div
+              className="mt-2 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-black"
+              style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)', color: '#2a7a2a', fontFamily: 'var(--font-display)' }}
+            >
+              Complete a barra e ganhe <HerboIcon size={12} /> +{calcPlantScore(plant.dna, plant.current_stage.order_index + 1)}
+            </div>
+          )}
           {isLast && (
             <div className="mt-2 flex justify-center">
               <WaterCountdown
@@ -256,6 +271,12 @@ function BuriedCard({ plant }: { plant: PlantRow }) {
           className="h-full rounded-full transition-all duration-700"
           style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg, #2a7a2a, #4ade80)' }}
         />
+      </div>
+      <div
+        className="mt-2 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-black"
+        style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)', color: '#2a7a2a', fontFamily: 'var(--font-display)' }}
+      >
+        Complete a barra e ganhe <HerboIcon size={13} /> +{calcPlantScore(plant.dna, plant.current_stage.order_index + 1)}
       </div>
       <div className="mt-3 flex justify-center">
         <WaterCountdown

@@ -139,7 +139,7 @@ export const GAME = {
   /**
    * Herbo (🍃) é a moeda orgânica do jogo — ganha por evoluir plantas.
    * Quantidade = calcPlantScore(dna, nextStage.order_index)
-   *   score = rarity_weight × stage_order_index × (1 + traits.length × 0.2)
+   *   score = rarity_weight × stage_order_index   (perks NÃO influenciam o herbo)
    *
    * Herbo NÃO é comprado com dinheiro real. É obtido apenas jogando.
    * Moedas (coins) são compradas com R$ e gastas na loja.
