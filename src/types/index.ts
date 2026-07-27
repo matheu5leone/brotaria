@@ -132,5 +132,7 @@ export interface InventoryItem {
   label: string | null;
   /** Só em sementes recicladas: raridade garantida (null = semente genérica). */
   rarity: Rarity | null;
+  /** Só em sementes-bioma (colheita da adulta): bioma travado (null = sem bioma). */
+  biome: Biome | null;
   created_at: string;
 }

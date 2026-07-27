@@ -3,7 +3,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
-import { Pot } from '@/types';
+import { Pot, Biome } from '@/types';
+import { BIOME_LABELS } from '@/config/biomes';
 import { X, Loader2, Trash2, Sprout } from 'lucide-react';
 
 // Ícones PNG dimensionados em `em` para escalar com o tamanho do botão (.hex-button)
@@ -555,7 +556,8 @@ export default function Garden() {
 
     try {
       const result = await waterMutation.mutateAsync({ plantId: pot.plant_id }) as
-        { evolved?: boolean; nextStage?: string; herbo?: number } | undefined;
+        { evolved?: boolean; nextStage?: string; herbo?: number;
+          harvested?: boolean; rewardType?: string; seedBiome?: string } | undefined;
       if (result) triggerWaterFx(pot.id); // gotas na terra sempre que a rega dá certo
       if (result?.evolved) {
         // Herbo voando a CADA sub-passo/evolução (o feedback da recompensa)
@@ -564,6 +566,16 @@ export default function Garden() {
           // Mudança VISÍVEL de estágio → toast comemorativo (o herbo já voa)
           const name = lifecycleFromCode(result.nextStage).name;
           showToast(`🌿 Sua planta virou ${name}!`, 'success');
+        }
+      }
+      if (result?.harvested) {
+        // Colheita da adulta: feedback por tipo de recompensa.
+        if (result.herbo) triggerHerboFly(pot.id, result.herbo);
+        if (result.rewardType === 'seed' && result.seedBiome) {
+          showToast(`🌱 Colheita! +1 semente de ${BIOME_LABELS[result.seedBiome as Biome] ?? result.seedBiome}`, 'success');
+        }
+        if (result.rewardType === 'star') {
+          showToast('⭐ Sua planta atingiu o AUGE!', 'success');
         }
       }
     } catch (err: unknown) {
@@ -641,7 +653,7 @@ export default function Garden() {
   }, [canWaterToday, waterMutation.isPending, findPotAtPoint, handleWaterPot]);
 
   // Plantar arrastando a semente da mochila até um canteiro vazio (estilo regador).
-  const handleSeedDragStart = useCallback((e: React.PointerEvent) => {
+  const handleSeedDragStart = useCallback((e: React.PointerEvent, seed?: { rarity: string | null; biome: string | null }) => {
     if (plantMutation.isPending) return;
     e.preventDefault();
     e.stopPropagation();
@@ -679,7 +691,7 @@ export default function Garden() {
 
       const pot = findPotAtPoint(ev.clientX, ev.clientY);
       if (isPlantable(pot)) {
-        plantMutation.mutateAsync({ potId: pot.id })
+        plantMutation.mutateAsync({ potId: pot.id, seedRarity: seed?.rarity ?? null, seedBiome: seed?.biome ?? null })
           .then(() => triggerPlantFx(pot.id)) // terra saindo + distorção do canteiro
           .catch((err: unknown) => {
             if ((err as { code?: string }).code === 'NO_SEEDS') setCoinModalPotId(pot.id);

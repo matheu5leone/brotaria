@@ -57,6 +57,41 @@ O resultado é um jogo que parece um **grimório botânico vivo** — sério, m�
 | `--color-text-muted`  | `#9a7a4a` | Labels, hints |
 | `--color-text-light`  | `#e8d5a0` | Texto sobre fundo escuro |
 
+### Raridade
+
+Cor identificadora de cada raridade — partículas/glow do `RarityEffect`, molduras
+de semente reciclada, badges. Definidas em `globals.css` (`:root`).
+
+| Token CSS | Hex | Raridade |
+|-----------|-----|----------|
+| `--rarity-comum`    | `rgba(255,255,255,0.85)` | Comum |
+| `--rarity-incomum`  | `#06b6d4` | Incomum |
+| `--rarity-raro`     | `#1e3a8a` | Raro |
+| `--rarity-epico`    | `#7c3aed` | Épico |
+| `--rarity-lendario` | `#f97316` | Lendário |
+| `--rarity-brotaria` | `#4ade80` | Brotaria |
+
+Brotaria tem tons auxiliares: `--rarity-brotaria-dark` `#166534`, `-mid` `#16a34a`,
+`-light` `#86efac` (borda animada).
+
+### Bioma
+
+Cor identificadora de cada bioma — quadradinho da semente-bioma (colheita da
+adulta) e afins. Vars em `globals.css` (`--biome-*`) e espelho em `src/config/biomes.ts`.
+
+| Token CSS | Hex | Bioma |
+|-----------|-----|-------|
+| `--biome-planicie` | `#9ccc65` | Planície |
+| `--biome-floresta` | `#2e7d32` | Floresta |
+| `--biome-deserto`  | `#e0b15e` | Deserto |
+| `--biome-montanha` | `#90a4ae` | Montanha |
+| `--biome-pantano`  | `#6d7f3f` | Pântano |
+| `--biome-oceano`   | `#1e88e5` | Oceano |
+| `--biome-vulcao`   | `#e64a19` | Vulcão |
+| `--biome-tundra`   | `#86c5da` | Tundra |
+| `--biome-selva`    | `#159e7a` | Selva |
+| `--biome-caverna`  | `#6a5acd` | Caverna |
+
 ---
 
 ## 3. Tipografia

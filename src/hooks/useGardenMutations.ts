@@ -14,11 +14,11 @@ async function digHole(posX: number, posY: number) {
   return data.pot;
 }
 
-async function plantSeed(potId: string) {
+async function plantSeed(potId: string, seedRarity?: string | null, seedBiome?: string | null) {
   const res = await authFetch('/api/plants/plant', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ potId }),
+    body: JSON.stringify({ potId, seedRarity: seedRarity ?? null, seedBiome: seedBiome ?? null }),
   });
   const data = await res.json();
   if (!res.ok) throw Object.assign(new Error(data.error ?? 'Erro ao plantar'), { code: data.code });
@@ -75,7 +75,8 @@ export function useDigMutation(userId: string) {
 export function usePlantMutation(userId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ potId }: { potId: string }) => plantSeed(potId),
+    mutationFn: ({ potId, seedRarity, seedBiome }: { potId: string; seedRarity?: string | null; seedBiome?: string | null }) =>
+      plantSeed(potId, seedRarity, seedBiome),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['garden', 'pots', userId] });
       qc.invalidateQueries({ queryKey: ['wallet', userId] });

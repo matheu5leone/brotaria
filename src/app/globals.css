@@ -23,6 +23,18 @@ html, body {
   --rarity-brotaria-dark:  #166534;
   --rarity-brotaria-mid:   #16a34a;
   --rarity-brotaria-light: #86efac;
+
+  /* Biomas — cor identificadora (badge da semente-bioma, etc.) */
+  --biome-planicie: #9ccc65;
+  --biome-floresta: #2e7d32;
+  --biome-deserto:  #e0b15e;
+  --biome-montanha: #90a4ae;
+  --biome-pantano:  #6d7f3f;
+  --biome-oceano:   #1e88e5;
+  --biome-vulcao:   #e64a19;
+  --biome-tundra:   #86c5da;
+  --biome-selva:    #159e7a;
+  --biome-caverna:  #6a5acd;
 }
 
 /* ---------- Design System — tokens do Herbário Vitoriano ---------- */

@@ -8,7 +8,11 @@ import { useUnwrap } from '@/hooks/useGifts';
 import { GiftSendModal } from '@/components/GiftSendModal';
 import { usePlantVersion, usePlant } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
-import { InventoryItem, Rarity, PlantDNA } from '@/types';
+import { InventoryItem, Rarity, Biome, PlantDNA } from '@/types';
+import { BIOME_LABELS } from '@/config/biomes';
+
+/** Dados do stack de semente arrastado (define o que será plantado). */
+export type SeedDragMeta = { rarity: Rarity | null; biome: Biome | null };
 
 // ── Tipos de animação ────────────────────────────────────────────────────────
 
@@ -220,7 +224,7 @@ function SlotContent({
   animRarity: Rarity;
   onOpenGift: () => void;
   onLabelSave: (label: string) => void;
-  onSeedDragStart?: (e: React.PointerEvent) => void;
+  onSeedDragStart?: (e: React.PointerEvent, seed?: SeedDragMeta) => void;
 }) {
   if (animPhase !== 'idle') return <AnimatingSlot phase={animPhase} rarity={animRarity} />;
 
@@ -228,18 +232,33 @@ function SlotContent({
 
   if (item.item_type === 'seed') {
     const seedRarity = item.rarity as Rarity | null;
+    const seedBiome = item.biome as Biome | null;
+    const borderColor = seedRarity ? `var(--rarity-${seedRarity})` : seedBiome ? `var(--biome-${seedBiome})` : 'rgba(22,163,74,0.4)';
     return (
       <div
-        className="flex flex-col items-center justify-center gap-0.5 w-full h-full rounded-xl cursor-grab active:cursor-grabbing"
+        className="relative flex flex-col items-center justify-center gap-0.5 w-full h-full rounded-xl cursor-grab active:cursor-grabbing"
         style={{
           touchAction: 'none',
-          // Semente reciclada: moldura tingida pela raridade; genérica = verde padrão.
-          background: seedRarity ? 'rgba(92,58,30,0.10)' : 'rgba(187,247,208,0.5)',
-          border: `1px solid ${seedRarity ? `var(--rarity-${seedRarity})` : 'rgba(22,163,74,0.4)'}`,
+          // Semente reciclada = moldura da raridade; semente-bioma = moldura do bioma; genérica = verde.
+          background: seedRarity || seedBiome ? 'rgba(92,58,30,0.10)' : 'rgba(187,247,208,0.5)',
+          border: `1px solid ${borderColor}`,
         }}
-        onPointerDown={(e) => { e.stopPropagation(); onSeedDragStart?.(e); }}
-        title={seedRarity ? `Semente ${seedRarity} — arraste até um canteiro vazio para plantar` : 'Arraste até um canteiro vazio para plantar'}
+        onPointerDown={(e) => { e.stopPropagation(); onSeedDragStart?.(e, { rarity: item.rarity, biome: item.biome }); }}
+        title={
+          seedRarity ? `Semente ${seedRarity} — arraste até um canteiro vazio para plantar`
+          : seedBiome ? `Semente de ${BIOME_LABELS[seedBiome]} — arraste até um canteiro vazio para plantar`
+          : 'Arraste até um canteiro vazio para plantar'
+        }
       >
+        {/* Quadradinho de bioma no canto (semente-bioma) */}
+        {seedBiome && (
+          <span
+            className="absolute top-1 left-1 z-10 pointer-events-none"
+            style={{ width: 11, height: 11, borderRadius: 3, background: `var(--biome-${seedBiome})`, border: '1px solid rgba(8,14,5,0.55)' }}
+            title={BIOME_LABELS[seedBiome]}
+          />
+        )}
+
         {seedRarity ? (
           <div className="relative pointer-events-none" style={{ width: 30, height: 30 }}>
             <RarityEffect rarity={seedRarity} alwaysVisible>
@@ -251,7 +270,7 @@ function SlotContent({
         ) : (
           <Image src="/imgs/seed.webp" alt="semente" width={24} height={24} className="object-contain pointer-events-none" draggable={false} />
         )}
-        <span className="text-[9px] font-bold pointer-events-none" style={{ color: seedRarity ? 'var(--color-text-dark)' : '#166534' }}>×{item.quantity}</span>
+        <span className="text-[9px] font-bold pointer-events-none" style={{ color: seedRarity || seedBiome ? 'var(--color-text-dark)' : '#166534' }}>×{item.quantity}</span>
       </div>
     );
   }
@@ -286,7 +305,7 @@ export function InventoryPanel({
   open: boolean;
   onClose: () => void;
   /** Inicia o arraste de plantar a partir de um slot de semente (fecha a mochila). */
-  onSeedDragStart?: (e: React.PointerEvent) => void;
+  onSeedDragStart?: (e: React.PointerEvent, seed?: SeedDragMeta) => void;
 }) {
   const [animatingSlot, setAnimatingSlot] = useState<number | null>(null);
   const [animPhase, setAnimPhase] = useState<OpenPhase>('idle');
