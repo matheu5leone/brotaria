@@ -1485,6 +1485,7 @@ export default function Garden() {
         plantIds={plantedPlantIds}
         onSelectPlant={selectPlantById}
         onClose={() => setPlantsGridOpen(false)}
+        enableRecycle
       />
 
       {/* ── Card story da planta (clique abre; toque=estágio, swipe=planta) ── */}

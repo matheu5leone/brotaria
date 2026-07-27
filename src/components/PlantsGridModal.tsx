@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Search, Leaf, Droplets, Star, Zap, Flame, Sprout } from 'lucide-react';
+import { X, Search, Leaf, Droplets, Star, Zap, Flame, Sprout, Check, Recycle } from 'lucide-react';
 import { usePlant, usePlantVersion } from '@/hooks/usePlantData';
 import { PlantImage } from '@/components/PlantImage';
 import { RarityEffect } from '@/components/RarityEffect';
@@ -9,6 +9,17 @@ import { calcPlantScore } from '@/lib/scoring';
 import { lifecycleFromOrder } from '@/config/lifecycle';
 import { Rarity } from '@/types';
 import { HerboIcon } from '@/components/HerboIcon';
+import { useAuth } from '@/hooks/useAuth';
+import { useRecyclePlants } from '@/hooks/useGardenMutations';
+import { RecycleLoader } from '@/components/RecycleLoader';
+
+/** Estado de reciclagem passado a cada célula (a célula conhece a própria raridade). */
+type RecycleCellState = {
+  active: boolean;
+  selected: boolean;
+  lockedRarity: Rarity | null;
+  onToggle: (plantId: string, rarity: Rarity, isBuried: boolean) => void;
+};
 
 const RARITY_CONFIG: Record<Rarity, { Icon: React.ElementType; color: string; label: string }> = {
   comum:    { Icon: Leaf,     color: '#8a8f98', label: 'Comum'    },
@@ -24,10 +35,12 @@ function PlantCell({
   plantId,
   onClick,
   onZoom,
+  recycle,
 }: {
   plantId: string;
   onClick?: () => void;
   onZoom: (url: string, alt: string) => void;
+  recycle?: RecycleCellState;
 }) {
   const { data: plant } = usePlant(plantId);
   const { data: version } = usePlantVersion(plantId);
@@ -48,16 +61,43 @@ function PlantCell({
   // Enterrada: raridade é surpresa (só revela ao virar broto) — nada de raridade/valor/glow.
   const isBuried = plant.current_stage.order_index <= 1;
 
+  const recycling = recycle?.active ?? false;
+  const selected = recycle?.selected ?? false;
+  // Bloqueia enterradas (raridade secreta) e as de raridade diferente da travada.
+  const blocked = recycling && !selected && (isBuried || (recycle!.lockedRarity != null && rarity !== recycle!.lockedRarity));
+
+  const handleClick = () => {
+    if (recycling) {
+      if (!blocked) recycle?.onToggle(plantId, rarity, isBuried);
+      return;
+    }
+    onClick?.();
+  };
+
+  const clickable = recycling ? !blocked : !!onClick;
+
   return (
     <div
-      onClick={onClick}
-      className={`flex flex-col rounded-2xl p-2 text-left transition-transform duration-200 ${onClick ? 'cursor-pointer hover:scale-[1.03] active:scale-95' : ''}`}
+      onClick={handleClick}
+      className={`relative flex flex-col rounded-2xl p-2 text-left transition-all duration-200 ${clickable ? 'cursor-pointer hover:scale-[1.03] active:scale-95' : 'cursor-default'}`}
       style={{
-        background: 'rgba(92,58,30,0.07)',
-        border: '1px solid rgba(92,58,30,0.15)',
+        background: selected ? 'rgba(74,222,128,0.14)' : 'rgba(92,58,30,0.07)',
+        border: selected ? '2px solid #4ade80' : '1px solid rgba(92,58,30,0.15)',
+        opacity: blocked ? 0.38 : 1,
+        filter: blocked ? 'grayscale(0.6)' : undefined,
       }}
       title={isBuried ? stageName : `${stageName} — ${cfg.label}`}
     >
+      {/* Selo de selecionado (modo reciclar) */}
+      {recycling && selected && (
+        <div
+          className="absolute -top-2 -right-2 z-20 w-6 h-6 rounded-full flex items-center justify-center"
+          style={{ background: '#2a7a2a', border: '2px solid var(--color-parch-light)' }}
+        >
+          <Check className="w-3.5 h-3.5" style={{ color: '#fff' }} strokeWidth={3} />
+        </div>
+      )}
+
       {/* Imagem + glow de raridade (glow só quando NÃO está enterrada) */}
       <div
         className="relative w-full rounded-xl overflow-hidden mb-2"
@@ -75,8 +115,8 @@ function PlantCell({
           </RarityEffect>
         )}
 
-        {/* Lupa — abre a imagem grande (só quando há imagem) */}
-        {version?.image_url && (
+        {/* Lupa — abre a imagem grande (só quando há imagem e fora do modo reciclar) */}
+        {version?.image_url && !recycling && (
           <button
             onClick={(e) => { e.stopPropagation(); onZoom(version.image_url as string, stageName); }}
             className="absolute top-1 right-1 z-10 p-1.5 rounded-full transition-all hover:scale-110 active:scale-90"
@@ -136,6 +176,7 @@ export function PlantsGridModal({
   onSelectPlant,
   onClose,
   title = 'Minhas Plantas',
+  enableRecycle = false,
 }: {
   open: boolean;
   plantIds: string[];
@@ -143,10 +184,56 @@ export function PlantsGridModal({
   onSelectPlant?: (plantId: string) => void;
   onClose: () => void;
   title?: string;
+  /** Só o dono do jardim: habilita o modo Reciclar. */
+  enableRecycle?: boolean;
 }) {
   const [zoomed, setZoomed] = useState<{ url: string; alt: string } | null>(null);
+  const { user } = useAuth();
+  const recycle = useRecyclePlants(user?.id ?? '');
+
+  // Modo reciclar
+  const [recycleMode, setRecycleMode] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [lockedRarity, setLockedRarity] = useState<Rarity | null>(null);
+  // Animação/resultado
+  const [recycling, setRecycling] = useState<string[] | null>(null);
+  const [resultRarity, setResultRarity] = useState<Rarity | null>(null);
 
   if (!open) return null;
+
+  const exitRecycle = () => { setRecycleMode(false); setSelected([]); setLockedRarity(null); };
+
+  const onToggle = (plantId: string, rarity: Rarity, isBuried: boolean) => {
+    if (isBuried) return; // enterrada: raridade secreta, não recicla
+    setSelected((prev) => {
+      if (prev.includes(plantId)) {
+        const next = prev.filter((x) => x !== plantId);
+        if (next.length === 0) setLockedRarity(null);
+        return next;
+      }
+      if (prev.length >= 3) return prev;
+      if (lockedRarity && rarity !== lockedRarity) return prev;
+      if (!lockedRarity) setLockedRarity(rarity);
+      return [...prev, plantId];
+    });
+  };
+
+  const doConfirm = () => {
+    if (selected.length !== 3) return;
+    const ids = [...selected];
+    setRecycling(ids);
+    setResultRarity(null);
+    recycle.mutate(ids, {
+      onSuccess: (data) => setResultRarity(data.seedRarity as Rarity),
+      onError: () => { setRecycling(null); },
+    });
+  };
+
+  const onRecycleDone = () => {
+    setRecycling(null);
+    setResultRarity(null);
+    exitRecycle();
+  };
 
   return (
     <>
@@ -173,7 +260,7 @@ export function PlantsGridModal({
           />
 
           {/* Header */}
-          <div className="flex items-center justify-between mb-4 flex-shrink-0">
+          <div className="flex items-center justify-between mb-3 flex-shrink-0">
             <h2
               className="text-lg font-black"
               style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
@@ -188,6 +275,50 @@ export function PlantsGridModal({
               <X className="w-5 h-5" />
             </button>
           </div>
+
+          {/* Barra de reciclagem (só dono) */}
+          {enableRecycle && plantIds.length > 0 && (
+            <div className="flex items-center justify-between gap-2 mb-3 flex-shrink-0">
+              {recycleMode ? (
+                <>
+                  <span className="text-[11px] font-bold" style={{ fontFamily: 'var(--font-caption)', fontStyle: 'italic', color: 'var(--color-text-muted)' }}>
+                    Selecione 3 da mesma raridade ({selected.length}/3)
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={exitRecycle}
+                      className="px-3 py-1.5 rounded-lg text-xs font-black transition-all active:scale-95"
+                      style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-mid)', background: 'rgba(92,58,30,0.1)', border: '1px solid rgba(92,58,30,0.25)' }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={doConfirm}
+                      disabled={selected.length !== 3}
+                      className="px-3 py-1.5 rounded-lg text-xs font-black transition-all active:scale-95 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        background: selected.length === 3 ? 'linear-gradient(135deg, #2a5a1e, #1e4014)' : 'rgba(92,58,30,0.15)',
+                        color: selected.length === 3 ? '#d9f0c8' : 'var(--color-text-muted)',
+                        border: `1px solid ${selected.length === 3 ? 'rgba(74,222,128,0.35)' : 'rgba(92,58,30,0.25)'}`,
+                      }}
+                    >
+                      <Check className="w-3.5 h-3.5" /> Confirmar
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <button
+                  onClick={() => { setRecycleMode(true); setSelected([]); setLockedRarity(null); }}
+                  className="ml-auto px-3 py-1.5 rounded-lg text-xs font-black transition-all active:scale-95 inline-flex items-center gap-1.5"
+                  style={{ fontFamily: 'var(--font-display)', color: 'var(--color-wood-dark)', background: 'rgba(201,162,39,0.16)', border: '1px solid rgba(201,162,39,0.4)' }}
+                  title="Junte 3 plantas da mesma raridade em 1 semente melhor"
+                >
+                  <Recycle className="w-3.5 h-3.5" /> Reciclar
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Grid — 3 cols (mobile) → 5 (sm) → 6 (md) → 8 (lg). Breakpoints por LARGURA.
               padding + overflow-x-hidden dão folga ao hover:scale sem gerar
@@ -206,6 +337,12 @@ export function PlantsGridModal({
                   key={pid}
                   plantId={pid}
                   onClick={onSelectPlant ? () => onSelectPlant(pid) : undefined}
+                  recycle={recycleMode ? {
+                    active: true,
+                    selected: selected.includes(pid),
+                    lockedRarity,
+                    onToggle,
+                  } : undefined}
                   onZoom={(url, alt) => setZoomed({ url, alt })}
                 />
               ))}
@@ -238,6 +375,11 @@ export function PlantsGridModal({
             onClick={(e) => e.stopPropagation()}
           />
         </div>
+      )}
+
+      {/* Animação de reciclagem (raios + plantas convergindo → semente) */}
+      {recycling && (
+        <RecycleLoader plantIds={recycling} seedRarity={resultRarity} onDone={onRecycleDone} />
       )}
     </>
   );

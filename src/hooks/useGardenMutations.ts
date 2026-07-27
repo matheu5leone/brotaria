@@ -47,6 +47,17 @@ async function deletePlant(plantId: string, potId: string) {
   return data;
 }
 
+async function recyclePlantsReq(plantIds: string[]) {
+  const res = await authFetch('/api/plants/recycle', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ plantIds }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw Object.assign(new Error(data.error ?? 'Erro ao reciclar'), { code: data.code });
+  return data as { ok: true; seedRarity: string };
+}
+
 // ── hooks ─────────────────────────────────────────────────────────────────
 
 export function useDigMutation(userId: string) {
@@ -68,6 +79,18 @@ export function usePlantMutation(userId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['garden', 'pots', userId] });
       qc.invalidateQueries({ queryKey: ['wallet', userId] });
+      qc.invalidateQueries({ queryKey: ['inventory', userId] });
+    },
+  });
+}
+
+/** Recicla 3 plantas da mesma raridade em 1 semente do tier acima. */
+export function useRecyclePlants(userId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (plantIds: string[]) => recyclePlantsReq(plantIds),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['garden', 'pots', userId] });
       qc.invalidateQueries({ queryKey: ['inventory', userId] });
     },
   });
