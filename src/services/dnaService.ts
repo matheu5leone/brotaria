@@ -1,4 +1,5 @@
 import { PlantDNA, Biome, Rarity, DNAForm, TraitInstance, TraitDef, TraitParamSpec } from '../types';
+import { rarityRank } from '../config/rarity';
 import {
   randomColor,
   LEAF_STYLES,
@@ -120,10 +121,17 @@ function rollInitialTraits(): TraitInstance[] {
   return chosen.map(instantiateTrait);
 }
 
-export function generateRandomDNA(): PlantDNA {
+/**
+ * Gera um DNA aleatório. `minRarity` (semente reciclada) atua como PISO: rola a
+ * tabela normal e eleva ao piso se cair abaixo — as chances de raridades acima do
+ * piso permanecem exatamente as mesmas.
+ */
+export function generateRandomDNA(minRarity?: Rarity): PlantDNA {
+  let rarity = calculateRarity();
+  if (minRarity && rarityRank(rarity) < rarityRank(minRarity)) rarity = minRarity;
   return {
     biome: pick(BIOMES),
-    rarity: calculateRarity(),
+    rarity,
     personality: pick(PERSONALITIES),
     color: randomColor(),
     form: randomForm(),
