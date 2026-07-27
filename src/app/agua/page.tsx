@@ -201,7 +201,11 @@ export default function AguaPage() {
             className="painel-btn"
             icon={upgradesOpen
               ? <ArrowLeft style={{ width: '1em', height: '1em' }} />
-              : <Droplets style={{ width: '1em', height: '1em' }} />}
+              : (
+                <span className="relative inline-block" style={{ width: '1.14em', height: '1.45em' }}>
+                  <Image src="/imgs/water-upgrades.webp" alt="Melhorias" fill className="object-contain" draggable={false} />
+                </span>
+              )}
             label={upgradesOpen ? 'Poço' : 'Melhorias'}
             onClick={(e) => { e.stopPropagation(); setUpgradesOpen((v) => !v); }}
             title={upgradesOpen ? 'Voltar ao poço' : 'Melhorias do poço'}
