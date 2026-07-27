@@ -130,5 +130,7 @@ export interface InventoryItem {
   plant_id: string | null;
   quantity: number;
   label: string | null;
+  /** Só em sementes recicladas: raridade garantida (null = semente genérica). */
+  rarity: Rarity | null;
   created_at: string;
 }

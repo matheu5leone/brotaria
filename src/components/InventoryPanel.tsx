@@ -227,15 +227,31 @@ function SlotContent({
   if (!item) return <div className="w-full h-full border-2 border-dashed rounded-xl" style={{ borderColor: 'rgba(92,58,30,0.3)' }} />;
 
   if (item.item_type === 'seed') {
+    const seedRarity = item.rarity as Rarity | null;
     return (
       <div
-        className="flex flex-col items-center justify-center gap-0.5 w-full h-full bg-green-200/50 border border-green-600/40 rounded-xl cursor-grab active:cursor-grabbing"
-        style={{ touchAction: 'none' }}
+        className="flex flex-col items-center justify-center gap-0.5 w-full h-full rounded-xl cursor-grab active:cursor-grabbing"
+        style={{
+          touchAction: 'none',
+          // Semente reciclada: moldura tingida pela raridade; genérica = verde padrão.
+          background: seedRarity ? 'rgba(92,58,30,0.10)' : 'rgba(187,247,208,0.5)',
+          border: `1px solid ${seedRarity ? `var(--rarity-${seedRarity})` : 'rgba(22,163,74,0.4)'}`,
+        }}
         onPointerDown={(e) => { e.stopPropagation(); onSeedDragStart?.(e); }}
-        title="Arraste até um canteiro vazio para plantar"
+        title={seedRarity ? `Semente ${seedRarity} — arraste até um canteiro vazio para plantar` : 'Arraste até um canteiro vazio para plantar'}
       >
-        <Image src="/imgs/seed.webp" alt="semente" width={24} height={24} className="object-contain pointer-events-none" draggable={false} />
-        <span className="text-green-800 text-[9px] font-bold pointer-events-none">×{item.quantity}</span>
+        {seedRarity ? (
+          <div className="relative pointer-events-none" style={{ width: 30, height: 30 }}>
+            <RarityEffect rarity={seedRarity} alwaysVisible>
+              <div className="relative w-full h-full">
+                <Image src="/imgs/seed.webp" alt="semente" fill className="object-contain" draggable={false} />
+              </div>
+            </RarityEffect>
+          </div>
+        ) : (
+          <Image src="/imgs/seed.webp" alt="semente" width={24} height={24} className="object-contain pointer-events-none" draggable={false} />
+        )}
+        <span className="text-[9px] font-bold pointer-events-none" style={{ color: seedRarity ? 'var(--color-text-dark)' : '#166534' }}>×{item.quantity}</span>
       </div>
     );
   }
