@@ -276,6 +276,12 @@ export function rollWatersForOrder(order: number): number | null {
   return randInt(min, max);
 }
 
+/** Regas por ciclo de colheita da ADULTA (auge) — mesma faixa do tier jovem. */
+export function rollAdultHarvestWaters(): number {
+  const [min, max] = THIRST.WATERS_BY_TIER.jovem;
+  return randInt(min, max);
+}
+
 /** Sorteia a sede completa da planta (chamado no plantio). */
 export function rollSede(): { periodMs: number; waters: Record<number, number> } {
   // granularidade de minuto → não é sempre hora cheia

@@ -1,9 +1,10 @@
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { mutateDNA } from '@/services/dnaService';
 import { generatePlantEvolution } from './aiService';
-import { WATER_COOLDOWN_MS, ADULT_NO_WATER_AT } from '@/config/economy';
+import { WATER_COOLDOWN_MS, ADULT_NO_WATER_AT, rollAdultHarvestWaters } from '@/config/economy';
 import { calcPlantScore } from '@/lib/scoring';
 import { qualifyReferralIfPending } from '@/services/referralService';
+import type { PlantDNA } from '@/types';
 
 const MODO_IA = process.env.AI_MODE || 'MOCK';
 
@@ -32,9 +33,10 @@ export async function waterPlant(plantId: string, userId: string) {
 
   if (fetchError || !plant) throw new Error('Plant not found');
 
-  // Adulta (order ≥ 11) é TERMINAL: não se rega mais.
-  if (plant.current_stage.order_index >= 11) {
-    const err = new Error('Esta planta já é adulta e não precisa mais de água.') as Error & { code: string };
+  // Auge: adulta que já colheu 3x (atingiu o AUGE) é terminal. Antes disso, a
+  // adulta se rega normalmente (ciclo de colheita).
+  if (plant.current_stage.order_index >= 11 && (plant.adult_harvest ?? 0) >= 3) {
+    const err = new Error('Esta planta já atingiu o auge.') as Error & { code: string };
     err.code = 'IS_ADULT';
     throw err;
   }
@@ -94,10 +96,14 @@ export async function waterPlant(plantId: string, userId: string) {
 
   if (newWatersCount >= target) {
     try {
+      // Adulta: completar a barra é uma COLHEITA (não avança estágio).
+      if (plant.current_stage.order_index >= 11) {
+        return await harvestAdult(plant, userId, newBalance);
+      }
       return await evolvePlant(plantId);
     } catch (err) {
-      // Evolução falhou (ex.: IA fora do ar) — devolve a água para o usuário
-      // tentar de novo sem ser penalizado.
+      // Falhou (IA fora do ar, inventário cheio…) — devolve a água para o
+      // usuário tentar de novo sem ser penalizado.
       await refundWater();
       throw err;
     }
@@ -177,13 +183,16 @@ export async function evolvePlant(plantId: string) {
     }
   }
 
-  // Sede do PRÓXIMO sub-passo (plano protegido em plant_sede). Adulta (order ≥ 11)
-  // é TERMINAL: current_target 0 + sentinela distante (nunca mais pede água).
+  // Sede do PRÓXIMO sub-passo. Ao ATINGIR a adulta (order ≥ 11), inicia o 1º
+  // ciclo de colheita (barra de rega, adult_harvest=0) em vez de virar terminal.
   const isAdultNext = nextStage.order_index >= 11;
   const periodMs = plant.water_period_ms ?? WATER_COOLDOWN_MS;
-  let nextTarget = 0;
-  let nextWaterAt = ADULT_NO_WATER_AT;
-  if (!isAdultNext) {
+  let nextTarget: number;
+  let nextWaterAt: string;
+  if (isAdultNext) {
+    nextTarget = rollAdultHarvestWaters();
+    nextWaterAt = new Date(Date.now() + periodMs).toISOString();
+  } else {
     const { data: sede } = await supabaseAdmin
       .from('plant_sede').select('waters').eq('plant_id', plantId).maybeSingle();
     const w = (sede?.waters ?? {}) as Record<string, number>;
@@ -224,4 +233,76 @@ export async function evolvePlant(plantId: string) {
   }
 
   return { success: true, evolved: true, nextStage: nextStage.code, stageName: nextStage.name, herbo: herboReward };
+}
+
+/**
+ * Colheita da ADULTA (auge). Completar a barra na adulta NÃO avança estágio: em
+ * vez disso concede a recompensa da vez (1ª +10% herbo, 2ª semente-bioma, 3ª
+ * estrela) e reprograma o próximo ciclo — ou encerra no auge (3ª). Atômico via
+ * RPC harvest_adult_tx; erros (ex.: INVENTORY_FULL) sobem para o waterPlant
+ * devolver a água.
+ */
+type HarvestPlant = {
+  id: string;
+  dna: PlantDNA;
+  adult_harvest: number | null;
+  water_period_ms: number | null;
+  current_stage: { order_index: number };
+};
+
+async function harvestAdult(plant: HarvestPlant, userId: string, waterBalance: number) {
+  const newHarvest = (plant.adult_harvest ?? 0) + 1;
+  const periodMs = plant.water_period_ms ?? WATER_COOLDOWN_MS;
+
+  let herboGained = 0;
+  let seedBiome: string | null = null;
+  let star = false;
+  let rewardType: 'herbo' | 'seed' | 'star';
+
+  if (newHarvest === 1) {
+    herboGained = Math.round(calcPlantScore(plant.dna, plant.current_stage.order_index) * 0.1);
+    rewardType = 'herbo';
+  } else if (newHarvest === 2) {
+    seedBiome = plant.dna.biome as string;
+    rewardType = 'seed';
+  } else {
+    star = true;
+    rewardType = 'star';
+  }
+
+  const peaked = newHarvest >= 3;
+  const nextTarget = peaked ? 0 : rollAdultHarvestWaters();
+  const nextWaterAt = peaked ? ADULT_NO_WATER_AT : new Date(Date.now() + periodMs).toISOString();
+
+  const { error } = await supabaseAdmin.rpc('harvest_adult_tx', {
+    p_plant_id: plant.id,
+    p_user_id: userId,
+    p_next_target: nextTarget,
+    p_next_water: nextWaterAt,
+    p_herbo: herboGained,
+    p_seed_biome: seedBiome,
+    p_star: star,
+  });
+
+  if (error) {
+    const full = (error.message || '').includes('INVENTORY_FULL');
+    throw Object.assign(new Error(full ? 'Inventário cheio.' : 'Falha na colheita.'), {
+      code: full ? 'INVENTORY_FULL' : undefined,
+    });
+  }
+
+  console.log(`[Growth] Plant ${plant.id} harvested (adulta #${newHarvest}, ${rewardType}${peaked ? ', AUGE' : ''})`);
+
+  return {
+    success: true,
+    evolved: false,
+    harvested: true,
+    harvest: newHarvest,
+    rewardType,
+    herbo: herboGained,
+    seedBiome,
+    star,
+    peaked,
+    waterBalance,
+  };
 }

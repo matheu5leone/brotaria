@@ -3,19 +3,21 @@ import { generateRandomDNA } from './dnaService';
 import { rollSede } from '@/config/economy';
 import { recordPendingReferral } from './referralService';
 import { grantDefaultAvatar } from './avatarService';
-import type { Rarity } from '@/types';
+import type { Rarity, Biome } from '@/types';
 
 // ── Helpers de slot ────────────────────────────────────────────────────────
 
 /**
- * Primeiro slot com espaço para empilhar (quantity < 10) do MESMO item_type E
- * raridade, ou null. `rarity = null` = stack genérico (não mistura com os de
- * raridade). Sementes recicladas empilham só com a mesma raridade.
+ * Primeiro slot com espaço para empilhar (quantity < 10) do MESMO item_type,
+ * raridade E bioma, ou null. Stacks são separados por (item_type, rarity, biome):
+ * genérica (rarity/biome null), semente reciclada (rarity) e semente-bioma (biome)
+ * nunca se misturam.
  */
 async function findStackableSlot(
   userId: string,
   itemType: 'seed' | 'wrapping_kit',
   rarity: Rarity | null = null,
+  biome: Biome | null = null,
 ) {
   let q = supabaseAdmin
     .from('inventory_items')
@@ -24,6 +26,7 @@ async function findStackableSlot(
     .eq('item_type', itemType)
     .lt('quantity', 10);
   q = rarity == null ? q.is('rarity', null) : q.eq('rarity', rarity);
+  q = biome == null ? q.is('biome', null) : q.eq('biome', biome);
   const { data } = await q.order('slot_index', { ascending: true }).limit(1).maybeSingle();
   return data ?? null;
 }
@@ -49,9 +52,10 @@ export async function addStackableItem(
   userId: string,
   itemType: 'seed' | 'wrapping_kit',
   rarity: Rarity | null = null,
+  biome: Biome | null = null,
   retried = false,
 ): Promise<void> {
-  const stackable = await findStackableSlot(userId, itemType, rarity);
+  const stackable = await findStackableSlot(userId, itemType, rarity, biome);
   if (stackable) {
     const { error } = await supabaseAdmin
       .from('inventory_items')
@@ -69,12 +73,13 @@ export async function addStackableItem(
     slot_index: slot,
     item_type: itemType,
     rarity,
+    biome,
     quantity: 1,
   });
   if (error) {
     // Unique constraint violation (concurrent request took the slot) — retry once
     if (!retried && (error as { code?: string }).code === '23505') {
-      return addStackableItem(userId, itemType, rarity, true);
+      return addStackableItem(userId, itemType, rarity, biome, true);
     }
     throw error;
   }
@@ -162,10 +167,15 @@ export async function initializeUser(
 
 // ── Plantar ────────────────────────────────────────────────────────────────
 
-export async function plantSeed(userId: string, potId: string, seedRarity: Rarity | null = null) {
-  console.log(`[Inventory] User ${userId} planting ${seedRarity ?? 'generic'} seed in pot ${potId}`);
+export async function plantSeed(
+  userId: string,
+  potId: string,
+  seedRarity: Rarity | null = null,
+  seedBiome: Biome | null = null,
+) {
+  console.log(`[Inventory] User ${userId} planting seed (rarity=${seedRarity ?? '-'}, biome=${seedBiome ?? '-'}) in pot ${potId}`);
 
-  // 1. Verifica se tem semente da raridade pedida (null = genérica) no inventário
+  // 1. Verifica se tem semente do stack pedido (rarity+biome; null/null = genérica)
   let seedQuery = supabaseAdmin
     .from('inventory_items')
     .select('id, quantity')
@@ -173,6 +183,7 @@ export async function plantSeed(userId: string, potId: string, seedRarity: Rarit
     .eq('item_type', 'seed')
     .gt('quantity', 0);
   seedQuery = seedRarity == null ? seedQuery.is('rarity', null) : seedQuery.eq('rarity', seedRarity);
+  seedQuery = seedBiome == null ? seedQuery.is('biome', null) : seedQuery.eq('biome', seedBiome);
   const { data: seedSlot, error: seedFetchError } = await seedQuery.limit(1).maybeSingle();
 
   if (seedFetchError || !seedSlot) {
@@ -192,8 +203,8 @@ export async function plantSeed(userId: string, potId: string, seedRarity: Rarit
   if (potFetchError || !pot) throw new Error('Pot not found');
   if (pot.plant_id) throw new Error('Pot is already occupied');
 
-  // 3. Gera DNA (semente reciclada aplica piso de raridade)
-  const dna = generateRandomDNA(seedRarity ?? undefined);
+  // 3. Gera DNA (semente reciclada = piso de raridade; semente-bioma = bioma travado)
+  const dna = generateRandomDNA(seedRarity ?? undefined, seedBiome ?? undefined);
 
   // 4. Busca estágio inicial
   const { data: stage } = await supabaseAdmin

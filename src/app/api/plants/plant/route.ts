@@ -2,14 +2,16 @@ import { NextResponse } from 'next/server';
 import { plantSeed } from '@/services/inventoryService';
 import { getAuthUser } from '@/lib/getAuthUser';
 import { RARITY_ORDER } from '@/config/rarity';
-import type { Rarity } from '@/types';
+import type { Rarity, Biome } from '@/types';
+
+const BIOMES: string[] = ['planicie', 'floresta', 'deserto', 'montanha', 'pantano', 'oceano', 'vulcao', 'tundra', 'selva', 'caverna'];
 
 export async function POST(request: Request) {
   try {
     const user = await getAuthUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { potId, seedRarity } = await request.json();
+    const { potId, seedRarity, seedBiome } = await request.json();
     const userId = user.id;
 
     if (!potId) {
@@ -20,8 +22,10 @@ export async function POST(request: Request) {
       typeof seedRarity === 'string' && (RARITY_ORDER as string[]).includes(seedRarity)
         ? (seedRarity as Rarity)
         : null;
+    const biome: Biome | null =
+      typeof seedBiome === 'string' && BIOMES.includes(seedBiome) ? (seedBiome as Biome) : null;
 
-    const plant = await plantSeed(userId, potId, rarity);
+    const plant = await plantSeed(userId, potId, rarity, biome);
 
     return NextResponse.json({ success: true, plant });
   } catch (error: unknown) {

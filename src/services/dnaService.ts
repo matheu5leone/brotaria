@@ -122,15 +122,16 @@ function rollInitialTraits(): TraitInstance[] {
 }
 
 /**
- * Gera um DNA aleatório. `minRarity` (semente reciclada) atua como PISO: rola a
- * tabela normal e eleva ao piso se cair abaixo — as chances de raridades acima do
- * piso permanecem exatamente as mesmas.
+ * Gera um DNA aleatório.
+ * - `minRarity` (semente reciclada) atua como PISO de raridade: rola a tabela
+ *   normal e eleva ao piso se cair abaixo (chances acima do piso inalteradas).
+ * - `biome` (semente-bioma da colheita adulta) TRAVA o bioma; sem raridade.
  */
-export function generateRandomDNA(minRarity?: Rarity): PlantDNA {
+export function generateRandomDNA(minRarity?: Rarity, biome?: Biome): PlantDNA {
   let rarity = calculateRarity();
   if (minRarity && rarityRank(rarity) < rarityRank(minRarity)) rarity = minRarity;
   return {
-    biome: pick(BIOMES),
+    biome: biome ?? pick(BIOMES),
     rarity,
     personality: pick(PERSONALITIES),
     color: randomColor(),
