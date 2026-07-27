@@ -106,6 +106,9 @@ export function useWaterMutation(userId: string) {
       qc.invalidateQueries({ queryKey: ['plant', plantId, 'history'] });
       qc.invalidateQueries({ queryKey: ['garden', 'watering', userId] });
       qc.invalidateQueries({ queryKey: ['garden', 'pots', userId] });
+      // Colheita da adulta pode dar herbo/semente — atualiza carteira e inventário.
+      qc.invalidateQueries({ queryKey: ['wallet', userId] });
+      qc.invalidateQueries({ queryKey: ['inventory', userId] });
     },
   });
 }

@@ -101,7 +101,10 @@ function VersionCard({
     ? getLifecycle(plant.current_stage.order_index, plant.current_stage_waters, plant.current_target).progressPct
     : 100;
   const canWater = isLast && plant.hydration_status === 'waiting_water';
-  const isFinal = plant.current_stage.order_index >= 11;
+  // Adulta só é "final" (auge) depois das 3 colheitas; antes disso ainda se rega.
+  const isAdult = plant.current_stage.order_index >= 11;
+  const adultHarvest = plant.adult_harvest ?? 0;
+  const isFinal = isAdult && adultHarvest >= 3;
 
   return (
     <div className="flex gap-4 h-full items-stretch">
@@ -180,7 +183,19 @@ function VersionCard({
               className="mt-2 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-black"
               style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)', color: '#2a7a2a', fontFamily: 'var(--font-display)' }}
             >
-              Complete a barra e ganhe <HerboIcon size={12} /> +{calcPlantScore(plant.dna, plant.current_stage.order_index + 1)}
+              {isAdult ? (
+                // Colheita da adulta: recompensa por ciclo.
+                adultHarvest === 0 ? (
+                  <>Complete a barra e ganhe <HerboIcon size={12} /> +{Math.round(calcPlantScore(plant.dna, plant.current_stage.order_index) * 0.1)}</>
+                ) : adultHarvest === 1 ? (
+                  <>Complete a barra e ganhe 🌱 semente de {BIOME_LABEL[biome] ?? biome}</>
+                ) : (
+                  <>Complete a barra e alcance o auge ⭐</>
+                )
+              ) : (
+                // Crescimento normal: herbo da próxima evolução.
+                <>Complete a barra e ganhe <HerboIcon size={12} /> +{calcPlantScore(plant.dna, plant.current_stage.order_index + 1)}</>
+              )}
             </div>
           )}
           {isLast && (
@@ -237,6 +252,17 @@ function VersionCard({
               className="object-contain p-2"
             />
           </RarityEffect>
+
+          {/* Estrela do AUGE — planta que completou as 3 colheitas da adulta */}
+          {isLast && isFinal && (
+            <div
+              className="absolute top-1.5 right-1.5 z-10 w-7 h-7 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(8,14,5,0.6)', border: '1.5px solid var(--color-gold)', backdropFilter: 'blur(2px)' }}
+              title="No auge da vida"
+            >
+              <Star className="w-4 h-4" style={{ color: 'var(--color-gold)', fill: 'var(--color-gold)' }} />
+            </div>
+          )}
         </div>
         <div
           className="mt-2 text-center text-[10px] font-bold leading-tight"

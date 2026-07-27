@@ -15,6 +15,8 @@ export type PlantRow = {
   created_at: string;
   next_water_needed_at: string;
   satisfacao: number;
+  /** Colheitas completadas na adulta (0–3). 3 = auge (terminal). */
+  adult_harvest: number;
 };
 
 export type PlantVersionRow = {

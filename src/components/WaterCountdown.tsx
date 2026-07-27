@@ -39,12 +39,12 @@ export function WaterCountdown({
   if (isFinal) {
     return (
       <div className="flex flex-col items-center gap-1 py-1">
-        <div className="text-3xl">🌳</div>
-        <span className="text-xs font-black" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-wood-mid)' }}>
-          Planta adulta
+        <div className="text-3xl">⭐</div>
+        <span className="text-xs font-black" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-gold)' }}>
+          No auge!
         </span>
         <span className="text-[10px]" style={{ fontFamily: 'var(--font-caption)', fontStyle: 'italic', color: 'var(--color-text-muted)' }}>
-          Não precisa mais de água
+          Esta planta atingiu o auge da vida
         </span>
       </div>
     );
