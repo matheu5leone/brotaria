@@ -1,6 +1,6 @@
 import Image from 'next/image';
 
-const ASPECT = 479 / 1156; // largura/altura do asset já cortado (herbo.webp)
+const ASPECT = 734 / 743; // largura/altura do asset já cortado (herbo.webp)
 
 /**
  * Ícone do herbo (dupla-hélice, herbo.webp).

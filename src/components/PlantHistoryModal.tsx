@@ -196,10 +196,16 @@ function VersionCard({
           )}
         </div>
 
-        {/* Rewards */}
-        <div className="flex gap-2 mt-auto">
+        {/* Valor atual da planta (em herbo) */}
+        <div className="flex flex-col gap-1 mt-auto">
+          <span
+            className="text-[8px] font-black uppercase tracking-widest"
+            style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-muted)' }}
+          >
+            Valor
+          </span>
           <div
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold self-start"
             style={{ background: 'rgba(201,162,39,0.14)', color: 'var(--color-wood-dark)', border: '1px solid rgba(201,162,39,0.3)', fontFamily: 'var(--font-display)' }}
           >
             <HerboIcon size={11} /> {calcPlantScore(version.dna_snapshot, version.stage?.order_index ?? 0)}

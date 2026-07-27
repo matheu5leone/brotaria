@@ -103,7 +103,7 @@ export function WaterCountdown({
           <span style={{ fontSize: 18, lineHeight: 1 }}>💧</span>
           <span
             className="tabular-nums"
-            style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 19, color: 'var(--color-text-dark)', letterSpacing: '0.01em' }}
+            style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 16, lineHeight: 1.1, color: 'var(--color-text-dark)', letterSpacing: '0.01em', whiteSpace: 'nowrap' }}
           >
             {fmt(remaining)}
           </span>

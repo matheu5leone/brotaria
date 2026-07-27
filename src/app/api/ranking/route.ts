@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseServer';
-import { calcPlantScore } from '@/lib/scoring';
+import { calcRankingScore } from '@/lib/scoring';
 import { PlantDNA, Rarity } from '@/types';
 
 export async function GET() {
@@ -22,7 +22,7 @@ export async function GET() {
       .filter((p) => p.current_stage != null && p.current_stage.code !== 'enterrada')
       .map((p) => ({
         plant: p,
-        score: calcPlantScore(p.dna as unknown as PlantDNA, p.current_stage.order_index),
+        score: calcRankingScore(p.dna as unknown as PlantDNA, p.current_stage.order_index),
       }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
