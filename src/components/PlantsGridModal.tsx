@@ -45,6 +45,8 @@ function PlantCell({
   const cfg = RARITY_CONFIG[rarity] ?? RARITY_CONFIG.comum;
   const value = calcPlantScore(plant.dna, plant.current_stage.order_index);
   const stageName = lifecycleFromOrder(plant.current_stage.order_index).name;
+  // Enterrada: raridade é surpresa (só revela ao virar broto) — nada de raridade/valor/glow.
+  const isBuried = plant.current_stage.order_index <= 1;
 
   return (
     <div
@@ -54,9 +56,9 @@ function PlantCell({
         background: 'rgba(92,58,30,0.07)',
         border: '1px solid rgba(92,58,30,0.15)',
       }}
-      title={`${stageName} — ${cfg.label}`}
+      title={isBuried ? stageName : `${stageName} — ${cfg.label}`}
     >
-      {/* Imagem + glow de raridade */}
+      {/* Imagem + glow de raridade (glow só quando NÃO está enterrada) */}
       <div
         className="relative w-full rounded-xl overflow-hidden mb-2"
         style={{
@@ -65,9 +67,13 @@ function PlantCell({
           border: '1px solid rgba(92,58,30,0.25)',
         }}
       >
-        <RarityEffect rarity={rarity} alwaysVisible>
+        {isBuried ? (
           <PlantImage src={version?.image_url} alt={stageName} className="object-contain p-1.5" />
-        </RarityEffect>
+        ) : (
+          <RarityEffect rarity={rarity} alwaysVisible>
+            <PlantImage src={version?.image_url} alt={stageName} className="object-contain p-1.5" />
+          </RarityEffect>
+        )}
 
         {/* Lupa — abre a imagem grande (só quando há imagem) */}
         {version?.image_url && (
@@ -82,24 +88,39 @@ function PlantCell({
         )}
       </div>
 
-      {/* Raridade */}
-      <div className="flex items-center gap-1 mb-0.5">
-        <cfg.Icon className="w-3 h-3 flex-shrink-0" style={{ color: cfg.color }} />
-        <span
-          className="text-[9px] font-black uppercase tracking-wider truncate"
-          style={{ color: cfg.color, fontFamily: 'var(--font-display)' }}
-        >
-          {cfg.label}
-        </span>
-      </div>
+      {isBuried ? (
+        /* Enterrada — sem raridade nem valor */
+        <div className="flex items-center gap-1">
+          <Sprout className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--color-text-muted)' }} />
+          <span
+            className="text-[9px] font-black uppercase tracking-wider truncate"
+            style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-display)' }}
+          >
+            Enterrada
+          </span>
+        </div>
+      ) : (
+        <>
+          {/* Raridade */}
+          <div className="flex items-center gap-1 mb-0.5">
+            <cfg.Icon className="w-3 h-3 flex-shrink-0" style={{ color: cfg.color }} />
+            <span
+              className="text-[9px] font-black uppercase tracking-wider truncate"
+              style={{ color: cfg.color, fontFamily: 'var(--font-display)' }}
+            >
+              {cfg.label}
+            </span>
+          </div>
 
-      {/* Valor */}
-      <span
-        className="text-[11px] font-bold"
-        style={{ color: 'var(--color-wood-mid)', fontFamily: 'var(--font-display)' }}
-      >
-        <HerboIcon size={11} /> {value}
-      </span>
+          {/* Valor */}
+          <span
+            className="text-[11px] font-bold"
+            style={{ color: 'var(--color-wood-mid)', fontFamily: 'var(--font-display)' }}
+          >
+            <HerboIcon size={11} /> {value}
+          </span>
+        </>
+      )}
     </div>
   );
 }

@@ -278,12 +278,7 @@ function BuriedCard({ plant }: { plant: PlantRow }) {
           style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg, #2a7a2a, #4ade80)' }}
         />
       </div>
-      <div
-        className="mt-2 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-black"
-        style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)', color: '#2a7a2a', fontFamily: 'var(--font-display)' }}
-      >
-        Complete a barra e ganhe <HerboIcon size={13} /> +{calcPlantScore(plant.dna, plant.current_stage.order_index + 1)}
-      </div>
+      {/* Enterrada: nada de recompensa/raridade aqui — a surpresa vem no broto. */}
       <div className="mt-3 flex justify-center">
         <WaterCountdown
           nextWaterAt={plant.next_water_needed_at}

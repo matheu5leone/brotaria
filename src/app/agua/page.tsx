@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Droplets, X, ArrowLeft } from 'lucide-react';
+import { Droplets, X } from 'lucide-react';
 import Image from 'next/image';
 import { AppShell } from '@/components/AppShell';
 import { HexButton } from '@/components/HexButton';
@@ -200,7 +200,11 @@ export default function AguaPage() {
           <HexButton
             className="painel-btn"
             icon={upgradesOpen
-              ? <ArrowLeft style={{ width: '1em', height: '1em' }} />
+              ? (
+                <span className="relative inline-block" style={{ width: '1.5em', height: '1.5em', transform: 'rotate(-90deg)' }}>
+                  <Image src="/imgs/arrow.webp" alt="Voltar" fill className="object-contain" draggable={false} />
+                </span>
+              )
               : (
                 <span className="relative inline-block" style={{ width: '1.14em', height: '1.45em' }}>
                   <Image src="/imgs/water-upgrades.webp" alt="Melhorias" fill className="object-contain" draggable={false} />
