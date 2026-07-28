@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Pot, Biome } from '@/types';
-import { BIOME_LABELS } from '@/config/biomes';
+import { BIOME_LABELS, seedImage } from '@/config/biomes';
 import { X, Loader2, Trash2, Sprout } from 'lucide-react';
 
 // Ícones PNG dimensionados em `em` para escalar com o tamanho do botão (.hex-button)
@@ -228,6 +228,7 @@ export default function Garden() {
   const [seedDrag, setSeedDrag]                     = useState(false);
   const [seedDragPos, setSeedDragPos]               = useState<{ x: number; y: number } | null>(null);
   const [seedTargetPotId, setSeedTargetPotId]       = useState<string | null>(null);
+  const [seedDragImg, setSeedDragImg]               = useState<string>('/imgs/seed.webp');
   // Feedback visual rápido no canteiro: plantar (terra) / regar (gotas)
   const [plantFx, setPlantFx]                       = useState<{ potId: string; nonce: number } | null>(null);
   const [waterFx, setWaterFx]                       = useState<{ potId: string; nonce: number } | null>(null);
@@ -670,6 +671,7 @@ export default function Garden() {
     setSeedDrag(true);
     setSeedDragPos({ x: e.clientX, y: e.clientY });
     setSeedTargetPotId(null);
+    setSeedDragImg(seedImage(seed?.biome as Biome | null | undefined));
     setShovelActive(false);
 
     const isPlantable = (pot: Pot | null): pot is Pot =>
@@ -1309,7 +1311,7 @@ export default function Garden() {
           className="fixed pointer-events-none z-[9999] select-none"
           style={{ left: seedDragPos.x - 22, top: seedDragPos.y - 26, width: 44, height: 44, filter: 'drop-shadow(0 2px 6px rgba(74,222,128,0.7))' }}
         >
-          <Image src="/imgs/seed.webp" alt="semente" width={44} height={44} className="object-contain" draggable={false} />
+          <Image src={seedDragImg} alt="semente" width={44} height={44} className="object-contain" draggable={false} />
         </div>
       )}
 

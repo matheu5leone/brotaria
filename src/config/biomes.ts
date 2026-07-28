@@ -27,3 +27,29 @@ export const BIOME_COLORS: Record<Biome, string> = {
   selva: '#159e7a',
   caverna: '#6a5acd',
 };
+
+/** Imagem da semente genérica (sem bioma). */
+export const GENERIC_SEED_IMAGE = '/imgs/seed.webp';
+
+/**
+ * Imagem da semente por bioma. Cada bioma terá seu próprio sprite — por enquanto
+ * todas usam a semente genérica. Para trocar: gere `public/imgs/seed-<bioma>.webp`
+ * e aponte o bioma aqui (ex.: floresta: '/imgs/seed-floresta.webp').
+ */
+export const BIOME_SEED_IMAGES: Record<Biome, string> = {
+  planicie: GENERIC_SEED_IMAGE,
+  floresta: GENERIC_SEED_IMAGE,
+  deserto: GENERIC_SEED_IMAGE,
+  montanha: GENERIC_SEED_IMAGE,
+  pantano: GENERIC_SEED_IMAGE,
+  oceano: GENERIC_SEED_IMAGE,
+  vulcao: GENERIC_SEED_IMAGE,
+  tundra: GENERIC_SEED_IMAGE,
+  selva: GENERIC_SEED_IMAGE,
+  caverna: GENERIC_SEED_IMAGE,
+};
+
+/** Sprite da semente conforme o bioma (ou a genérica se não houver bioma). */
+export function seedImage(biome?: Biome | null): string {
+  return biome ? BIOME_SEED_IMAGES[biome] : GENERIC_SEED_IMAGE;
+}

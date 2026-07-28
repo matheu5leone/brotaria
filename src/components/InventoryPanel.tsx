@@ -9,7 +9,7 @@ import { GiftSendModal } from '@/components/GiftSendModal';
 import { usePlantVersion, usePlant } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
 import { InventoryItem, Rarity, Biome, PlantDNA } from '@/types';
-import { BIOME_LABELS } from '@/config/biomes';
+import { BIOME_LABELS, seedImage } from '@/config/biomes';
 
 /** Dados do stack de semente arrastado (define o que será plantado). */
 export type SeedDragMeta = { rarity: Rarity | null; biome: Biome | null };
@@ -268,7 +268,7 @@ function SlotContent({
             </RarityEffect>
           </div>
         ) : (
-          <Image src="/imgs/seed.webp" alt="semente" width={24} height={24} className="object-contain pointer-events-none" draggable={false} />
+          <Image src={seedImage(seedBiome)} alt="semente" width={24} height={24} className="object-contain pointer-events-none" draggable={false} />
         )}
         <span className="text-[9px] font-bold pointer-events-none" style={{ color: seedRarity || seedBiome ? 'var(--color-text-dark)' : '#166534' }}>×{item.quantity}</span>
       </div>
