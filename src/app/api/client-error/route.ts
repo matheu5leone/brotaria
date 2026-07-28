@@ -13,6 +13,32 @@ import { supabaseAdmin } from '@/lib/supabaseServer';
 const MAX = { message: 4000, stack: 8000, url: 2000, ua: 1000, userId: 100, kind: 40 };
 const clip = (v: unknown, n: number) => (typeof v === 'string' ? v.slice(0, n) : null);
 
+// Params sensíveis que NUNCA podem ser persistidos (fluxo OAuth code/PKCE, etc.).
+const SENSITIVE_PARAMS = [
+  'access_token', 'refresh_token', 'provider_token', 'provider_refresh_token',
+  'id_token', 'code', 'token', 'token_hash',
+];
+
+/**
+ * Sanitiza a URL antes de gravar: o callback OAuth implícito do Supabase devolve
+ * access_token/refresh_token/provider_token no FRAGMENTO (#...), que jamais pode
+ * ir pro banco. Corta o fragmento inteiro e remove query params sensíveis.
+ * Ver memória `oauth-callback-hash` para o formato do hash (debugging futuro).
+ */
+function sanitizeUrl(raw: unknown): string | null {
+  if (typeof raw !== 'string' || !raw) return null;
+  let out = raw.split('#')[0]; // fragmento = onde vivem os tokens do fluxo implícito
+  const q = out.indexOf('?');
+  if (q >= 0) {
+    const base = out.slice(0, q);
+    const params = new URLSearchParams(out.slice(q + 1));
+    for (const p of SENSITIVE_PARAMS) params.delete(p);
+    const rest = params.toString();
+    out = rest ? `${base}?${rest}` : base;
+  }
+  return out;
+}
+
 function browserOf(ua: string): string {
   const s = ua.toLowerCase();
   if (s.includes('firefox') || s.includes('fxios')) return 'firefox';
@@ -39,7 +65,7 @@ export async function POST(request: Request) {
       kind: clip(body.kind, MAX.kind),
       message: clip(body.message, MAX.message),
       stack: clip(body.stack, MAX.stack),
-      url: clip(body.url, MAX.url),
+      url: clip(sanitizeUrl(body.url), MAX.url),
       user_agent: ua.slice(0, MAX.ua),
       browser: browserOf(ua),
       app_version: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
