@@ -47,10 +47,8 @@ export const metadata: Metadata = {
     template: "%s",
   },
   description: "Cultive plantas únicas geradas por IA",
-  icons: {
-    icon: "/imgs/brotaria.png",
-    apple: "/imgs/brotaria.png",
-  },
+  // Ícones vêm por convenção de arquivo em app/: favicon.ico (16/32/48),
+  // icon.png (256) e apple-icon.png (180) — todos gerados de brotaria.png.
   openGraph: {
     title: "Brotaria - Seu Jardim Virtual",
     description: "Cultive plantas únicas geradas por IA",
