@@ -166,6 +166,9 @@ async function generateVisualDescription(dna: PlantDNA, stageCode: string, model
   try {
     // Timeout: sem ele, um provedor travado prende o usuário na tela de
     // evolução indefinidamente (a rega falha e pode ser tentada de novo).
+    // 15s: LLM (gemini-flash) responde em ~1-2s; o orçamento total da rota
+    // precisa ficar < 100s (limite de request da Cloudflare free), senão o
+    // safety-net do app nunca dispara e a Cloudflare corta com 524. Ver AI_TIMEOUTS.
     response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -175,11 +178,11 @@ async function generateVisualDescription(dna: PlantDNA, stageCode: string, model
         'X-Title': 'Brotaria'
       },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(60_000)
+      signal: AbortSignal.timeout(15_000)
     });
   } catch (err) {
     const msg = err instanceof Error && err.name === 'TimeoutError'
-      ? 'OpenRouter LLM timeout (60s)'
+      ? 'OpenRouter LLM timeout (15s)'
       : `OpenRouter LLM network error: ${err instanceof Error ? err.message : String(err)}`;
     logAIRequest('LLM', model, payload, '', 0, Date.now() - startedAt, msg);
     throw new Error(msg);
@@ -354,8 +357,11 @@ async function generatePlantImage(description: string, model: string = IMAGE_OPT
   const startedAt = Date.now();
   let response: Response;
   try {
-    // Geração de imagem é mais lenta que LLM — timeout maior (120s), ainda
-    // bem abaixo do limite da function, para o cliente receber erro tratável.
+    // Geração de imagem é mais lenta que o LLM (normal ~8-10s). Timeout 55s:
+    // teto de segurança que mantém o orçamento TOTAL da rota (< LLM 15s +
+    // imagem 55s + download/bg/upload ~15s ≈ 85s) ABAIXO dos 100s da Cloudflare
+    // free. Se passar disso, o app aborta e reembolsa a água ANTES da Cloudflare
+    // cortar com 524 (que mataria a function sem rodar o refund). Ver AI_TIMEOUTS.
     response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -365,11 +371,11 @@ async function generatePlantImage(description: string, model: string = IMAGE_OPT
         'X-Title': 'Brotaria'
       },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(120_000)
+      signal: AbortSignal.timeout(55_000)
     });
   } catch (err) {
     const msg = err instanceof Error && err.name === 'TimeoutError'
-      ? 'OpenRouter IMAGE timeout (120s)'
+      ? 'OpenRouter IMAGE timeout (55s)'
       : `OpenRouter IMAGE network error: ${err instanceof Error ? err.message : String(err)}`;
     logAIRequest('IMAGE', model, payload, '', 0, Date.now() - startedAt, msg);
     throw new Error(msg);

@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server';
 import { waterPlant } from '@/services/growthService';
 import { getAuthUser } from '@/lib/getAuthUser';
 
+// Rega pode disparar evolução com IA (LLM + geração de imagem). maxDuration=90s
+// dá folga pros timeouts internos do aiService (LLM 15s + imagem 55s + processamento)
+// dispararem o erro tratável + refundWater ANTES do limite de 100s da Cloudflare
+// free (524), que cancelaria a function sem reembolsar a água. Ver AI_TIMEOUTS.
+export const maxDuration = 90;
+
 export async function POST(request: Request) {
   try {
     const user = await getAuthUser(request);
