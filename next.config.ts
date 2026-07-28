@@ -42,6 +42,20 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      // Domínio canônico: qualquer acesso pelo host antigo (*.vercel.app) é
+      // redirecionado 308 para brotaria.online, preservando o caminho.
+      // Só dispara quando Host === brotaria.vercel.app; brotaria.online passa
+      // pela Cloudflare e nunca casa aqui, então não há loop.
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'brotaria.vercel.app' }],
+        destination: 'https://brotaria.online/:path*',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
