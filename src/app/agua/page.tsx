@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { AppShell } from '@/components/AppShell';
 import { HexButton } from '@/components/HexButton';
 import { UpgradeCanvas } from '@/components/upgrades/UpgradeCanvas';
+import { PabloScene } from '@/components/agua/PabloScene';
 import { WaterOverflowFx, type OverflowBurst } from '@/components/WaterOverflowFx';
 import { GAME } from '@/config/economy';
 import { useWaterStatus, useCollectWater } from '@/hooks/useWater';
@@ -127,6 +128,11 @@ export default function AguaPage() {
           >
             Toque no poço para coletar
           </p>
+        </div>
+
+        {/* Pablo — gnomo de coleta passiva (canto superior-esquerdo, abaixo do título) */}
+        <div className="absolute z-10" style={{ top: '84px', left: '8px' }}>
+          <PabloScene />
         </div>
 
         {/* Saldo — canto superior direito (pop a cada mudança) */}
