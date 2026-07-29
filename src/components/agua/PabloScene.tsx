@@ -19,14 +19,15 @@ const SPRITE = {
   nervoso: '/imgs/pablo/pablo-dialogo-nervoso.webp',
 } as const;
 
-// Partículas mágicas que sobem do chapéu (posição horizontal + atraso escalonado).
+// Partículas mágicas que sobem do chapéu (lado esquerdo do asset, onde fica o
+// chapéu — a metade direita é a pedra). posição horizontal + atraso escalonado.
 const SPARKS = [
-  { left: '18%', delay: '0s' },
-  { left: '33%', delay: '0.6s' },
-  { left: '48%', delay: '1.2s' },
-  { left: '62%', delay: '0.3s' },
-  { left: '77%', delay: '0.9s' },
-  { left: '42%', delay: '1.7s' },
+  { left: '14%', delay: '0s' },
+  { left: '24%', delay: '0.6s' },
+  { left: '34%', delay: '1.2s' },
+  { left: '44%', delay: '0.3s' },
+  { left: '20%', delay: '0.9s' },
+  { left: '30%', delay: '1.7s' },
 ] as const;
 
 function fmtCd(ms: number): string {
@@ -147,7 +148,7 @@ export function PabloScene() {
         style={{ background: 'transparent', cursor: 'pointer' }}
       >
         {st.state === 'locked' ? (
-          <span className="relative group block" style={{ width: 'min(30vmin, 132px)', aspectRatio: '250 / 219' }}>
+          <span className="relative group block" style={{ width: 'min(26vmin, 100px)', aspectRatio: '614 / 406' }}>
             {/* Partículas mágicas amarelas subindo do chapéu */}
             <span className="pointer-events-none absolute inset-0 z-10">
               {SPARKS.map((s, i) => (
