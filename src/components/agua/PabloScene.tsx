@@ -139,7 +139,7 @@ export function PabloScene() {
         {st.state === 'locked' ? (
           <span className="relative group block" style={{ width: 'min(26vmin, 100px)', aspectRatio: '614 / 406' }}>
             {/* Chapéu jogado sobre a pedra (objeto do mapa) com glow mágico dourado */}
-            <Image src={SPRITE.chapeuJogado} alt="Chapéu do Pablo jogado no chão" fill className="object-contain pablo-glow" draggable={false} />
+            <Image src={SPRITE.chapeuJogado} alt="Chapéu do Pablo jogado no chão" fill sizes="100px" unoptimized className="object-contain pablo-glow" draggable={false} />
             {/* Tooltip no hover (desktop) — custo em estrela */}
             <span
               className="absolute z-20 right-0 bottom-full mb-1 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity"

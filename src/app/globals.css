@@ -410,8 +410,8 @@ html, body {
 
 /* Glow mágico dourado pulsando no chapéu do Pablo (locked). */
 @keyframes pablo-glow {
-  0%, 100% { filter: drop-shadow(0 0 3px rgba(255, 224, 128, 0.5))  drop-shadow(0 0 6px rgba(245, 166, 35, 0.35)); }
-  50%      { filter: drop-shadow(0 0 9px rgba(255, 224, 128, 0.95)) drop-shadow(0 0 18px rgba(245, 166, 35, 0.7)); }
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(255, 224, 128, 0.25)) drop-shadow(0 0 3px rgba(245, 166, 35, 0.18)); }
+  50%      { filter: drop-shadow(0 0 5px rgba(255, 224, 128, 0.48)) drop-shadow(0 0 9px rgba(245, 166, 35, 0.35)); }
 }
 .pablo-glow { animation: pablo-glow 2.4s ease-in-out infinite; will-change: filter; }
 .group:hover .pablo-glow { animation-duration: 1.2s; }
