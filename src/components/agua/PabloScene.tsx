@@ -19,17 +19,6 @@ const SPRITE = {
   nervoso: '/imgs/pablo/pablo-dialogo-nervoso.webp',
 } as const;
 
-// Partículas mágicas que sobem do chapéu (lado esquerdo do asset, onde fica o
-// chapéu — a metade direita é a pedra). posição horizontal + atraso escalonado.
-const SPARKS = [
-  { left: '14%', delay: '0s' },
-  { left: '24%', delay: '0.6s' },
-  { left: '34%', delay: '1.2s' },
-  { left: '44%', delay: '0.3s' },
-  { left: '20%', delay: '0.9s' },
-  { left: '30%', delay: '1.7s' },
-] as const;
-
 function fmtCd(ms: number): string {
   const totalMin = Math.ceil(ms / 60000);
   const h = Math.floor(totalMin / 60);
@@ -149,14 +138,8 @@ export function PabloScene() {
       >
         {st.state === 'locked' ? (
           <span className="relative group block" style={{ width: 'min(26vmin, 100px)', aspectRatio: '614 / 406' }}>
-            {/* Partículas mágicas amarelas subindo do chapéu */}
-            <span className="pointer-events-none absolute inset-0 z-10">
-              {SPARKS.map((s, i) => (
-                <span key={i} className="pablo-spark" style={{ left: s.left, animationDelay: s.delay }} />
-              ))}
-            </span>
-            {/* Chapéu jogado no chão (objeto do mapa) */}
-            <Image src={SPRITE.chapeuJogado} alt="Chapéu do Pablo jogado no chão" fill className="object-contain" draggable={false} />
+            {/* Chapéu jogado sobre a pedra (objeto do mapa) com glow mágico dourado */}
+            <Image src={SPRITE.chapeuJogado} alt="Chapéu do Pablo jogado no chão" fill className="object-contain pablo-glow" draggable={false} />
             {/* Tooltip no hover (desktop) — custo em estrela */}
             <span
               className="absolute z-20 right-0 bottom-full mb-1 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity"
