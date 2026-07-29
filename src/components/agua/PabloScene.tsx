@@ -7,7 +7,12 @@ import {
   useGnomeUnlock,
   useGnomeWake,
   useGnomeCollect,
+  useGnomeDevReset,
 } from '@/hooks/useGnome';
+import { useAuth } from '@/hooks/useAuth';
+
+// TEMPORÁRIO (dev): id da `lele` p/ mostrar o botão de estorno da cutscene. REMOVER depois.
+const LELE_ID = '1d2695fc-4787-4917-a6ca-9392e5869165';
 
 const SPRITE = {
   chapeu: '/imgs/pablo/chapeu-pablo.webp',
@@ -43,6 +48,8 @@ export function PabloScene() {
   const unlock = useGnomeUnlock();
   const wake = useGnomeWake();
   const collect = useGnomeCollect();
+  const devReset = useGnomeDevReset();
+  const { user } = useAuth();
 
   const [balloon, setBalloon] = useState<Balloon | null>(null);
   const [confirmUnlock, setConfirmUnlock] = useState(false);
@@ -236,6 +243,18 @@ export function PabloScene() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* TEMPORÁRIO (dev) — botão de estorno da cutscene, só pra `lele`. REMOVER depois. */}
+      {user?.id === LELE_ID && (
+        <button
+          onClick={() => devReset.mutate()}
+          disabled={devReset.isPending}
+          className="fixed bottom-24 left-3 z-[9998] px-3 py-2 rounded-lg text-xs font-black transition-transform active:scale-95 disabled:opacity-60"
+          style={{ background: '#b91c1c', color: '#fff', border: '1.5px solid #7f1d1d', boxShadow: '0 4px 12px rgba(0,0,0,0.4)' }}
+        >
+          {devReset.isPending ? '...' : '🔄 Estornar chapéu (dev)'}
+        </button>
       )}
     </div>
   );

@@ -35,7 +35,7 @@ export function useGnomeStatus() {
 }
 
 /** Ação POST genérica do gnomo (unlock/wake/collect). Invalida gnomo + água. */
-function useGnomeAction(path: 'unlock' | 'wake' | 'collect') {
+function useGnomeAction(path: 'unlock' | 'wake' | 'collect' | 'dev-reset') {
   const { user } = useAuth();
   const qc = useQueryClient();
   return useMutation({
@@ -58,3 +58,5 @@ function useGnomeAction(path: 'unlock' | 'wake' | 'collect') {
 export const useGnomeUnlock = () => useGnomeAction('unlock');
 export const useGnomeWake = () => useGnomeAction('wake');
 export const useGnomeCollect = () => useGnomeAction('collect');
+// TEMPORÁRIO (dev) — estorna a compra p/ re-testar a cutscene (só `lele`).
+export const useGnomeDevReset = () => useGnomeAction('dev-reset');
