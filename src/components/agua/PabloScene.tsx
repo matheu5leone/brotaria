@@ -106,11 +106,11 @@ export function PabloScene() {
   const pabloSprite = st.state === 'awake' ? SPRITE.emPe : SPRITE.dormindo;
 
   return (
-    <div className="relative flex flex-row-reverse items-end gap-0.5 select-none" style={{ touchAction: 'manipulation' }}>
+    <div className="relative flex flex-row items-end gap-0.5 select-none" style={{ touchAction: 'manipulation' }}>
       {/* Balão de fala */}
       {balloon && (
         <div
-          className="absolute z-20 right-0 bottom-full mb-1 flex items-center gap-2 px-3 py-2 rounded-2xl"
+          className="absolute z-20 left-0 bottom-full mb-1 flex items-center gap-2 px-3 py-2 rounded-2xl"
           style={{
             width: 'max-content', maxWidth: 220,
             background: 'linear-gradient(180deg, var(--color-parch-light), var(--color-parch-dark))',
@@ -142,7 +142,7 @@ export function PabloScene() {
             <Image src={SPRITE.chapeuJogado} alt="Chapéu do Pablo jogado no chão" fill sizes="100px" unoptimized className="object-contain pablo-glow" draggable={false} />
             {/* Tooltip no hover (desktop) — custo em estrela */}
             <span
-              className="absolute z-20 right-0 bottom-full mb-1 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute z-20 left-0 bottom-full mb-1 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity"
               style={{ fontFamily: 'var(--font-display)', color: '#3a2a08', background: 'rgba(250,199,117,0.97)', border: '1.5px solid rgba(133,79,11,0.6)', boxShadow: '0 4px 12px rgba(0,0,0,0.35)' }}
             >
               Desbloqueie por ⭐ 1
@@ -176,7 +176,7 @@ export function PabloScene() {
           {/* backdrop invisível: fecha ao clicar fora */}
           <div className="fixed inset-0 z-40" onClick={() => setConfirmUnlock(false)} />
           <div
-            className="absolute z-50 right-0 bottom-full mb-2 flex flex-col items-stretch gap-2 p-2.5 rounded-2xl text-center"
+            className="absolute z-50 left-0 bottom-full mb-2 flex flex-col items-stretch gap-2 p-2.5 rounded-2xl text-center"
             style={{ width: 'max-content', maxWidth: 190, background: 'linear-gradient(180deg, var(--color-parch-light), var(--color-parch-dark))', border: '1.5px solid var(--color-wood-light)', boxShadow: '0 10px 28px rgba(0,0,0,0.45)' }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -201,22 +201,22 @@ export function PabloScene() {
         </>
       )}
 
-      {/* Cutscene de apresentação */}
+      {/* Cutscene — retrato do Pablo + texto ao lado, centralizado (não atrás da navbar) */}
       {cutsceneStep !== null && (
         <div
-          className="fixed inset-0 z-[10000] flex items-end justify-center p-4 pb-8"
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
           style={{ background: 'rgba(5,8,3,0.6)', backdropFilter: 'blur(4px)' }}
           onClick={() => setCutsceneStep((s) => (s !== null && s < CUTSCENE.length - 1 ? s + 1 : null))}
         >
-          <div className="relative w-full flex flex-col items-center gap-3" style={{ maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
-            <span className="relative" style={{ width: 150, height: 190 }}>
+          <div className="relative w-full flex items-center gap-2" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
+            <span className="relative shrink-0" style={{ width: 'min(32vw, 132px)', height: 'min(42vw, 168px)' }}>
               <Image src={CUTSCENE[cutsceneStep].nervoso ? SPRITE.nervoso : SPRITE.dialogo} alt="Pablo" fill className="object-contain object-bottom" draggable={false} priority />
             </span>
             <div
-              className="w-full rounded-3xl p-5"
+              className="flex-1 min-w-0 rounded-3xl p-4"
               style={{ background: 'linear-gradient(180deg, var(--color-parch-light), var(--color-parch-dark))', border: '1.5px solid var(--color-wood-light)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}
             >
-              <p className="text-sm font-bold leading-relaxed min-h-[3.5em]" style={{ fontFamily: 'var(--font-caption)', color: 'var(--color-text-dark)' }}>
+              <p className="text-sm font-bold leading-relaxed min-h-[4.5em]" style={{ fontFamily: 'var(--font-caption)', color: 'var(--color-text-dark)' }}>
                 {CUTSCENE[cutsceneStep].text}
               </p>
               <div className="mt-3 flex items-center justify-between">
