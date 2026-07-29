@@ -83,7 +83,7 @@ export function PabloScene() {
         setConfirmUnlock(true);
         break;
       case 'awake':
-        showBalloon(`volta em ${fmtCd(remaining)}, tô no meu sono soneca.`);
+        showBalloon(`tô trabalhando para você, volte em ${fmtCd(remaining)}`);
         break;
       case 'holding_water':
         showBalloon('eu já fiz meu trabalho trabalhoso, sua água molhada está bem ali no balde baldoso, seu boboca bobalho!', true);
