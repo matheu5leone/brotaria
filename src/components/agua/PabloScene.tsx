@@ -137,7 +137,7 @@ export function PabloScene() {
         style={{ background: 'transparent', cursor: 'pointer' }}
       >
         {st.state === 'locked' ? (
-          <span className="relative group block" style={{ width: 'min(26vmin, 100px)', aspectRatio: '614 / 406' }}>
+          <span className="relative group block" style={{ width: 'min(13vmin, 50px)', aspectRatio: '614 / 406' }}>
             {/* Chapéu jogado sobre a pedra (objeto do mapa) com glow mágico dourado */}
             <Image src={SPRITE.chapeuJogado} alt="Chapéu do Pablo jogado no chão" fill sizes="100px" unoptimized className="object-contain pablo-glow" draggable={false} />
             {/* Tooltip no hover (desktop) — custo em estrela */}
@@ -145,7 +145,7 @@ export function PabloScene() {
               className="absolute z-20 right-0 bottom-full mb-1 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity"
               style={{ fontFamily: 'var(--font-display)', color: '#3a2a08', background: 'rgba(250,199,117,0.97)', border: '1.5px solid rgba(133,79,11,0.6)', boxShadow: '0 4px 12px rgba(0,0,0,0.35)' }}
             >
-              Acordar o Pablo · 1 ⭐
+              Desbloqueie por ⭐ 1
             </span>
           </span>
         ) : (
@@ -182,20 +182,20 @@ export function PabloScene() {
               <Image src={SPRITE.chapeu} alt="Chapéu do Pablo" fill className="object-contain" draggable={false} />
             </span>
             <h2 className="text-lg font-black" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}>
-              Acordar o Pablo?
+              Desbloqueie por ⭐ 1
             </h2>
             {st.stars >= 1 ? (
               <>
-                <p className="text-sm font-bold" style={{ fontFamily: 'var(--font-caption)', color: 'var(--color-text-mid)' }}>
-                  Custa <b>1 ⭐</b>. Depois ele enche um balde de água pra você a cada 24h.
+                <p className="text-xs font-bold" style={{ fontFamily: 'var(--font-caption)', color: 'var(--color-text-mid)' }}>
+                  O Pablo enche um balde baldoso de água molhada pra você a cada 24h.
                 </p>
                 <button
                   onClick={doUnlock}
                   disabled={unlock.isPending}
-                  className="w-full py-3 rounded-xl font-black text-sm transition-transform active:scale-95 disabled:opacity-60"
-                  style={{ fontFamily: 'var(--font-display)', color: '#3a2a08', background: 'rgba(250,199,117,0.95)', border: '1.5px solid rgba(133,79,11,0.6)' }}
+                  className="w-full py-3 rounded-xl font-black text-base flex items-center justify-center gap-2 transition-transform active:scale-95 disabled:opacity-60"
+                  style={{ fontFamily: 'var(--font-display)', color: '#fff', background: 'linear-gradient(180deg, #5bd06a, #2f9e44)', border: '1.5px solid rgba(22,90,20,0.7)', boxShadow: '0 4px 14px rgba(34,120,34,0.4), inset 0 1px 1px rgba(255,255,255,0.35)', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
                 >
-                  {unlock.isPending ? 'Acordando...' : 'Gastar 1 ⭐'}
+                  {unlock.isPending ? 'Acordando...' : '⭐ 1'}
                 </button>
               </>
             ) : (

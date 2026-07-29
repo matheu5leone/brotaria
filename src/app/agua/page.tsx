@@ -131,7 +131,7 @@ export default function AguaPage() {
         </div>
 
         {/* Pablo — gnomo de coleta passiva (chapéu jogado no gramado, centro-direita) */}
-        <div className="absolute z-10" style={{ top: '158px', right: '90px' }}>
+        <div className="absolute z-10" style={{ top: '188px', right: '120px' }}>
           <PabloScene />
         </div>
 
