@@ -170,44 +170,35 @@ export function PabloScene() {
         </button>
       )}
 
-      {/* Confirmação de desbloqueio */}
+      {/* Infobox de desbloqueio — pequena, ancorada ao chapéu (relativa ao clicado) */}
       {confirmUnlock && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4" style={{ background: 'rgba(5,8,3,0.55)', backdropFilter: 'blur(4px)' }} onClick={() => setConfirmUnlock(false)}>
+        <>
+          {/* backdrop invisível: fecha ao clicar fora */}
+          <div className="fixed inset-0 z-40" onClick={() => setConfirmUnlock(false)} />
           <div
-            className="relative w-full rounded-3xl p-6 flex flex-col items-center gap-4 text-center"
-            style={{ maxWidth: 320, background: 'linear-gradient(180deg, var(--color-parch-light), var(--color-parch-dark))', border: '1.5px solid var(--color-wood-light)', boxShadow: '0 32px 80px rgba(0,0,0,0.5)' }}
+            className="absolute z-50 right-0 bottom-full mb-2 flex flex-col items-stretch gap-2 p-2.5 rounded-2xl text-center"
+            style={{ width: 'max-content', maxWidth: 190, background: 'linear-gradient(180deg, var(--color-parch-light), var(--color-parch-dark))', border: '1.5px solid var(--color-wood-light)', boxShadow: '0 10px 28px rgba(0,0,0,0.45)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <span className="relative" style={{ width: 96, height: 96 }}>
-              <Image src={SPRITE.chapeu} alt="Chapéu do Pablo" fill className="object-contain" draggable={false} />
-            </span>
-            <h2 className="text-lg font-black" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}>
+            <p className="text-sm font-black whitespace-nowrap px-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}>
               Desbloqueie por ⭐ 1
-            </h2>
+            </p>
             {st.stars >= 1 ? (
-              <>
-                <p className="text-xs font-bold" style={{ fontFamily: 'var(--font-caption)', color: 'var(--color-text-mid)' }}>
-                  O Pablo enche um balde baldoso de água molhada pra você a cada 24h.
-                </p>
-                <button
-                  onClick={doUnlock}
-                  disabled={unlock.isPending}
-                  className="w-full py-3 rounded-xl font-black text-base flex items-center justify-center gap-2 transition-transform active:scale-95 disabled:opacity-60"
-                  style={{ fontFamily: 'var(--font-display)', color: '#fff', background: 'linear-gradient(180deg, #5bd06a, #2f9e44)', border: '1.5px solid rgba(22,90,20,0.7)', boxShadow: '0 4px 14px rgba(34,120,34,0.4), inset 0 1px 1px rgba(255,255,255,0.35)', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
-                >
-                  {unlock.isPending ? 'Acordando...' : '⭐ 1'}
-                </button>
-              </>
+              <button
+                onClick={doUnlock}
+                disabled={unlock.isPending}
+                className="py-2 px-4 rounded-xl font-black text-base flex items-center justify-center gap-1.5 transition-transform active:scale-95 disabled:opacity-60"
+                style={{ fontFamily: 'var(--font-display)', color: '#fff', background: 'linear-gradient(180deg, #5bd06a, #2f9e44)', border: '1.5px solid rgba(22,90,20,0.7)', boxShadow: '0 4px 14px rgba(34,120,34,0.4), inset 0 1px 1px rgba(255,255,255,0.35)', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
+              >
+                {unlock.isPending ? '...' : '⭐ 1'}
+              </button>
             ) : (
-              <p className="text-sm font-bold" style={{ fontFamily: 'var(--font-caption)', color: 'var(--color-text-mid)' }}>
-                Você não tem estrela. Colha uma planta até o auge (adulta) pra ganhar ⭐.
+              <p className="text-xs font-bold px-1" style={{ fontFamily: 'var(--font-caption)', color: 'var(--color-text-mid)' }}>
+                Você não tem ⭐.
               </p>
             )}
-            <button onClick={() => setConfirmUnlock(false)} className="text-xs font-bold" style={{ color: 'var(--color-text-muted)' }}>
-              {st.stars >= 1 ? 'Agora não' : 'Fechar'}
-            </button>
           </div>
-        </div>
+        </>
       )}
 
       {/* Cutscene de apresentação */}
