@@ -129,6 +129,14 @@ export const GAME = {
   /** Intervalo do tick de decaimento (ms). */
   WATER_BAR_TICK_MS:        50,
 
+  // ── Gnomo Pablo (coleta passiva) ─────────────────────────────────────────
+  /** Horas do ciclo de trabalho do Pablo (1 balde a cada ciclo). */
+  GNOME_COOLDOWN_HOURS:     24,
+  /** Custo em estrela (profiles.stars) para desbloquear o Pablo. */
+  GNOME_STAR_COST:          1,
+  /** Água por balde coletado. */
+  GNOME_WATER_PER_COLLECT:  1,
+
   // ── Pá (canteiro) ─────────────────────────────────────────────────────────
   /** Horas de cooldown para usar a pá novamente. */
   SHOVEL_COOLDOWN_HOURS: 24,
@@ -301,6 +309,9 @@ export const WATER_COOLDOWN_MS = GAME.WATER_COOLDOWN_HOURS * 60 * 60 * 1000;
 
 /** Milissegundos de cooldown entre coletas de água. */
 export const WATER_COLLECT_COOLDOWN_MS = GAME.WATER_COLLECT_COOLDOWN_HOURS * 60 * 60 * 1000;
+
+/** Milissegundos do ciclo de trabalho do Pablo. */
+export const GNOME_COOLDOWN_MS = GAME.GNOME_COOLDOWN_HOURS * 60 * 60 * 1000;
 
 /** Milissegundos de cooldown da pá. */
 export const SHOVEL_COOLDOWN_MS = GAME.SHOVEL_COOLDOWN_HOURS * 60 * 60 * 1000;
