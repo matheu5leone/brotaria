@@ -113,11 +113,11 @@ export function PabloScene() {
   const pabloSprite = st.state === 'awake' ? SPRITE.emPe : SPRITE.dormindo;
 
   return (
-    <div className="relative flex flex-row items-end gap-0.5 select-none" style={{ touchAction: 'manipulation' }}>
+    <div className="relative flex flex-row-reverse items-end gap-0.5 select-none" style={{ touchAction: 'manipulation' }}>
       {/* Balão de fala */}
       {balloon && (
         <div
-          className="absolute z-20 left-0 bottom-full mb-1 flex items-center gap-2 px-3 py-2 rounded-2xl"
+          className="absolute z-20 right-0 bottom-full mb-1 flex items-center gap-2 px-3 py-2 rounded-2xl"
           style={{
             width: 'max-content', maxWidth: 220,
             background: 'linear-gradient(180deg, var(--color-parch-light), var(--color-parch-dark))',
@@ -149,7 +149,7 @@ export function PabloScene() {
             <Image src={SPRITE.chapeuJogado} alt="Chapéu do Pablo jogado no chão" fill sizes="100px" unoptimized className="object-contain pablo-glow" draggable={false} />
             {/* Tooltip no hover (desktop) — custo em estrela */}
             <span
-              className="absolute z-20 left-0 bottom-full mb-1 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute z-20 right-0 bottom-full mb-1 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity"
               style={{ fontFamily: 'var(--font-display)', color: '#3a2a08', background: 'rgba(250,199,117,0.97)', border: '1.5px solid rgba(133,79,11,0.6)', boxShadow: '0 4px 12px rgba(0,0,0,0.35)' }}
             >
               Desbloqueie por ⭐ 1
@@ -183,7 +183,7 @@ export function PabloScene() {
           {/* backdrop invisível: fecha ao clicar fora */}
           <div className="fixed inset-0 z-40" onClick={() => setConfirmUnlock(false)} />
           <div
-            className="absolute z-50 left-0 bottom-full mb-2 flex flex-col items-stretch gap-2 p-2.5 rounded-2xl text-center"
+            className="absolute z-50 right-0 bottom-full mb-2 flex flex-col items-stretch gap-2 p-2.5 rounded-2xl text-center"
             style={{ width: 'max-content', maxWidth: 190, background: 'linear-gradient(180deg, var(--color-parch-light), var(--color-parch-dark))', border: '1.5px solid var(--color-wood-light)', boxShadow: '0 10px 28px rgba(0,0,0,0.45)' }}
             onClick={(e) => e.stopPropagation()}
           >
