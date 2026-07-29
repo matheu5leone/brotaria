@@ -407,7 +407,24 @@ html, body {
   50%      { opacity: 1;    transform: scale(1.04); }
 }
 .well-breathe { animation: well-breathe 2.8s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .count-pop, .well-breathe { animation: none; } }
+
+/* Partículas mágicas amarelas subindo do chapéu do Pablo (locked). */
+@keyframes pablo-spark-rise {
+  0%   { transform: translateY(4px) scale(0.5); opacity: 0; }
+  25%  { opacity: 1; }
+  100% { transform: translateY(-28px) scale(1); opacity: 0; }
+}
+.pablo-spark {
+  position: absolute;
+  bottom: 34%;
+  width: 6px; height: 6px;
+  border-radius: 999px;
+  background: radial-gradient(circle, #ffe680 0%, #f5a623 70%);
+  box-shadow: 0 0 6px 1.5px rgba(245, 166, 35, 0.75);
+  animation: pablo-spark-rise 2.2s ease-in infinite;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) { .count-pop, .well-breathe, .pablo-spark { animation: none; } }
 
 /* Cronômetro de rega — pulso do estado "pode regar" */
 @keyframes water-ready-pulse {

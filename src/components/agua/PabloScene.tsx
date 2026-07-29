@@ -11,12 +11,23 @@ import {
 
 const SPRITE = {
   chapeu: '/imgs/pablo/chapeu-pablo.webp',
+  chapeuJogado: '/imgs/pablo/chapeu-jogado.webp',
   emPe: '/imgs/pablo/pablo-em-pe.webp',
   dormindo: '/imgs/pablo/pablo-dormindo.webp',
   balde: '/imgs/pablo/balde-cheio.webp',
   dialogo: '/imgs/pablo/pablo-dialogo.webp',
   nervoso: '/imgs/pablo/pablo-dialogo-nervoso.webp',
 } as const;
+
+// Partículas mágicas que sobem do chapéu (posição horizontal + atraso escalonado).
+const SPARKS = [
+  { left: '18%', delay: '0s' },
+  { left: '33%', delay: '0.6s' },
+  { left: '48%', delay: '1.2s' },
+  { left: '62%', delay: '0.3s' },
+  { left: '77%', delay: '0.9s' },
+  { left: '42%', delay: '1.7s' },
+] as const;
 
 function fmtCd(ms: number): string {
   const totalMin = Math.ceil(ms / 60000);
@@ -105,11 +116,11 @@ export function PabloScene() {
   const pabloSprite = st.state === 'awake' ? SPRITE.emPe : SPRITE.dormindo;
 
   return (
-    <div className="relative flex items-end gap-0.5 select-none" style={{ touchAction: 'manipulation' }}>
+    <div className="relative flex flex-row-reverse items-end gap-0.5 select-none" style={{ touchAction: 'manipulation' }}>
       {/* Balão de fala */}
       {balloon && (
         <div
-          className="absolute z-20 left-0 bottom-full mb-1 flex items-center gap-2 px-3 py-2 rounded-2xl"
+          className="absolute z-20 right-0 bottom-full mb-1 flex items-center gap-2 px-3 py-2 rounded-2xl"
           style={{
             width: 'max-content', maxWidth: 220,
             background: 'linear-gradient(180deg, var(--color-parch-light), var(--color-parch-dark))',
@@ -136,17 +147,23 @@ export function PabloScene() {
         style={{ background: 'transparent', cursor: 'pointer' }}
       >
         {st.state === 'locked' ? (
-          <>
-            <span className="relative" style={{ width: 'min(16vmin, 84px)', height: 'min(16vmin, 84px)' }}>
-              <Image src={SPRITE.chapeu} alt="Chapéu do Pablo" fill className="object-contain" draggable={false} />
+          <span className="relative group block" style={{ width: 'min(30vmin, 132px)', aspectRatio: '250 / 219' }}>
+            {/* Partículas mágicas amarelas subindo do chapéu */}
+            <span className="pointer-events-none absolute inset-0 z-10">
+              {SPARKS.map((s, i) => (
+                <span key={i} className="pablo-spark" style={{ left: s.left, animationDelay: s.delay }} />
+              ))}
             </span>
+            {/* Chapéu jogado no chão (objeto do mapa) */}
+            <Image src={SPRITE.chapeuJogado} alt="Chapéu do Pablo jogado no chão" fill className="object-contain" draggable={false} />
+            {/* Tooltip no hover (desktop) — custo em estrela */}
             <span
-              className="mt-0.5 px-2 py-0.5 rounded-full text-xs font-black flex items-center gap-1"
-              style={{ fontFamily: 'var(--font-display)', color: '#3a2a08', background: 'rgba(250,199,117,0.95)', border: '1.5px solid rgba(133,79,11,0.6)' }}
+              className="absolute z-20 right-0 bottom-full mb-1 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ fontFamily: 'var(--font-display)', color: '#3a2a08', background: 'rgba(250,199,117,0.97)', border: '1.5px solid rgba(133,79,11,0.6)', boxShadow: '0 4px 12px rgba(0,0,0,0.35)' }}
             >
-              1 ⭐
+              Acordar o Pablo · 1 ⭐
             </span>
-          </>
+          </span>
         ) : (
           <span className="relative" style={{ width: 'min(20vmin, 110px)', height: 'min(24vmin, 132px)' }}>
             <Image src={pabloSprite} alt="Pablo" fill className="object-contain object-bottom" draggable={false} priority />
