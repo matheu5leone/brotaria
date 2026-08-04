@@ -39,6 +39,7 @@ export function HexPot({
   isTrashTarget = false,
   isSeedTarget = false,
   isPlanting = false,
+  hideStatusBalloons = false,
   onClick,
   onPointerDown,
   onDigComplete,
@@ -52,6 +53,9 @@ export function HexPot({
   isTrashTarget?: boolean;
   isSeedTarget?: boolean;
   isPlanting?: boolean;
+  /** Esconde os balões de sede/estresse do DONO (usado na visita a outro jardim,
+   *  onde só a planta que pede ajuda ao vizinho deve exibir balão). */
+  hideStatusBalloons?: boolean;
   onClick: (e: React.MouseEvent) => void;
   onPointerDown?: (e: React.PointerEvent) => void;
   onDigComplete?: () => void;
@@ -170,7 +174,7 @@ export function HexPot({
       )}
 
       {/* ── Balões de status — ancorados ACIMA do canteiro (não na planta) ── */}
-      {state === 'planted' && isStressed && (
+      {state === 'planted' && isStressed && !hideStatusBalloons && (
         <div
           className="water-speech-bubble absolute pointer-events-none z-20 flex flex-col items-center"
           style={{ bottom: BALLOON_BOTTOM, left: '50%', transform: 'translateX(-50%)', animation: 'water-bubble 2.2s ease-in-out infinite', filter: 'drop-shadow(0 2px 5px rgba(239,68,68,0.5))' }}
@@ -180,7 +184,7 @@ export function HexPot({
         </div>
       )}
 
-      {state === 'planted' && !isStressed && plant && (
+      {state === 'planted' && !isStressed && !hideStatusBalloons && plant && (
         plant.hydration_status === 'waiting_water' ||
         (plant.next_water_needed_at && new Date(plant.next_water_needed_at) < new Date())
       ) && (

@@ -147,7 +147,7 @@ export const GAME = {
   /** Reputação ganha por rega de vizinho (saldo que nunca se gasta). */
   NEIGHBOR_WATER_REPUTATION:   1,
   /** Máximo de regas de vizinho por dia (reset à meia-noite BRT). */
-  NEIGHBOR_WATER_DAILY_LIMIT:  3,
+  NEIGHBOR_WATER_DAILY_LIMIT:  2,
   /** Horas que o brilho do rastro fica na planta regada. */
   NEIGHBOR_WATER_TRACE_HOURS:  24,
 

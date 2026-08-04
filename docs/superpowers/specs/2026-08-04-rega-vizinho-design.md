@@ -24,15 +24,17 @@ Esta feature transforma essa água ociosa em ação: **visitar o jardim de outro
 | Recompensa base | **5 herbo** |
 | Recompensa com sorte | **10% de chance → 10 herbo** (em vez de 5, não somado) |
 | Reputação | **+1** por rega (novo saldo em `profiles`) |
-| Limite | **3 regas por dia** |
+| Limite | **2 regas por dia** |
+| Alvo | **1 planta por jardim** — só ela pede água ao vizinho |
 
 **Consequência importante:** para o dono, nada muda mecanicamente. A ajuda é simbólica — é um gesto social, não um atalho de progressão. Isso é deliberado: mantém a economia intocada e impede que jogadores usem contas-satélite para acelerar plantas.
 
 ### Regras derivadas (decisões deste design)
 
 - **Não pode regar o próprio jardim** (`from_user ≠ dono`).
-- **Máximo 1 rega por planta por dia** — as 3 regas diárias precisam ser espalhadas em plantas diferentes. Evita farmar 3× no mesmo alvo e espalha o efeito social.
-- **Qualquer planta serve** (não precisa estar com sede), já que a sede do dono não é afetada.
+- **Uma única planta por jardim pede ajuda**, sorteada de forma **determinística por (dono + dia)** via hash FNV-1a: todo visitante vê a mesma planta pedindo água, ela troca sozinha à meia-noite, e não precisa de estado no banco nem de cron. O servidor **valida** o alvo (`NOT_ASKING`) — o cliente não escolhe qual planta regar.
+- **Máximo 1 rega por planta por dia** — como só há uma planta pedindo por jardim, isso equivale a **1 ajuda por jardim por dia**; as 2 regas diárias vão para jardins diferentes.
+- **A planta que pede não precisa estar com sede** de verdade: a sede do dono não é afetada, então o pedido é puramente social.
 - **Sem água = sem rega**: `water_balance = 0` → erro `NO_WATER`.
 - **Reset diário à meia-noite de `America/Sao_Paulo`** (não UTC) — o jogo é brasileiro; virar o dia às 21h seria confuso.
 
@@ -138,19 +140,25 @@ Se o CAS não afetar linha (corrida), recomputa e devolve o motivo atual. **A pl
 ## 6. Frontend
 
 ### Onde
-Na visita a `/jardim/[nickname]` (componente `GardenView`, modo read-only). Cada planta do outro ganha um alvo de toque com o ícone do regador.
+Na visita a `/jardim/[nickname]` (componente `GardenView`). A interação imita a **rega de verdade** do próprio jardim, não um botão:
 
-### Estados do botão de regar
+1. A planta sorteada exibe o **balão 💧** (mesmo visual do balão de sede).
+2. Um **regador** fica ancorado no rodapé da cena, com a dica "arraste até a 💧".
+3. O jogador **arrasta o regador** até a planta (pointer capture + `elementsFromPoint` sobre `data-pot-id`, igual ao `Garden.tsx`). Sobre o alvo certo, o regador cresce e ganha brilho, e o canteiro acende (`isWaterTarget`).
+4. Ao soltar em cima: **gotas caem na terra** (`PotFx type="water"`, o mesmo efeito da rega real) e a rega é enviada.
+
+**Balões do dono ficam escondidos na visita** (`HexPot hideStatusBalloons`): sem isso o visitante veria 💧 em toda planta sedenta do dono e só uma seria acionável.
+
+### Estados
 
 | Situação | Visual |
 |---|---|
-| Pode regar | Regador ativo + contador "2/3 hoje" |
-| Já regou esta planta hoje | Regador apagado + "já regada por você" |
-| Limite diário atingido | Regador apagado + "volte amanhã" |
-| Sem água | Regador apagado + "sem água" (link para `/agua`) |
+| Pode ajudar | Balão 💧 na planta + regador arrastável |
+| Já ajudou este jardim hoje | Sem balão, sem regador (servidor informa via `alreadyWateredByMe`) |
+| Limite diário / sem água | Chip com o motivo ao soltar |
 
 ### Feedback
-Ao regar: animação de gotas na planta, e o ganho sobe em números (`+5 herbo`, `+1 ⭐rep`). No caso de sorte (10%), destaque diferente — **"+10 herbo!"** com brilho dourado, para o 10% valer como momento.
+Ao regar: gotas na terra + chip com o ganho (`+5 herbo · +1 rep`). No caso de sorte (10%), chip dourado com ✨ — para o 10% valer como momento. A planta regada passa a exibir o rastro de partículas **brancas** por 24h.
 
 ### Hook
 `src/hooks/useNeighborWater.ts` — mutation com update otimista de `herbo`/`water_balance`/`reputation` e rollback no erro (padrão do `useCollectWater`), invalidando as queries de carteira e do jardim visitado.
@@ -181,8 +189,9 @@ O uso dela (níveis de jardineiro, títulos no ranking, destravar receitas de p�
 
 | Risco | Mitigação |
 |---|---|
-| Contas-satélite farmando herbo | Limite 3/dia + 1 por planta/dia; herbo/dia máx = 30 (raro), típico 15 |
-| Inflação de herbo | 15/dia é modesto perto dos custos de upgrade do poço; monitorar após lançar |
+| Contas-satélite farmando herbo | Limite 2/dia + 1 planta pedinte por jardim; herbo/dia máx = 20 (raro), típico 10 |
+| Inflação de herbo | 10/dia é modesto perto dos custos de upgrade do poço; monitorar após lançar |
+| Cliente escolher o alvo | `getAskingPlantId` roda no servidor e a rega valida (`NOT_ASKING`) |
 | Jogador rega e não vê valor (dono não ganha nada) | Rastro visível (§3) + o ganho é do *regador*, então o incentivo é dele |
 | Corrida (dois cliques simultâneos) | CAS no `water_balance` + checagem do log |
 

@@ -408,7 +408,7 @@ html, body {
 }
 .well-breathe { animation: well-breathe 2.8s ease-in-out infinite; }
 
-/* Rastro de rega de vizinho: mini partículas douradas subindo da planta (24h). */
+/* Rastro de rega de vizinho: mini partículas brancas subindo da planta (24h). */
 @keyframes neighbor-sparkle {
   0%   { transform: translateY(2px) scale(0.4); opacity: 0; }
   30%  { opacity: 1; }
@@ -419,8 +419,8 @@ html, body {
   bottom: 30%;
   width: 5px; height: 5px;
   border-radius: 999px;
-  background: radial-gradient(circle, #fff3b0 0%, #e8c547 70%);
-  box-shadow: 0 0 5px 1px rgba(232, 197, 71, 0.7);
+  background: radial-gradient(circle, #ffffff 0%, rgba(255,255,255,0.85) 70%);
+  box-shadow: 0 0 6px 1.5px rgba(255, 255, 255, 0.8);
   animation: neighbor-sparkle 2.6s ease-in infinite;
   pointer-events: none;
 }

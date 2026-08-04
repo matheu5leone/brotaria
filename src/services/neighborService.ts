@@ -23,7 +23,32 @@ export type WaterNeighborResult =
       reputation: number;
       remainingToday: number;
     }
-  | { ok: false; code: 'PLANT_NOT_FOUND' | 'OWN_PLANT' | 'DAILY_LIMIT' | 'ALREADY_WATERED' | 'NO_WATER' };
+  | { ok: false; code: 'PLANT_NOT_FOUND' | 'OWN_PLANT' | 'DAILY_LIMIT' | 'ALREADY_WATERED' | 'NO_WATER' | 'NOT_ASKING' };
+
+/** Hash estável (FNV-1a) — mesma entrada, mesma saída, sem depender de Math.random. */
+function hashString(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+/**
+ * A ÚNICA planta do jardim que pede ajuda ao vizinho hoje.
+ *
+ * Sorteio determinístico por (dono + dia): todo mundo que visitar o jardim vê a
+ * mesma planta pedindo água, e ela troca sozinha à meia-noite. Sem estado no
+ * banco e sem cron — a mesma conta sempre produz o mesmo resultado no mesmo dia.
+ */
+export async function getAskingPlantId(ownerId: string): Promise<string | null> {
+  const { data } = await supabaseAdmin
+    .from('plants').select('id').eq('user_id', ownerId).order('id', { ascending: true });
+  const ids = (data ?? []).map((p) => p.id as string);
+  if (ids.length === 0) return null;
+  return ids[hashString(`${ownerId}:${todayBRT()}`) % ids.length];
+}
 
 /** Data de hoje no fuso do jogo (BRT), no formato YYYY-MM-DD. */
 function todayBRT(): string {
@@ -41,6 +66,11 @@ export async function waterNeighborPlant(userId: string, plantId: string): Promi
     .from('plants').select('id, user_id').eq('id', plantId).maybeSingle();
   if (!plant) return { ok: false, code: 'PLANT_NOT_FOUND' };
   if (plant.user_id === userId) return { ok: false, code: 'OWN_PLANT' };
+
+  // Só a planta que está pedindo ajuda hoje aceita rega de vizinho. Validado no
+  // servidor: o cliente não escolhe o alvo, ele só desenha o que o servidor diz.
+  const asking = await getAskingPlantId(plant.user_id as string);
+  if (asking !== plantId) return { ok: false, code: 'NOT_ASKING' };
 
   // 2) Meu estado (saldo + contador diário)
   const { data: me, error: meErr } = await supabaseAdmin
@@ -112,6 +142,19 @@ export async function waterNeighborPlant(userId: string, plantId: string): Promi
     reputation:   updated.reputation,
     remainingToday: Math.max(0, GAME.NEIGHBOR_WATER_DAILY_LIMIT - newUsed),
   };
+}
+
+/** Já reguei esta planta hoje? (para o cliente não oferecer uma ação que vai falhar) */
+export async function hasWateredToday(userId: string, plantId: string): Promise<boolean> {
+  const startOfDay = new Date(`${todayBRT()}T00:00:00-03:00`).toISOString();
+  const { data } = await supabaseAdmin
+    .from('neighbor_waterings')
+    .select('id')
+    .eq('from_user_id', userId)
+    .eq('plant_id', plantId)
+    .gte('created_at', startOfDay)
+    .maybeSingle();
+  return !!data;
 }
 
 /** Plantas do jardim regadas nas últimas NEIGHBOR_WATER_TRACE_HOURS (rastro visual). */

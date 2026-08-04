@@ -120,7 +120,7 @@ import { PotFx } from '@/components/PotFx';
 import { HerboFly, HerboFlight } from '@/components/HerboFly';
 import { lifecycleFromCode, isVisibleStageChange } from '@/config/lifecycle';
 import { usePendingGifts } from '@/hooks/useGifts';
-import { useGardenWaterings } from '@/hooks/useNeighbor';
+import { useGardenSocial } from '@/hooks/useNeighbor';
 import { GiftReceiveModal } from '@/components/GiftReceiveModal';
 import type { PendingGift } from '@/hooks/useGifts';
 
@@ -199,10 +199,10 @@ export default function Garden() {
   const { data: pots = [], isPending: potsLoading, error: potsError } = usePots(user?.id);
   const { data: shovelStatus } = useShovelStatus(user?.id);
   // Rastro: plantas que vizinhos regaram nas últimas 24h (brilho, só visual).
-  const { data: neighborWaterings = [] } = useGardenWaterings(user?.id ?? '');
+  const { data: gardenSocial } = useGardenSocial(user?.id ?? '');
   const wateredByNeighbor = useMemo(
-    () => new Map(neighborWaterings.map((w) => [w.plantId, w.nickname])),
-    [neighborWaterings],
+    () => new Map((gardenSocial?.waterings ?? []).map((w) => [w.plantId, w.nickname])),
+    [gardenSocial],
   );
   const { data: wateringStatus } = useWateringStatus(user?.id);
   const { data: pendingGifts = [] } = usePendingGifts(user?.id);
