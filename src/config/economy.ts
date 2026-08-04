@@ -137,6 +137,20 @@ export const GAME = {
   /** Água por balde coletado. */
   GNOME_WATER_PER_COLLECT:  1,
 
+  // ── Rega de vizinho (ajudar o jardim dos outros) ──────────────────────────
+  /** Herbo ganho ao regar a planta de outro jogador. */
+  NEIGHBOR_WATER_HERBO:        5,
+  /** Herbo no caso de sorte (SUBSTITUI o valor base, não soma). */
+  NEIGHBOR_WATER_HERBO_LUCKY:  10,
+  /** Chance (0..1) de sair o valor de sorte. */
+  NEIGHBOR_WATER_LUCKY_CHANCE: 0.10,
+  /** Reputação ganha por rega de vizinho (saldo que nunca se gasta). */
+  NEIGHBOR_WATER_REPUTATION:   1,
+  /** Máximo de regas de vizinho por dia (reset à meia-noite BRT). */
+  NEIGHBOR_WATER_DAILY_LIMIT:  3,
+  /** Horas que o brilho do rastro fica na planta regada. */
+  NEIGHBOR_WATER_TRACE_HOURS:  24,
+
   // ── Pá (canteiro) ─────────────────────────────────────────────────────────
   /** Horas de cooldown para usar a pá novamente. */
   SHOVEL_COOLDOWN_HOURS: 24,
