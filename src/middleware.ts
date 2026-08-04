@@ -24,6 +24,7 @@ const LIMITS: Record<string, number> = {
   '/api/coupons/redeem': 10,       // brute-force de códigos de cupom
   '/api/missions/claim': 10,       // resgate de recompensa de missão
   '/api/likes/toggle': 30,         // spam de curtir/descurtir
+  '/api/garden/water-neighbor': 10, // rega de vizinho (limite real é 3/dia no servidor)
   '/api/client-error': 30,         // beacon de telemetria de erro (anti-flood)
 };
 
@@ -83,6 +84,7 @@ export const config = {
     '/api/coupons/redeem',
     '/api/missions/claim',
     '/api/likes/toggle',
+    '/api/garden/water-neighbor',
     '/api/client-error',
   ],
 };
