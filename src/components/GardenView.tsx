@@ -1,6 +1,10 @@
 'use client';
 
+import { useCallback, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { usePots } from '@/hooks/useGardenData';
+import { useAuth } from '@/hooks/useAuth';
+import { useWaterNeighbor, useGardenWaterings } from '@/hooks/useNeighbor';
 import { HexPot } from '@/components/HexPot';
 import { POT_BOX_ASPECT } from '@/lib/potGeometry';
 
@@ -15,8 +19,66 @@ const PARTICLES = [
   { x: 28, y: 4,  s: 9,  d: 1.6, o: 0.13, dur: 5.9 },
 ];
 
-export function GardenView({ userId }: { userId: string }) {
+/** Mensagem curta por código de erro do servidor. */
+const ERROR_TEXT: Record<string, string> = {
+  ALREADY_WATERED: 'já regada por você',
+  DAILY_LIMIT:     '3 regas hoje — volte amanhã',
+  NO_WATER:        'sem água',
+  OWN_PLANT:       'seu próprio jardim',
+  PLANT_NOT_FOUND: 'planta não encontrada',
+};
+
+type Feedback = { plantId: string; text: string; good: boolean; lucky: boolean };
+
+/** Posição/atraso das partículas do rastro (uma planta regada por vizinho). */
+const SPARKLES = [
+  { left: '32%', delay: '0s' },
+  { left: '50%', delay: '0.9s' },
+  { left: '66%', delay: '1.7s' },
+] as const;
+
+export function GardenView({ userId, ownerId }: { userId: string; ownerId?: string }) {
   const { data: pots = [], isPending } = usePots(userId);
+  const { user } = useAuth();
+  const waterNeighbor = useWaterNeighbor();
+
+  // Rastro: quem regou o quê nas últimas 24h (brilho na planta, só visual).
+  const { data: waterings = [] } = useGardenWaterings(userId);
+  const wateredBy = useMemo(
+    () => new Map(waterings.map((w) => [w.plantId, w.nickname])),
+    [waterings],
+  );
+
+  // Só rega jardim dos OUTROS, e só logado.
+  const canWater = !!user && !!ownerId && user.id !== ownerId;
+
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [wateredNow, setWateredNow] = useState<Set<string>>(new Set());
+
+  const showFeedback = useCallback((f: Feedback) => {
+    setFeedback(f);
+    setTimeout(() => setFeedback((cur) => (cur === f ? null : cur)), 2600);
+  }, []);
+
+  const handleWater = useCallback((plantId: string) => {
+    if (waterNeighbor.isPending) return;
+    waterNeighbor.mutate(plantId, {
+      onSuccess: (data) => {
+        setWateredNow((s) => new Set(s).add(plantId));
+        showFeedback({
+          plantId,
+          text: `+${data.herboGained} herbo · +1 rep`,
+          good: true,
+          lucky: data.lucky,
+        });
+      },
+      onError: (e) => {
+        const code = (e as { code?: string }).code ?? '';
+        if (code === 'ALREADY_WATERED') setWateredNow((s) => new Set(s).add(plantId));
+        showFeedback({ plantId, text: ERROR_TEXT[code] ?? 'não deu pra regar', good: false, lucky: false });
+      },
+    });
+  }, [waterNeighbor, showFeedback]);
 
   if (isPending) {
     return (
@@ -63,13 +125,21 @@ export function GardenView({ userId }: { userId: string }) {
         </div>
       ))}
 
-      {/* Pots — sem interação */}
+      {/* Pots — o vaso em si não é clicável; só o regador (quando é visita). */}
       {pots.map((pot) => {
         const x = pot.pos_x ?? 50;
         const y = pot.pos_y ?? 50;
+        const plantId = pot.plant_id as string | null;
+        const showCan = canWater && !!plantId;
+        const already = !!plantId && wateredNow.has(plantId);
+        const fb = feedback && feedback.plantId === plantId ? feedback : null;
+        const helper = plantId ? wateredBy.get(plantId) : undefined;
+        const hasTrace = helper !== undefined;
+
         return (
           <div
             key={pot.id}
+            title={hasTrace ? `Regada por @${helper ?? 'alguém'}` : undefined}
             className="absolute pointer-events-none"
             style={{
               width: '12%',
@@ -83,6 +153,52 @@ export function GardenView({ userId }: { userId: string }) {
             }}
           >
             <HexPot pot={pot} isSelected={false} onClick={() => {}} />
+
+            {/* Rastro: brilho dourado por 24h em quem foi regada por um vizinho */}
+            {hasTrace && SPARKLES.map((s, i) => (
+              <span key={i} className="neighbor-sparkle" style={{ left: s.left, animationDelay: s.delay }} />
+            ))}
+
+            {/* Chip de feedback (ganho ou motivo da recusa) */}
+            {fb && (
+              <span
+                className="absolute left-1/2 -translate-x-1/2 px-2 py-1 rounded-full text-[11px] font-black whitespace-nowrap pointer-events-none"
+                style={{
+                  bottom: '104%',
+                  fontFamily: 'var(--font-display)',
+                  color: fb.good ? (fb.lucky ? '#3a2a08' : '#0f2a0c') : '#fff',
+                  background: fb.good
+                    ? (fb.lucky ? 'rgba(250,199,117,0.97)' : 'rgba(155,222,120,0.95)')
+                    : 'rgba(90,20,20,0.9)',
+                  border: `1.5px solid ${fb.good ? (fb.lucky ? 'rgba(133,79,11,0.6)' : 'rgba(28,90,20,0.5)') : 'rgba(160,60,60,0.7)'}`,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                }}
+              >
+                {fb.lucky ? `✨ ${fb.text}` : fb.text}
+              </span>
+            )}
+
+            {/* Regador — único elemento clicável na visita */}
+            {showCan && (
+              <button
+                onClick={() => handleWater(plantId!)}
+                disabled={already || waterNeighbor.isPending}
+                aria-label="Regar esta planta"
+                title={already ? 'Você já regou esta planta hoje' : 'Regar esta planta (+herbo)'}
+                className="pointer-events-auto absolute left-1/2 -translate-x-1/2 rounded-full p-1.5 transition-transform active:scale-90 hover:scale-110 disabled:cursor-not-allowed"
+                style={{
+                  top: '-14%',
+                  background: 'rgba(8,14,5,0.72)',
+                  border: '1.5px solid rgba(96,165,250,0.5)',
+                  backdropFilter: 'blur(4px)',
+                  opacity: already ? 0.4 : 1,
+                  cursor: 'pointer',
+                  touchAction: 'manipulation',
+                }}
+              >
+                <Image src="/imgs/watering-can.webp" alt="" width={22} height={22} className="object-contain" draggable={false} />
+              </button>
+            )}
           </div>
         );
       })}

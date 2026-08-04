@@ -202,7 +202,7 @@ export default function GardenVisitPage() {
         {/* Garden view ocupa o resto */}
         <div className="flex-1 min-h-0 relative">
           <VisitorPanel avatarUrl={visitedUser.avatar_url} initial={visitedUser.nickname?.[0]} ownerId={visitedUser.id} nickname={visitedUser.nickname} />
-          <GardenView userId={visitedUser.id} />
+          <GardenView userId={visitedUser.id} ownerId={visitedUser.id} />
           <VisitorPlantsButton userId={visitedUser.id} nickname={visitedUser.nickname} />
         </div>
       </div>
@@ -220,7 +220,7 @@ export default function GardenVisitPage() {
         {/* Foto + apelido + "modo visita" + curtir — tudo no canto superior esquerdo */}
         <VisitorPanel avatarUrl={visitedUser.avatar_url} initial={visitedUser.nickname?.[0]} ownerId={visitedUser.id} nickname={visitedUser.nickname} showVisitTag />
 
-        <GardenView userId={visitedUser.id} />
+        <GardenView userId={visitedUser.id} ownerId={visitedUser.id} />
         <VisitorPlantsButton userId={visitedUser.id} nickname={visitedUser.nickname} />
       </div>
     </AppShell>
