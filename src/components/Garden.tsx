@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Pot, Biome } from '@/types';
@@ -120,6 +120,7 @@ import { PotFx } from '@/components/PotFx';
 import { HerboFly, HerboFlight } from '@/components/HerboFly';
 import { lifecycleFromCode, isVisibleStageChange } from '@/config/lifecycle';
 import { usePendingGifts } from '@/hooks/useGifts';
+import { useGardenWaterings } from '@/hooks/useNeighbor';
 import { GiftReceiveModal } from '@/components/GiftReceiveModal';
 import type { PendingGift } from '@/hooks/useGifts';
 
@@ -137,6 +138,13 @@ const GARDEN_ZOOM_MIN = 1;
 const GARDEN_ZOOM_MAX = 1.8;
 
 // Partículas decorativas — posições fixas para SSR-safe
+/** Posição/atraso das partículas do rastro de rega de vizinho. */
+const NEIGHBOR_SPARKLES = [
+  { left: '32%', delay: '0s' },
+  { left: '50%', delay: '0.9s' },
+  { left: '66%', delay: '1.7s' },
+] as const;
+
 const PARTICLES = [
   { x: 4,  y: 8,  s: 18, d: 0,   o: 0.22, dur: 5.2 },
   { x: 14, y: 82, s: 13, d: 1.3, o: 0.17, dur: 6.1 },
@@ -190,6 +198,12 @@ export default function Garden() {
   // ── Queries ─────────────────────────────────────────────────────────────
   const { data: pots = [], isPending: potsLoading, error: potsError } = usePots(user?.id);
   const { data: shovelStatus } = useShovelStatus(user?.id);
+  // Rastro: plantas que vizinhos regaram nas últimas 24h (brilho, só visual).
+  const { data: neighborWaterings = [] } = useGardenWaterings(user?.id ?? '');
+  const wateredByNeighbor = useMemo(
+    () => new Map(neighborWaterings.map((w) => [w.plantId, w.nickname])),
+    [neighborWaterings],
+  );
   const { data: wateringStatus } = useWateringStatus(user?.id);
   const { data: pendingGifts = [] } = usePendingGifts(user?.id);
   const shovelCooldownMs = shovelStatus?.cooldownRemainingMs ?? 0;
@@ -1166,6 +1180,18 @@ export default function Garden() {
                 onClick={handlePotClick(pot)}
                 onDigComplete={handleDigComplete}
               />
+
+              {/* Rastro: brilho dourado por 24h quando um vizinho regou esta planta */}
+              {!!displayPot.plant_id && wateredByNeighbor.has(displayPot.plant_id) && (
+                <span
+                  className="absolute inset-0 pointer-events-none"
+                  title={`Regada por @${wateredByNeighbor.get(displayPot.plant_id) ?? 'alguém'}`}
+                >
+                  {NEIGHBOR_SPARKLES.map((s, i) => (
+                    <span key={i} className="neighbor-sparkle" style={{ left: s.left, animationDelay: s.delay }} />
+                  ))}
+                </span>
+              )}
             </div>
           );
         })}
