@@ -5,10 +5,19 @@ import Image from 'next/image';
 import { usePots } from '@/hooks/useGardenData';
 import { useAuth } from '@/hooks/useAuth';
 import { useWaterNeighbor, useGardenSocial } from '@/hooks/useNeighbor';
+import { useWaterStatus } from '@/hooks/useWater';
 import { HexPot } from '@/components/HexPot';
+import { HexButton } from '@/components/HexButton';
 import { PotFx } from '@/components/PotFx';
 import { POT_BOX_ASPECT } from '@/lib/potGeometry';
 import type { Pot } from '@/types';
+
+/** Mesmo ícone do regador do painel do jardim próprio (escala com o HexButton). */
+const WateringCanIcon = () => (
+  <span className="relative inline-block" style={{ width: '2em', height: '2em' }}>
+    <Image src="/imgs/watering-can.webp" alt="regador" fill className="object-contain" draggable={false} />
+  </span>
+);
 
 const PARTICLES = [
   { x: 4,  y: 8,  s: 18, d: 0,   o: 0.22, dur: 5.2 },
@@ -44,6 +53,7 @@ export function GardenView({ userId, ownerId }: { userId: string; ownerId?: stri
   const { data: pots = [], isPending } = usePots(userId);
   const { user } = useAuth();
   const waterNeighbor = useWaterNeighbor();
+  const { data: waterStatus } = useWaterStatus();
 
   // O servidor decide qual planta pede ajuda hoje e quais já foram regadas.
   const { data: social } = useGardenSocial(userId);
@@ -154,6 +164,7 @@ export function GardenView({ userId, ownerId }: { userId: string; ownerId?: stri
   const showTool = canWater && !!askingPot && !wateredNow;
 
   return (
+    <>
     <div
       className="garden-bg relative w-full h-full overflow-hidden select-none"
       style={{
@@ -247,64 +258,6 @@ export function GardenView({ userId, ownerId }: { userId: string; ownerId?: stri
         <PotFx key={`nwater-${dropFx.nonce}`} type="water" x={dropFx.x} y={dropFx.y} />
       )}
 
-      {/* Regador — arraste até a planta que está pedindo água */}
-      {showTool && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-1">
-          <button
-            onPointerDown={handleCanPointerDown}
-            aria-label="Arraste o regador até a planta que pede água"
-            title="Arraste o regador até a planta que pede água"
-            className="rounded-full p-2.5 transition-transform active:scale-95"
-            style={{
-              background: 'rgba(8,14,5,0.75)',
-              border: '1.5px solid rgba(96,165,250,0.55)',
-              backdropFilter: 'blur(4px)',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
-              cursor: 'grab',
-              touchAction: 'none',
-              opacity: waterNeighbor.isPending ? 0.5 : 1,
-            }}
-          >
-            <Image src="/imgs/watering-can.webp" alt="" width={34} height={34} className="object-contain pointer-events-none" draggable={false} />
-          </button>
-          <span
-            className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap"
-            style={{ fontFamily: 'var(--font-caption)', color: 'var(--color-text-light)', background: 'rgba(8,14,5,0.6)' }}
-          >
-            arraste até a 💧
-          </span>
-        </div>
-      )}
-
-      {/* Regador fantasma seguindo o dedo/cursor */}
-      {dragPos && (
-        <div
-          className="fixed pointer-events-none z-[9999]"
-          style={{ left: dragPos.x, top: dragPos.y, transform: 'translate(-50%, -50%)', filter: isOverTarget ? 'drop-shadow(0 0 10px rgba(96,165,250,0.95))' : 'none' }}
-        >
-          <Image src="/imgs/watering-can.webp" alt="" width={isOverTarget ? 54 : 44} height={isOverTarget ? 54 : 44} className="object-contain" draggable={false} />
-        </div>
-      )}
-
-      {/* Chip de resultado */}
-      {feedback && (
-        <div
-          className="absolute left-1/2 -translate-x-1/2 z-40 px-3 py-1.5 rounded-full text-xs font-black whitespace-nowrap pointer-events-none"
-          style={{
-            top: '12%',
-            fontFamily: 'var(--font-display)',
-            color: feedback.good ? (feedback.lucky ? '#3a2a08' : '#0f2a0c') : '#fff',
-            background: feedback.good
-              ? (feedback.lucky ? 'rgba(250,199,117,0.97)' : 'rgba(155,222,120,0.95)')
-              : 'rgba(90,20,20,0.9)',
-            border: `1.5px solid ${feedback.good ? (feedback.lucky ? 'rgba(133,79,11,0.6)' : 'rgba(28,90,20,0.5)') : 'rgba(160,60,60,0.7)'}`,
-            boxShadow: '0 4px 14px rgba(0,0,0,0.45)',
-          }}
-        >
-          {feedback.lucky ? `✨ ${feedback.text}` : feedback.text}
-        </div>
-      )}
-
       {pots.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <p
@@ -322,5 +275,59 @@ export function GardenView({ userId, ownerId }: { userId: string; ownerId?: stri
         </div>
       )}
     </div>
+
+    {/* ── Regador — MESMO botão hexagonal do jardim próprio, sem painel colapsável.
+        Fica FORA do contêiner do jardim de propósito: lá dentro há um stacking
+        context isolado onde os canteiros chegam a z-index ~1000 e passariam por
+        cima do botão. ─────────────────────────────────────────────────────── */}
+    {showTool && (
+      <div className="painel" onClick={(e) => e.stopPropagation()}>
+        <HexButton
+          className="painel-btn"
+          icon={<WateringCanIcon />}
+          badge={waterStatus?.balance}
+          disabled={waterNeighbor.isPending}
+          active={!!dragPos}
+          onPointerDown={handleCanPointerDown}
+          label="Regador"
+          title="Arraste até a planta que está pedindo água"
+        />
+      </div>
+    )}
+
+    {/* Regador fantasma seguindo o dedo/cursor */}
+    {dragPos && (
+      <div
+        className="fixed pointer-events-none"
+        style={{
+          left: dragPos.x, top: dragPos.y, transform: 'translate(-50%, -50%)',
+          zIndex: 999999,
+          filter: isOverTarget ? 'drop-shadow(0 0 10px rgba(96,165,250,0.95))' : 'none',
+        }}
+      >
+        <Image src="/imgs/watering-can.webp" alt="" width={isOverTarget ? 54 : 44} height={isOverTarget ? 54 : 44} className="object-contain" draggable={false} />
+      </div>
+    )}
+
+    {/* Chip de resultado */}
+    {feedback && (
+      <div
+        className="fixed left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full text-xs font-black whitespace-nowrap pointer-events-none"
+        style={{
+          top: '14%',
+          zIndex: 999999,
+          fontFamily: 'var(--font-display)',
+          color: feedback.good ? (feedback.lucky ? '#3a2a08' : '#0f2a0c') : '#fff',
+          background: feedback.good
+            ? (feedback.lucky ? 'rgba(250,199,117,0.97)' : 'rgba(155,222,120,0.95)')
+            : 'rgba(90,20,20,0.9)',
+          border: `1.5px solid ${feedback.good ? (feedback.lucky ? 'rgba(133,79,11,0.6)' : 'rgba(28,90,20,0.5)') : 'rgba(160,60,60,0.7)'}`,
+          boxShadow: '0 4px 14px rgba(0,0,0,0.45)',
+        }}
+      >
+        {feedback.lucky ? `✨ ${feedback.text}` : feedback.text}
+      </div>
+    )}
+    </>
   );
 }
