@@ -38,9 +38,17 @@ A abelha **surge quando o jogador abre/está no próprio jardim** e o cooldown j
 ### Comportamento
 
 1. A abelha **entra voando** pela borda da tela.
-2. **Pousa numa planta** aleatória do jardim e fica **1 minuto**.
+2. Fica **ativa por 20 minutos**, **pousando nas plantas** — pousa numa, descansa, voa até outra, e assim por diante.
 3. Se o jogador **clicar nela pousada** → ganha **1 pólen** (com feedback visual voando até a mochila).
-4. Se o minuto passar sem clique → ela **voa para o canto e some**, e a chance é **perdida** (o servidor re-sorteia o próximo horário).
+4. Passados os 20 minutos, ela **voa para o canto e vai embora**; a chance é **perdida** e o servidor re-sorteia o próximo horário.
+
+A janela de 20 min é **rastreada no servidor** (`bee_spawned_at`), então sair e voltar ao jardim não reinicia nem duplica a abelha — ela continua de onde estava.
+
+### Assets
+
+`public/imgs/abelha.webp` — **WebP animado** de 2 frames (asa para cima / para baixo), 256×256, ~21KB, gerado dos PNGs originais.
+
+> **Por que WebP e não GIF:** a abelha tem asas translúcidas e glow suave. O GIF só suporta alfa de **1 bit** (medido: 2 níveis, 0 semitransparentes) e serrilharia essas bordas sobre o verde do jardim. O WebP animado preserva **254 níveis** de alfa pelo mesmo peso. Existe um `abelha.gif` gerado para comparação, mas o código usa o `.webp`.
 
 ### Anti-trapaça
 
@@ -99,9 +107,11 @@ O projeto **não tem camada de áudio** hoje — nenhum `<audio>`, nenhuma lib. 
 ## 6. Data model
 
 ```sql
--- Abelha: quando a próxima pode aparecer (re-sorteado a cada evento).
 alter table public.profiles
-  add column if not exists bee_next_at timestamptz;
+  -- Quando a próxima abelha pode aparecer (re-sorteado a cada evento).
+  add column if not exists bee_next_at    timestamptz,
+  -- Quando a abelha atual apareceu; janela ativa = +20min. Null = sem abelha.
+  add column if not exists bee_spawned_at timestamptz;
 ```
 
 Pólen e elixir **não precisam de migração**: `inventory_items.item_type` é texto livre.
@@ -116,9 +126,8 @@ Novo `src/services/beeService.ts` + rotas, no padrão server-authoritative de `g
 
 | Rota | Efeito |
 |---|---|
-| `GET /api/bee/status` | `{ available: boolean }` — `now >= bee_next_at` |
-| `POST /api/bee/claim` | Valida a janela → +1 pólen na mochila → re-sorteia `bee_next_at` em 1–3h. Erros: `NO_BEE`, `INVENTORY_FULL` |
-| `POST /api/bee/miss` | A abelha foi embora sem clique → re-sorteia `bee_next_at` |
+| `GET /api/bee/status` | Deriva o estado (com expiração preguiçosa da janela de 20 min) e, se o cooldown venceu, **marca o spawn**. Retorna `{ active, remainingMs }` |
+| `POST /api/bee/claim` | Valida a janela ativa → +1 pólen na mochila → limpa o spawn e re-sorteia `bee_next_at` em 1–3h. Erros: `NO_BEE`, `INVENTORY_FULL` |
 | `POST /api/inventory/craft-elixir` | 20 pólen → 1 elixir. Erros: `NOT_ENOUGH_POLEN`, `INVENTORY_FULL` |
 | `POST /api/plants/use-elixir` | Consome 1 elixir → reroll de `water_period_ms` + recálculo de `next_water_needed_at`. Retorna o novo período para a animação. Erros: `NO_ELIXIR`, `PLANT_NOT_FOUND`, `NOT_OWNER` |
 
@@ -129,8 +138,10 @@ Todas com compare-and-swap, como as demais mecânicas.
 ## 8. Config (`economy.ts`)
 
 ```ts
-/** Janela em que a abelha fica pousada antes de ir embora (client). */
-BEE_LANDED_SECONDS:    60,
+/** Minutos que a abelha fica ativa no jardim antes de ir embora. */
+BEE_ACTIVE_MINUTES:    20,
+/** Segundos que ela fica pousada numa planta antes de voar para outra. */
+BEE_HOP_SECONDS:       30,
 /** Faixa (horas) do sorteio do próximo aparecimento da abelha. */
 BEE_MIN_HOURS:         1,
 BEE_MAX_HOURS:         3,

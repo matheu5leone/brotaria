@@ -1,21 +1,27 @@
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { generateRandomDNA } from './dnaService';
-import { rollSede } from '@/config/economy';
+import { rollSede, stackMaxFor } from '@/config/economy';
 import { recordPendingReferral } from './referralService';
 import { grantDefaultAvatar } from './avatarService';
 import type { Rarity, Biome } from '@/types';
 
 // ── Helpers de slot ────────────────────────────────────────────────────────
 
+/** Tipos empilháveis da mochila. O teto de cada um vem de `stackMaxFor`. */
+export type StackableItemType = 'seed' | 'wrapping_kit' | 'polen' | 'elixir';
+
 /**
- * Primeiro slot com espaço para empilhar (quantity < 10) do MESMO item_type,
- * raridade E bioma, ou null. Stacks são separados por (item_type, rarity, biome):
- * genérica (rarity/biome null), semente reciclada (rarity) e semente-bioma (biome)
- * nunca se misturam.
+ * Primeiro slot com espaço para empilhar (quantity < teto do tipo) do MESMO
+ * item_type, raridade E bioma, ou null. Stacks são separados por
+ * (item_type, rarity, biome): genérica (rarity/biome null), semente reciclada
+ * (rarity) e semente-bioma (biome) nunca se misturam.
+ *
+ * O teto é POR TIPO (`stackMaxFor`): 10 no geral, 20 para pólen e 1 para o
+ * elixir — que assim ocupa sempre um slot próprio.
  */
 async function findStackableSlot(
   userId: string,
-  itemType: 'seed' | 'wrapping_kit',
+  itemType: StackableItemType,
   rarity: Rarity | null = null,
   biome: Biome | null = null,
 ) {
@@ -24,7 +30,7 @@ async function findStackableSlot(
     .select('id, quantity')
     .eq('user_id', userId)
     .eq('item_type', itemType)
-    .lt('quantity', 10);
+    .lt('quantity', stackMaxFor(itemType));
   q = rarity == null ? q.is('rarity', null) : q.eq('rarity', rarity);
   q = biome == null ? q.is('biome', null) : q.eq('biome', biome);
   const { data } = await q.order('slot_index', { ascending: true }).limit(1).maybeSingle();
@@ -50,7 +56,7 @@ export async function findFreeSlot(userId: string): Promise<number | null> {
  */
 export async function addStackableItem(
   userId: string,
-  itemType: 'seed' | 'wrapping_kit',
+  itemType: StackableItemType,
   rarity: Rarity | null = null,
   biome: Biome | null = null,
   retried = false,

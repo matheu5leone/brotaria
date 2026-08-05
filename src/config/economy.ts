@@ -151,6 +151,19 @@ export const GAME = {
   /** Horas que o brilho do rastro fica na planta regada. */
   NEIGHBOR_WATER_TRACE_HOURS:  24,
 
+  // ── Abelha → pólen → Elixir Floral ────────────────────────────────────────
+  /** Minutos que a abelha fica ativa no jardim antes de ir embora. */
+  BEE_ACTIVE_MINUTES:   20,
+  /** Segundos pousada numa planta antes de voar para outra. */
+  BEE_HOP_SECONDS:      30,
+  /** Faixa (horas) do sorteio do próximo aparecimento da abelha. */
+  BEE_MIN_HOURS:        1,
+  BEE_MAX_HOURS:        3,
+  /** Pólen ganho por abelha coletada. */
+  BEE_POLEN_PER_CLAIM:  1,
+  /** Pólen necessário para forjar 1 Elixir Floral. */
+  ELIXIR_POLEN_COST:    20,
+
   // ── Pá (canteiro) ─────────────────────────────────────────────────────────
   /** Horas de cooldown para usar a pá novamente. */
   SHOVEL_COOLDOWN_HOURS: 24,
@@ -326,6 +339,29 @@ export const WATER_COLLECT_COOLDOWN_MS = GAME.WATER_COLLECT_COOLDOWN_HOURS * 60 
 
 /** Milissegundos do ciclo de trabalho do Pablo. */
 export const GNOME_COOLDOWN_MS = GAME.GNOME_COOLDOWN_HOURS * 60 * 60 * 1000;
+
+/** Milissegundos que a abelha fica ativa no jardim. */
+export const BEE_ACTIVE_MS = GAME.BEE_ACTIVE_MINUTES * 60 * 1000;
+
+/** Sorteia o intervalo (ms) até a próxima abelha: entre BEE_MIN e BEE_MAX horas. */
+export function rollBeeIntervalMs(): number {
+  const min = GAME.BEE_MIN_HOURS * 60;
+  const max = GAME.BEE_MAX_HOURS * 60;
+  return randInt(min, max) * 60_000; // granularidade de minuto
+}
+
+/**
+ * Teto de empilhamento por tipo de item na mochila. O padrão é 10; o pólen
+ * empilha 20 (20 pólen = 1 Elixir, então um slot cheio vira exatamente 1 item).
+ * Itens não empilháveis (elixir) usam 1 — cada unidade ocupa seu próprio slot.
+ */
+export const STACK_MAX_BY_TYPE: Record<string, number> = {
+  polen:  20,
+  elixir: 1,
+};
+export const STACK_MAX_DEFAULT = 10;
+export const stackMaxFor = (itemType: string): number =>
+  STACK_MAX_BY_TYPE[itemType] ?? STACK_MAX_DEFAULT;
 
 /** Milissegundos de cooldown da pá. */
 export const SHOVEL_COOLDOWN_MS = GAME.SHOVEL_COOLDOWN_HOURS * 60 * 60 * 1000;
