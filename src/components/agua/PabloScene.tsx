@@ -10,9 +10,7 @@ import {
   useGnomeDevReset,
 } from '@/hooks/useGnome';
 import { useAuth } from '@/hooks/useAuth';
-
-// TEMPORÁRIO (dev): id da `lele` p/ mostrar o botão de estorno da cutscene. REMOVER depois.
-const LELE_ID = '1d2695fc-4787-4917-a6ca-9392e5869165';
+import { isDevUser } from '@/lib/devUser';
 
 const SPRITE = {
   chapeu: '/imgs/pablo/chapeu-pablo.webp',
@@ -246,7 +244,7 @@ export function PabloScene() {
       )}
 
       {/* TEMPORÁRIO (dev) — botão de estorno da cutscene, só pra `lele`. REMOVER depois. */}
-      {user?.id === LELE_ID && (
+      {isDevUser(user?.id) && (
         <button
           onClick={() => devReset.mutate()}
           disabled={devReset.isPending}

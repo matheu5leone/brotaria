@@ -2,18 +2,17 @@ import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/getAuthUser';
 import { getGnomeStatus } from '@/services/gnomeService';
 import { supabaseAdmin } from '@/lib/supabaseServer';
+import { isDevUser } from '@/lib/devUser';
 
 /**
  * TEMPORÁRIO (dev) — estorna a compra do chapéu do Pablo para RE-TESTAR a cutscene.
  * Reseta o gnomo para `locked` e devolve 1 estrela (só se estava desbloqueado,
- * pra não farmar estrela). Restrito ao usuário `lele`. REMOVER quando não precisar.
+ * pra não farmar estrela). Restrito à conta de dev. REMOVER quando não precisar.
  */
-const LELE_ID = '1d2695fc-4787-4917-a6ca-9392e5869165';
-
 export async function POST(request: Request) {
   const user = await getAuthUser(request);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (user.id !== LELE_ID) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!isDevUser(user.id)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { data: prof } = await supabaseAdmin
     .from('profiles').select('stars, gnome_unlocked').eq('id', user.id).single();

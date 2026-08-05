@@ -66,6 +66,20 @@ export function useCraftElixir() {
   });
 }
 
+/** TEMPORÁRIO (dev) — força a abelha a aparecer agora, sem esperar o cooldown. */
+export function useBeeDevSpawn() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: async () => {
+      const res = await authFetch('/api/bee/dev-spawn', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Erro');
+      return data as { ok: true };
+    },
+    onSuccess: invalidate,
+  });
+}
+
 /** Usa 1 elixir numa planta: devolve o novo período de sede (para a roleta). */
 export function useUseElixir() {
   const { user } = useAuth();
