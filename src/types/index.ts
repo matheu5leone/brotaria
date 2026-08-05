@@ -120,7 +120,15 @@ export interface Profile {
   created_at: string;
 }
 
-export type InventoryItemType = 'seed' | 'wrapping_kit' | 'wrapped_plant' | 'plant';
+export type InventoryItemType =
+  | 'seed'
+  | 'wrapping_kit'
+  | 'wrapped_plant'
+  | 'plant'
+  /** Coletado da abelha; empilha até 20 (ver STACK_MAX_BY_TYPE). */
+  | 'polen'
+  /** Forjado com 20 pólen; não empilha (1 por slot). */
+  | 'elixir';
 
 export interface InventoryItem {
   id: string;

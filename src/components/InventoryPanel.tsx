@@ -10,6 +10,10 @@ import { usePlantVersion, usePlant } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
 import { InventoryItem, Rarity, Biome, PlantDNA } from '@/types';
 import { BIOME_LABELS, seedImage } from '@/config/biomes';
+import { GAME } from '@/config/economy';
+import { useCraftElixir } from '@/hooks/useBee';
+
+const ELIXIR_POLEN_COST = GAME.ELIXIR_POLEN_COST;
 
 /** Dados do stack de semente arrastado (define o que será plantado). */
 export type SeedDragMeta = { rarity: Rarity | null; biome: Biome | null };
@@ -217,6 +221,8 @@ function SlotContent({
   onOpenGift,
   onLabelSave,
   onSeedDragStart,
+  onCraftElixir,
+  onUseElixir,
 }: {
   item: InventoryItem | undefined;
   userId: string;
@@ -225,6 +231,8 @@ function SlotContent({
   onOpenGift: () => void;
   onLabelSave: (label: string) => void;
   onSeedDragStart?: (e: React.PointerEvent, seed?: SeedDragMeta) => void;
+  onCraftElixir?: () => void;
+  onUseElixir?: () => void;
 }) {
   if (animPhase !== 'idle') return <AnimatingSlot phase={animPhase} rarity={animRarity} />;
 
@@ -282,6 +290,55 @@ function SlotContent({
       </div>
     );
   }
+  if (item.item_type === 'polen') {
+    const cheio = (item.quantity ?? 0) >= ELIXIR_POLEN_COST;
+    return (
+      <button
+        onClick={() => cheio && onCraftElixir?.()}
+        disabled={!cheio}
+        title={cheio
+          ? `${ELIXIR_POLEN_COST} pólen — toque para forjar o Elixir Floral`
+          : `Pólen (${item.quantity}/${ELIXIR_POLEN_COST} para um Elixir Floral)`}
+        className="relative flex flex-col items-center justify-center gap-0.5 w-full h-full rounded-xl transition-transform active:scale-95 disabled:cursor-default"
+        style={{
+          background: 'rgba(250,199,117,0.18)',
+          border: `1px solid ${cheio ? 'var(--color-gold)' : 'rgba(133,79,11,0.4)'}`,
+          boxShadow: cheio ? '0 0 12px rgba(201,162,39,0.55) inset' : undefined,
+          cursor: cheio ? 'pointer' : 'default',
+        }}
+      >
+        <Image src="/imgs/polen.webp" alt="pólen" width={26} height={26} className="object-contain pointer-events-none" draggable={false} />
+        <span className="text-[9px] font-bold pointer-events-none" style={{ color: '#7a4a10' }}>
+          ×{item.quantity}
+        </span>
+        {cheio && (
+          <span
+            className="absolute -top-1 -right-1 px-1 py-0.5 rounded-full text-[8px] font-black pointer-events-none"
+            style={{ background: 'var(--color-gold)', color: '#3a2a08' }}
+          >
+            forjar
+          </span>
+        )}
+      </button>
+    );
+  }
+  if (item.item_type === 'elixir') {
+    return (
+      <button
+        onClick={() => onUseElixir?.()}
+        title="Elixir Floral — use numa planta para re-sortear o intervalo de sede"
+        className="flex flex-col items-center justify-center gap-0.5 w-full h-full rounded-xl transition-transform active:scale-95"
+        style={{
+          background: 'rgba(250,199,117,0.22)',
+          border: '1px solid var(--color-gold)',
+          cursor: 'pointer',
+        }}
+      >
+        <Image src="/imgs/elixir.webp" alt="Elixir Floral" width={30} height={30} className="object-contain pointer-events-none" draggable={false} />
+        <span className="text-[8px] font-bold pointer-events-none leading-none" style={{ color: '#7a4a10' }}>usar</span>
+      </button>
+    );
+  }
   if (item.item_type === 'wrapped_plant') {
     return <WrappedPlantSlot item={item} userId={userId} onOpen={onOpenGift} onLabelSave={onLabelSave} />;
   }
@@ -299,6 +356,7 @@ export function InventoryPanel({
   open,
   onClose,
   onSeedDragStart,
+  onUseElixir,
 }: {
   userId: string | undefined;
   onWrapMode: () => void;
@@ -306,7 +364,10 @@ export function InventoryPanel({
   onClose: () => void;
   /** Inicia o arraste de plantar a partir de um slot de semente (fecha a mochila). */
   onSeedDragStart?: (e: React.PointerEvent, seed?: SeedDragMeta) => void;
+  /** Abre a escolha de planta para usar o Elixir Floral (fecha a mochila). */
+  onUseElixir?: () => void;
 }) {
+  const craftElixir = useCraftElixir();
   const [animatingSlot, setAnimatingSlot] = useState<number | null>(null);
   const [animPhase, setAnimPhase] = useState<OpenPhase>('idle');
   const [animRarity, setAnimRarity] = useState<Rarity>('comum');
@@ -422,6 +483,8 @@ export function InventoryPanel({
                 onOpenGift={() => item && handleOpenGift(item)}
                 onLabelSave={(label) => item && handleLabelSave(item, label)}
                 onSeedDragStart={onSeedDragStart}
+                onCraftElixir={() => craftElixir.mutate()}
+                onUseElixir={() => { onClose(); onUseElixir?.(); }}
               />
             </div>
           ))}

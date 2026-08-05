@@ -408,6 +408,21 @@ html, body {
 }
 .well-breathe { animation: well-breathe 2.8s ease-in-out infinite; }
 
+/* Abelha pousada: respira de leve sobre a planta. */
+@keyframes bee-hover {
+  0%, 100% { transform: translate(-50%, -50%) translateY(0)    scale(1);    }
+  50%      { transform: translate(-50%, -50%) translateY(-4px) scale(1.04); }
+}
+/* Pólen voando da abelha até a mochila. */
+@keyframes polen-fly {
+  0%   { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
+  70%  { opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--fly-dx)), calc(-50% + var(--fly-dy))) scale(0.4); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bee-hover, [style*="bee-hover"] { animation: none !important; }
+}
+
 /* Rastro de rega de vizinho: mini partículas brancas subindo da planta (24h). */
 @keyframes neighbor-sparkle {
   0%   { transform: translateY(2px) scale(0.4); opacity: 0; }

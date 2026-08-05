@@ -121,6 +121,9 @@ import { HerboFly, HerboFlight } from '@/components/HerboFly';
 import { lifecycleFromCode, isVisibleStageChange } from '@/config/lifecycle';
 import { usePendingGifts } from '@/hooks/useGifts';
 import { useGardenSocial } from '@/hooks/useNeighbor';
+import { BeeScene } from '@/components/BeeScene';
+import { ElixirRoulette } from '@/components/ElixirRoulette';
+import { useUseElixir } from '@/hooks/useBee';
 import { GiftReceiveModal } from '@/components/GiftReceiveModal';
 import type { PendingGift } from '@/hooks/useGifts';
 
@@ -198,6 +201,11 @@ export default function Garden() {
   // ── Queries ─────────────────────────────────────────────────────────────
   const { data: pots = [], isPending: potsLoading, error: potsError } = usePots(user?.id);
   const { data: shovelStatus } = useShovelStatus(user?.id);
+  // Elixir Floral: escolher a planta alvo → roleta do novo intervalo de sede.
+  const useElixirMutation = useUseElixir();
+  const [elixirPicking, setElixirPicking] = useState(false);
+  const [elixirResult, setElixirResult] = useState<{ periodMs: number; previousMs: number | null } | null>(null);
+
   // Rastro: plantas que vizinhos regaram nas últimas 24h (brilho, só visual).
   const { data: gardenSocial } = useGardenSocial(user?.id ?? '');
   const wateredByNeighbor = useMemo(
@@ -1139,6 +1147,9 @@ export default function Garden() {
           </div>
         ))}
 
+        {/* Abelha — aparece quando o servidor diz que há uma (cooldown 1–3h) */}
+        <BeeScene pots={pots} />
+
         {/* ── Pots ────────────────────────────────────────────────────── */}
         {pots.map((pot) => {
           const x = pot.pos_x ?? 50;
@@ -1359,6 +1370,67 @@ export default function Garden() {
           open={inventoryOpen}
           onClose={() => setInventoryOpen(false)}
           onSeedDragStart={handleSeedDragStart}
+          onUseElixir={() => setElixirPicking(true)}
+        />
+      )}
+
+      {/* Elixir Floral — escolha da planta que vai receber o reroll de sede */}
+      {elixirPicking && (
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+          style={{ background: 'rgba(5,8,3,0.6)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setElixirPicking(false)}
+        >
+          <div
+            className="w-full rounded-3xl p-5 flex flex-col gap-3"
+            style={{
+              maxWidth: 340,
+              background: 'linear-gradient(180deg, var(--color-parch-light), var(--color-parch-dark))',
+              border: '1.5px solid var(--color-wood-light)',
+              boxShadow: '0 32px 80px rgba(0,0,0,0.5)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-base font-black text-center" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}>
+              Usar o Elixir em qual planta?
+            </h2>
+            <p className="text-[11px] font-bold text-center -mt-1" style={{ fontFamily: 'var(--font-caption)', color: 'var(--color-text-mid)' }}>
+              O intervalo de sede será re-sorteado. Pode melhorar — ou piorar.
+            </p>
+            <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto">
+              {pots.filter((p) => p.plant_id).map((p) => (
+                <button
+                  key={p.id}
+                  disabled={useElixirMutation.isPending}
+                  onClick={() => {
+                    const before = qc.getQueryData<PlantRow>(['plant', p.plant_id])?.water_period_ms ?? null;
+                    useElixirMutation.mutate(p.plant_id as string, {
+                      onSuccess: (data) => {
+                        setElixirPicking(false);
+                        setElixirResult({ periodMs: data.periodMs, previousMs: before });
+                      },
+                    });
+                  }}
+                  className="py-2.5 px-3 rounded-xl text-sm font-black text-left transition-transform active:scale-95 disabled:opacity-50"
+                  style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)', background: 'rgba(92,58,30,0.10)', border: '1px solid rgba(92,58,30,0.35)' }}
+                >
+                  🌱 Planta no canteiro {(pots.filter((x) => x.plant_id).indexOf(p) + 1)}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setElixirPicking(false)} className="text-xs font-bold" style={{ color: 'var(--color-text-muted)' }}>
+              Agora não
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Elixir Floral — roleta do novo intervalo de sede */}
+      {elixirResult && (
+        <ElixirRoulette
+          periodMs={elixirResult.periodMs}
+          previousMs={elixirResult.previousMs}
+          onClose={() => setElixirResult(null)}
         />
       )}
 
