@@ -408,6 +408,18 @@ html, body {
 }
 .well-breathe { animation: well-breathe 2.8s ease-in-out infinite; }
 
+/* Abelha: glow dourado ao passar o mouse (só quando dá pra clicar). */
+.bee-clickable {
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
+  transition: filter 180ms ease-out, transform 180ms ease-out;
+}
+.bee-clickable:hover {
+  filter:
+    drop-shadow(0 0 6px rgba(255, 224, 128, 0.95))
+    drop-shadow(0 0 14px rgba(245, 166, 35, 0.85))
+    drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
+}
+
 /* Abelha pousada: respira de leve sobre a planta. */
 @keyframes bee-hover {
   0%, 100% { transform: translate(-50%, -50%) translateY(0)    scale(1);    }

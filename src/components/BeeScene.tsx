@@ -108,7 +108,7 @@ export function BeeScene({ pots }: { pots: Pot[] }) {
         onClick={onClick}
         aria-label="Pegar o pólen da abelha"
         title={phase === 'landed' ? 'Clique para pegar o pólen' : 'A abelha está voando...'}
-        className="absolute"
+        className={`absolute ${phase === 'landed' ? 'bee-clickable' : ''}`}
         style={{
           left: `${spot.x}%`,
           top: `${spot.y}%`,
@@ -116,12 +116,14 @@ export function BeeScene({ pots }: { pots: Pot[] }) {
           width: 'min(11vmin, 56px)',
           height: 'min(11vmin, 56px)',
           transition: `left ${FLIGHT_MS}ms cubic-bezier(.45,.05,.55,.95), top ${FLIGHT_MS}ms cubic-bezier(.45,.05,.55,.95)`,
-          // Acima dos canteiros (que chegam a ~z-1000 dentro do jardim).
-          zIndex: 999990,
+          // Acima de tudo no jardim: os canteiros chegam a ~z-1000 e os efeitos
+          // de terra/água (PotFx) a 999998 — a abelha voa por cima de todos.
+          zIndex: 999999,
           background: 'transparent',
           cursor: phase === 'landed' ? 'pointer' : 'default',
           pointerEvents: phase === 'landed' ? 'auto' : 'none',
-          filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.45))',
+          // Voando não tem hover: mantém só a sombra (a classe cuida do resto).
+          filter: phase === 'landed' ? undefined : 'drop-shadow(0 3px 6px rgba(0,0,0,0.45))',
           animation: phase === 'landed' ? 'bee-hover 1.8s ease-in-out infinite' : undefined,
         }}
       >
