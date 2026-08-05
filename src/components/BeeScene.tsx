@@ -45,6 +45,17 @@ export function BeeScene({ pots }: { pots: Pot[] }) {
     return { x: p.pos_x ?? 50, y: (p.pos_y ?? 50) - 6 };
   }, [planted, spot.x, spot.y]);
 
+  // O servidor abriu uma abelha nova (cooldown vencido OU botão dev): reencena
+  // do zero. Sem isto o `gone` local ficaria travado depois da primeira abelha
+  // da sessão, e o dev-spawn não traria a abelha de volta sem reload.
+  useEffect(() => {
+    if (status?.active) {
+      setGone(false);
+      setPhase('entering');
+      setSpot({ x: -10, y: 20 });
+    }
+  }, [status?.active]);
+
   // Entrada: voa da borda até a primeira planta.
   useEffect(() => {
     if (!active || gone) return;
