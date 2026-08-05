@@ -20,6 +20,7 @@ type Spot = { x: number; y: number };
 
 const FLIGHT_MS = 1500;   // duração do voo entre pontos (casa com a transition)
 const HOP_MS = GAME.BEE_HOP_SECONDS * 1000;
+const BUZZ_MS = GAME.BEE_BUZZ_SECONDS * 1000;
 
 export function BeeScene({ pots }: { pots: Pot[] }) {
   const { data: status } = useBeeStatus();
@@ -60,6 +61,14 @@ export function BeeScene({ pots }: { pots: Pot[] }) {
     const id = setInterval(() => setSpot(pickSpot()), HOP_MS);
     return () => clearInterval(id);
   }, [active, gone, phase, pickSpot]);
+
+  // Zumbido de tempos em tempos, enquanto a abelha estiver no jardim. O som da
+  // ENTRADA já toca no efeito acima; este é o repique enquanto ela fica.
+  useEffect(() => {
+    if (!active || gone) return;
+    const id = setInterval(() => playSfx('bee'), BUZZ_MS);
+    return () => clearInterval(id);
+  }, [active, gone]);
 
   // Fim da janela (o servidor manda): a abelha vai embora.
   useEffect(() => {

@@ -156,6 +156,8 @@ export const GAME = {
   BEE_ACTIVE_MINUTES:   20,
   /** Segundos pousada numa planta antes de voar para outra. */
   BEE_HOP_SECONDS:      30,
+  /** Intervalo (segundos) do zumbido enquanto a abelha está no jardim. */
+  BEE_BUZZ_SECONDS:     60,
   /** Faixa (horas) do sorteio do próximo aparecimento da abelha. */
   BEE_MIN_HOURS:        1,
   BEE_MAX_HOURS:        3,
