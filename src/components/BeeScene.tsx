@@ -126,6 +126,15 @@ export function BeeScene({ pots }: { pots: Pot[] }) {
       <button
         ref={beeRef}
         onClick={onClick}
+        onPointerDown={(e) => {
+          // Sem isto, o pointerdown sobe até o canvas de pan/zoom do jardim
+          // (Garden.tsx: handleCanvasPointerDown), que chama setPointerCapture()
+          // nele mesmo. Por spec, isso RETARGETA o mouseup/click subsequente pro
+          // canvas — o onClick da abelha nunca dispara (some só no desktop:
+          // no touch, o navegador sintetiza o click de outro jeito). Mesmo
+          // padrão já usado nos outros botões arrastáveis deste arquivo.
+          e.stopPropagation();
+        }}
         aria-label="Pegar o pólen da abelha"
         title={phase === 'landed' ? 'Clique para pegar o pólen' : 'A abelha está voando...'}
         className={`absolute ${phase === 'landed' ? 'bee-clickable' : ''}`}
