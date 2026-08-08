@@ -164,7 +164,7 @@ export const GAME = {
   /** Pólen ganho por abelha coletada. */
   BEE_POLEN_PER_CLAIM:  1,
   /** Pólen necessário para forjar 1 Elixir Floral. */
-  ELIXIR_POLEN_COST:    20,
+  ELIXIR_POLEN_COST:    8,
 
   // ── Pá (canteiro) ─────────────────────────────────────────────────────────
   /** Horas de cooldown para usar a pá novamente. */

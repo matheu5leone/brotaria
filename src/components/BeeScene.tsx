@@ -4,8 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import type { Pot } from '@/types';
 import { GAME } from '@/config/economy';
-import { useBeeStatus, useClaimBee } from '@/hooks/useBee';
+import { useBeeStatus, useClaimBee, useAckPolenTutorial } from '@/hooks/useBee';
+import { useWallet } from '@/hooks/useWallet';
 import { playSfx } from '@/lib/sfx';
+import { PolenTutorial } from '@/components/PolenTutorial';
 
 /**
  * A abelha do jardim. Aparece quando o servidor diz que há uma (cooldown de 1–3h
@@ -25,6 +27,12 @@ const BUZZ_MS = GAME.BEE_BUZZ_SECONDS * 1000;
 export function BeeScene({ pots }: { pots: Pot[] }) {
   const { data: status } = useBeeStatus();
   const claim = useClaimBee();
+  const { polenTutorialSeen } = useWallet();
+  const ackTutorial = useAckPolenTutorial();
+  const [showTutorial, setShowTutorial] = useState(false);
+  // Garante que o tutorial só dispare uma vez por montagem, mesmo antes de o ack
+  // persistir (evita reabrir se o jogador clicar noutra abelha na mesma sessão).
+  const tutorialTriggeredRef = useRef(false);
 
   const planted = pots.filter((p) => p.plant_id);
   const active = !!status?.active && planted.length > 0;
@@ -100,26 +108,49 @@ export function BeeScene({ pots }: { pots: Pot[] }) {
   const onClick = useCallback(() => {
     if (phase !== 'landed' || claim.isPending) return;
     const rect = beeRef.current?.getBoundingClientRect();
-    claim.mutate(undefined, {
-      onSuccess: () => {
-        playSfx('polen');
-        // Pólen voa até a mochila (o painel marca o botão com data-tutorial).
-        const bag = document.querySelector('[data-tutorial="backpack"]')?.getBoundingClientRect();
-        if (rect && bag) {
-          setPolenFly({
-            from: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
-            to: { x: bag.left + bag.width / 2, y: bag.top + bag.height / 2 },
-          });
-          setTimeout(() => setPolenFly(null), 900);
-        }
-        setPhase('leaving');
-        setSpot({ x: 110, y: -10 });
-      },
-      onError: () => { setPhase('leaving'); setSpot({ x: 110, y: -10 }); },
-    });
-  }, [phase, claim]);
 
-  if (!active || gone) return <>{polenFlyNode(polenFly)}</>;
+    // Feedback INSTANTÂNEO (mesmo padrão do LikeButton no modo visitante): som,
+    // pólen voando até a mochila e abelha saindo acontecem NA HORA, sem esperar
+    // o banco. A request vai em seguida; a mochila reconcilia no onSuccess do hook.
+    playSfx('polen');
+    const bag = document.querySelector('[data-tutorial="backpack"]')?.getBoundingClientRect();
+    if (rect && bag) {
+      setPolenFly({
+        from: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
+        to: { x: bag.left + bag.width / 2, y: bag.top + bag.height / 2 },
+      });
+      setTimeout(() => setPolenFly(null), 900);
+    }
+    setPhase('leaving');
+    setSpot({ x: 110, y: -10 });
+
+    // 1ª abelha da vida do jogador: coleta o pólen E abre o tutorial juntos
+    // (a recompensa não fica bloqueada pelo modal).
+    if (!polenTutorialSeen && !tutorialTriggeredRef.current) {
+      tutorialTriggeredRef.current = true;
+      setShowTutorial(true);
+    }
+
+    claim.mutate(undefined, {
+      // Falha rara (mochila cheia / corrida): desfaz o visual — traz a abelha de volta.
+      onError: () => {
+        setGone(false);
+        setPhase('landed');
+        setSpot(pickSpot());
+      },
+    });
+  }, [phase, claim, pickSpot, polenTutorialSeen]);
+
+  const closeTutorial = useCallback(() => {
+    setShowTutorial(false);
+    ackTutorial.mutate();
+  }, [ackTutorial]);
+
+  const tutorialNode = showTutorial ? <PolenTutorial onDone={closeTutorial} /> : null;
+
+  // A abelha pode já ter ido embora (gone) e o tutorial ainda estar aberto —
+  // por isso o modal é renderizado FORA da encenação da abelha.
+  if (!active || gone) return <>{polenFlyNode(polenFly)}{tutorialNode}</>;
 
   return (
     <>
@@ -160,6 +191,7 @@ export function BeeScene({ pots }: { pots: Pot[] }) {
         <Image src="/imgs/abelha.webp" alt="" fill className="object-contain pointer-events-none" draggable={false} unoptimized />
       </button>
       {polenFlyNode(polenFly)}
+      {tutorialNode}
     </>
   );
 }

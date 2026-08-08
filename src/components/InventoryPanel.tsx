@@ -307,7 +307,7 @@ function SlotContent({
           cursor: cheio ? 'pointer' : 'default',
         }}
       >
-        <Image src="/imgs/polen.webp" alt="pólen" width={26} height={26} className="object-contain pointer-events-none" draggable={false} />
+        <Image src="/imgs/polen.webp" alt="pólen" width={39} height={39} className="object-contain pointer-events-none" draggable={false} />
         <span className="text-[9px] font-bold pointer-events-none" style={{ color: '#7a4a10' }}>
           ×{item.quantity}
         </span>

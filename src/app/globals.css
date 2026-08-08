@@ -420,6 +420,48 @@ html, body {
     drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
 }
 
+/* ---------- Tutorial do pólen (modal ilustrado) ---------- */
+@keyframes polentut-buzz {
+  0%, 100% { transform: translate(-50%, -50%) rotate(-5deg); }
+  25%      { transform: translate(calc(-50% + 7px), calc(-50% - 9px)) rotate(4deg); }
+  50%      { transform: translate(-50%, calc(-50% - 3px)) rotate(-2deg); }
+  75%      { transform: translate(calc(-50% - 7px), calc(-50% - 9px)) rotate(5deg); }
+}
+@keyframes polentut-fly {
+  0%   { left: 20%; top: 62%; opacity: 0; }
+  12%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { left: 80%; top: 30%; opacity: 0; }
+}
+@keyframes polentut-pop {
+  0%   { transform: translate(-50%, -50%) scale(0);    opacity: 0; }
+  60%  { transform: translate(-50%, -50%) scale(1.18); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1);    opacity: 1; }
+}
+@keyframes polentut-forge {
+  0%,   35% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  50%       { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+  100%      { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+}
+@keyframes polentut-forge-out {
+  0%,  40% { opacity: 0; transform: translate(-50%, -50%) scale(0.4) rotate(-20deg); }
+  60%      { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(6deg); }
+  100%     { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+}
+@keyframes polentut-drag {
+  0%   { left: 22%; top: 40%; opacity: 0; }
+  15%  { opacity: 1; }
+  75%  { left: 62%; top: 52%; opacity: 1; }
+  100% { left: 62%; top: 52%; opacity: 0; }
+}
+@keyframes polentut-reroll {
+  0%,  40% { transform: translate(-50%, -50%) rotate(0deg); }
+  100%     { transform: translate(-50%, -50%) rotate(720deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .polentut-anim { animation: none !important; }
+}
+
 /* Abelha pousada: respira de leve sobre a planta. */
 @keyframes bee-hover {
   0%, 100% { transform: translate(-50%, -50%) translateY(0)    scale(1);    }

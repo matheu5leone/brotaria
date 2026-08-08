@@ -66,6 +66,24 @@ export function useCraftElixir() {
   });
 }
 
+/** Marca o tutorial do pólen como visto (otimista: some na hora). */
+export function useAckPolenTutorial() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const res = await authFetch('/api/profile/polen-tutorial-ack', { method: 'POST' });
+      if (!res.ok) throw new Error('Falha ao confirmar tutorial');
+      return res.json();
+    },
+    onMutate: () => {
+      qc.setQueryData(['wallet', user?.id], (old: unknown) =>
+        old ? { ...(old as object), polenTutorialSeen: true } : old,
+      );
+    },
+  });
+}
+
 /** TEMPORÁRIO (dev) — força a abelha a aparecer agora, sem esperar o cooldown. */
 export function useBeeDevSpawn() {
   const invalidate = useInvalidate();
