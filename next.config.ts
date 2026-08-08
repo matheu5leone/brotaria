@@ -25,6 +25,17 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   devIndicators: false,
   images: {
+    // Otimização da Vercel DESLIGADA de propósito. A cota de "Image
+    // Transformations" (5.000/mês no free) é contada por variante ÚNICA de
+    // (imagem + largura + qualidade + formato). Como cada planta de IA e cada
+    // avatar é uma imagem única, o otimizador estourava a cota sozinho.
+    //
+    // E não precisamos dele: TODOS os assets já são WebP (estáticos convertidos
+    // + imagens de IA encodadas em WebP antes de subir pro Supabase). Otimizar
+    // WebP-já-pronto é gasto puro. `unoptimized` serve o arquivo cru → 0
+    // transformations, e o next/image continua funcionando (só sem resize/srcset).
+    // Se um dia a banda pesar, reduzir a resolução das imagens de IA no upload.
+    unoptimized: true,
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
       {
