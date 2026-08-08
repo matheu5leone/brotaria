@@ -170,6 +170,12 @@ export function PolenTutorial({ onDone }: { onDone: () => void }) {
     <div
       className="evo-fade-in fixed inset-0 z-[10060] flex items-center justify-center overflow-hidden select-none px-6"
       style={{ background: 'radial-gradient(ellipse at center, rgba(20,36,14,0.92) 0%, rgba(10,22,6,0.96) 70%)' }}
+      // O modal é montado dentro do canvas de pan/zoom do jardim (BeeScene fica
+      // na Garden). Sem isto, o pointerdown borbulha até handleCanvasPointerDown,
+      // que chama setPointerCapture() no canvas e RETARGETA o click subsequente —
+      // os botões ("Avançar"/"Voltar"/"Entendi!") ficam sem resposta no desktop.
+      // Mesmo motivo/fix do onPointerDown da abelha em BeeScene.
+      onPointerDown={(e) => e.stopPropagation()}
     >
       <div
         className="relative w-full max-w-sm rounded-3xl p-6 text-center"
