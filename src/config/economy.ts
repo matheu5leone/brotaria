@@ -64,6 +64,8 @@ export interface StoreProduct {
   name: string;
   description: string;
   cost_coins: number;
+  /** Preço alternativo em herbo, quando o item aceita as duas moedas. */
+  cost_herbo?: number;
 }
 
 export const PRICES = {
@@ -71,6 +73,9 @@ export const PRICES = {
   SEED:         5,
   /** Custo de um kit de embrulho (moedas). */
   WRAPPING_KIT: 20,
+  /** Repor a pá quebrada — aceita as duas moedas (o jogador escolhe). */
+  SHOVEL_COINS: 10,
+  SHOVEL_HERBO: 300,
 } as const;
 
 const SEED_PRODUCT: StoreProduct = {
@@ -94,8 +99,24 @@ const SKIP_TIME_PRODUCT: StoreProduct = {
   cost_coins:  0,
 };
 
+/**
+ * A pá é o único item com duas moedas: compra rápida com moeda, ou o caminho
+ * longo em herbo para quem não paga. Os valores vivem em GAME (bloco da pá) —
+ * aqui é só a vitrine.
+ * A compra NÃO passa por /api/store/buy: vai direto em /api/shovel/buy, que
+ * chama a RPC atômica `buy_shovel` (débito + recarga na mesma transação).
+ */
+const SHOVEL_PRODUCT: StoreProduct = {
+  id:          'shovel',
+  name:        '⛏️ Pá',
+  description: 'Uma pá nova com 5 usos. Cada canteiro cavado gasta um uso.',
+  cost_coins:  PRICES.SHOVEL_COINS,
+  cost_herbo:  PRICES.SHOVEL_HERBO,
+};
+
 export const STORE_PRODUCTS: StoreProduct[] = [
   SEED_PRODUCT,
+  SHOVEL_PRODUCT,
   WRAPPING_KIT_PRODUCT,
   ...(process.env.NODE_ENV !== 'production' ? [SKIP_TIME_PRODUCT] : []),
 ];
@@ -167,10 +188,8 @@ export const GAME = {
   ELIXIR_POLEN_COST:    8,
 
   // ── Pá (canteiro) ─────────────────────────────────────────────────────────
-  /** Horas de cooldown para usar a pá novamente. */
-  SHOVEL_COOLDOWN_HOURS: 24,
-  /** Segundos para cavar um canteiro (animação). */
-  DIG_DURATION_SECONDS:  60,
+  /** Usos de uma pá nova. Ao zerar, ela quebra e precisa ser reposta (ver PRICES). */
+  SHOVEL_MAX_DURABILITY: 5,
 
   // ── Recompensas de evolução (Herbo) ───────────────────────────────────────
   /**
@@ -354,19 +373,91 @@ export function rollBeeIntervalMs(): number {
 
 /**
  * Teto de empilhamento por tipo de item na mochila. O padrão é 10; o pólen
- * empilha 20 (20 pólen = 1 Elixir, então um slot cheio vira exatamente 1 item).
+ * empilha 20 (ELIXIR_POLEN_COST cabe com folga num slot só).
  * Itens não empilháveis (elixir) usam 1 — cada unidade ocupa seu próprio slot.
  */
 export const STACK_MAX_BY_TYPE: Record<string, number> = {
   polen:  20,
   elixir: 1,
+  // Materiais da terra: caem com frequência (10% e 40% por cavada), então
+  // empilham alto para não engolir a mochila enquanto não têm uso.
+  minhoca:       20,
+  terra_molhada: 20,
 };
 export const STACK_MAX_DEFAULT = 10;
 export const stackMaxFor = (itemType: string): number =>
   STACK_MAX_BY_TYPE[itemType] ?? STACK_MAX_DEFAULT;
 
-/** Milissegundos de cooldown da pá. */
-export const SHOVEL_COOLDOWN_MS = GAME.SHOVEL_COOLDOWN_HOURS * 60 * 60 * 1000;
+// ── Cavar (obra escalonada, loot e solo) ─────────────────────────────────────
 
-/** Milissegundos de duração da animação de cavar. */
-export const DIG_DURATION_MS = GAME.DIG_DURATION_SECONDS * 1_000;
+const MIN = 60_000;
+const HORA = 60 * MIN;
+
+/**
+ * Duração da obra por número de canteiros VAZIOS que o jogador já tem (contando
+ * os ainda em obra), medido ANTES de cavar. Índice = nº de vazios; acima do
+ * último índice, repete o último valor.
+ *
+ * A ideia: buraco vazio é dívida. Quem mantém o jardim cheio cava rápido para
+ * sempre; quem acumula buraco ocioso espera cada vez mais. O freio deixa de ser
+ * um relógio arbitrário e vira consequência do próprio jardim.
+ */
+export const DIG_DURATION_BY_EMPTY_POTS = [
+  1 * MIN,       // 0 vazios
+  5 * HORA,      // 1 vazio
+  24 * HORA,     // 2 vazios
+  7 * 24 * HORA, // 3+ vazios
+] as const;
+
+export function digDurationMsFor(emptyPots: number): number {
+  const i = Math.min(Math.max(emptyPots, 0), DIG_DURATION_BY_EMPTY_POTS.length - 1);
+  return DIG_DURATION_BY_EMPTY_POTS[i];
+}
+
+/**
+ * Custo (moedas) para apressar uma obra em andamento. Só obras ACIMA de 24h têm
+ * atalho — as de 1min e 5h não são vendáveis. Preço fixo por faixa: não depende
+ * de quanto falta, para o jogador saber o preço antes de cavar.
+ */
+export const DIG_RUSH_COST_COINS: Record<number, number> = {
+  [24 * HORA]:     5,
+  [7 * 24 * HORA]: 30,
+};
+
+/** Moedas para apressar esta obra, ou null se a faixa não tem atalho. */
+export function digRushCostFor(digDurationMs: number): number | null {
+  return DIG_RUSH_COST_COINS[digDurationMs] ?? null;
+}
+
+/**
+ * Materiais que a terra devolve ao cavar. `base` é a chance normal; `max` é o
+ * teto quando o jogador acerta o minigame em cheio. O intervalo é curto de
+ * propósito: `accuracy` vem do cliente e é impossível de auditar, então forjar
+ * precisão máxima rende pouco. Ver a nota de anti-cheat na spec.
+ */
+export const DIG_LOOT = {
+  minhoca:       { base: 0.10, max: 0.15 },
+  terra_molhada: { base: 0.40, max: 0.50 },
+} as const;
+
+export type DigLootType = keyof typeof DIG_LOOT;
+
+/** Chance efetiva de um material, interpolada pela precisão (0..1) no minigame. */
+export function digLootChance(type: DigLootType, accuracy: number): number {
+  const { base, max } = DIG_LOOT[type];
+  const a = Math.min(Math.max(accuracy, 0), 1); // clamp: o cliente não é confiável
+  return base + (max - base) * a;
+}
+
+/**
+ * Raridade do solo, sorteada a cada cavada e gravada em `pots.soil_rarity`.
+ * Distribuição UNIFORME (1/6 cada) — de propósito diferente da raridade de
+ * planta, que é fortemente enviesada para comum (ver dnaService).
+ * Hoje é dado inerte: guardado para a mecânica de fertilidade.
+ */
+export const SOIL_RARITIES = ['comum', 'incomum', 'raro', 'epico', 'lendario', 'brotaria'] as const;
+export type SoilRarity = typeof SOIL_RARITIES[number];
+
+export function rollSoilRarity(): SoilRarity {
+  return SOIL_RARITIES[Math.floor(Math.random() * SOIL_RARITIES.length)];
+}

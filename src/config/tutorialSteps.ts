@@ -36,8 +36,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: 'shovel',
     image: '/imgs/shovel.webp',
     title: 'Pá',
-    body: 'Cava um canteiro para plantar. Arraste a pá até um espaço no gramado. Com 0 canteiros ela fica sempre liberada.',
-    bodyDesktop: 'Cava um canteiro para plantar. Clique na pá e depois clique num espaço do gramado. Com 0 canteiros ela fica sempre liberada.',
+    body: 'Cava um canteiro para plantar. Arraste a pá até um espaço no gramado. Ela tem 5 usos (a barrinha embaixo) — o primeiro canteiro é de graça. Deixe canteiro vazio à toa e a próxima obra demora bem mais.',
+    bodyDesktop: 'Cava um canteiro para plantar. Clique na pá e depois clique num espaço do gramado. Ela tem 5 usos (a barrinha embaixo) — o primeiro canteiro é de graça. Deixe canteiro vazio à toa e a próxima obra demora bem mais.',
   },
   {
     target: 'water',

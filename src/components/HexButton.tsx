@@ -12,6 +12,8 @@ interface HexButtonProps {
   className?: string;
   /** Cooldown radial (estilo MOBA): varredura escura + número no centro. */
   cooldown?: { remainingMs: number; totalMs: number; label: string };
+  /** Barra de durabilidade sob o hexágono (pá consumível). `left: 0` = quebrada. */
+  durability?: { left: number; max: number };
   onClick?: (e: React.MouseEvent) => void;
   onPointerDown?: (e: React.PointerEvent) => void;
   title?: string;
@@ -33,7 +35,7 @@ const ACTIVE_PARTICLES = Array.from({ length: 6 }, (_, i) => {
 });
 
 export function HexButton({
-  icon, label, badge, disabled = false, active = false, anchor = false, className, cooldown, onClick, onPointerDown, title, tutorialId,
+  icon, label, badge, disabled = false, active = false, anchor = false, className, cooldown, durability, onClick, onPointerDown, title, tutorialId,
 }: HexButtonProps) {
   const [hovered, setHovered] = useState(false);
   const [pressed, setPressed] = useState(false);
@@ -146,6 +148,35 @@ export function HexButton({
           <div className="painel-cooldown" style={{ ['--cd-deg' as string]: cdDeg }} />
           <span className="painel-cooldown-num">{cooldown!.label}</span>
         </>
+      )}
+
+      {/* Barra de durabilidade — encostada na base do hexágono. Verde cheia,
+          âmbar no último uso, vermelha quebrada (aí o ícone também racha). */}
+      {durability && (
+        <div
+          className="absolute z-20 pointer-events-none overflow-hidden"
+          style={{
+            bottom: '4%',
+            left: '22%',
+            right: '22%',
+            height: 5,
+            borderRadius: 3,
+            background: 'rgba(8,14,5,0.85)',
+            border: '1px solid rgba(0,0,0,0.6)',
+          }}
+        >
+          <div
+            className="h-full transition-all duration-300"
+            style={{
+              width: `${Math.max(0, Math.min(1, durability.left / durability.max)) * 100}%`,
+              background:
+                durability.left === 0 ? '#dc2626'
+                : durability.left === 1 ? '#f59e0b'
+                : 'linear-gradient(90deg, #4ade80, #22c55e)',
+              boxShadow: durability.left > 0 ? '0 0 4px rgba(74,222,128,0.6)' : undefined,
+            }}
+          />
+        </div>
       )}
 
       {/* Badge — ancorada no topo-direita do hexágono flat-top (o canto da caixa

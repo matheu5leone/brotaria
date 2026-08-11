@@ -10,7 +10,11 @@ import { lifecycleFromOrder } from '@/config/lifecycle';
 import { POT_IMG_HEIGHT_PCT, PLANT_ANCHOR_PCT } from '@/lib/potGeometry';
 import Loader from './Loader';
 
-const DIG_DURATION_MS = 60_000;
+/** Canteiros cavados antes do redesign da pá não têm duração gravada. */
+const LEGACY_DIG_DURATION_MS = 60_000;
+
+export const digDurationOf = (pot: Pot): number =>
+  pot.dig_duration_ms ?? LEGACY_DIG_DURATION_MS;
 
 export type PotState = 'digging' | 'ready' | 'planted';
 
@@ -18,13 +22,19 @@ export function getPotState(pot: Pot): PotState {
   if (pot.plant_id) return 'planted';
   if (pot.digging_started_at) {
     const elapsed = Date.now() - new Date(pot.digging_started_at).getTime();
-    if (elapsed < DIG_DURATION_MS) return 'digging';
+    if (elapsed < digDurationOf(pot)) return 'digging';
   }
   return 'ready';
 }
 
-function formatSecondsLeft(ms: number): string {
+/**
+ * Contagem regressiva da obra. A escala vai de 1 minuto a 7 dias, então o
+ * formato muda com a grandeza: `m:ss` só faz sentido nos minutos finais.
+ */
+export function formatDigLeft(ms: number): string {
   const s = Math.ceil(ms / 1000);
+  if (s >= 86400) return `${Math.ceil(s / 86400)}d`;
+  if (s >= 3600)  return `${Math.ceil(s / 3600)}h`;
   const m = Math.floor(s / 60);
   return `${m}:${String(s % 60).padStart(2, '0')}`;
 }
@@ -41,6 +51,8 @@ export function HexPot({
   isElixirTarget = false,
   isPlanting = false,
   hideStatusBalloons = false,
+  rushCost = null,
+  onRush,
   onClick,
   onPointerDown,
   onDigComplete,
@@ -58,6 +70,9 @@ export function HexPot({
   /** Esconde os balões de sede/estresse do DONO (usado na visita a outro jardim,
    *  onde só a planta que pede ajuda ao vizinho deve exibir balão). */
   hideStatusBalloons?: boolean;
+  /** Moedas para apressar esta obra, ou null se a faixa não tem atalho. */
+  rushCost?: number | null;
+  onRush?: () => void;
   onClick: (e: React.MouseEvent) => void;
   onPointerDown?: (e: React.PointerEvent) => void;
   onDigComplete?: () => void;
@@ -74,7 +89,7 @@ export function HexPot({
 
   useEffect(() => {
     if (state !== 'digging' || !pot.digging_started_at) return;
-    const deadline = new Date(pot.digging_started_at).getTime() + DIG_DURATION_MS;
+    const deadline = new Date(pot.digging_started_at).getTime() + digDurationOf(pot);
     const update = () => {
       const remaining = deadline - Date.now();
       setMsLeft(Math.max(0, remaining));
@@ -84,9 +99,11 @@ export function HexPot({
       }
     };
     update();
-    const id = setInterval(update, 250);
+    // Obras longas (5h/24h/7d) não precisam de tique de 250ms: o mostrador só
+    // muda de hora em hora. Poupa trabalho à toa em canteiros parados.
+    const id = setInterval(update, deadline - Date.now() > 3_600_000 ? 30_000 : 250);
     return () => clearInterval(id);
-  }, [state, pot.digging_started_at, onDigComplete]);
+  }, [state, pot, onDigComplete]);
 
   // Tile de terra hexagonal — imagem landscape em container portrait
   const POT_HEIGHT = `${POT_IMG_HEIGHT_PCT * 100}%`;
@@ -176,6 +193,34 @@ export function HexPot({
         </div>
       )}
 
+      {/* Apressar a obra — só nas faixas longas (24h / 7 dias). Fica acima do
+          canteiro, com pointerEvents próprio: o hitbox do canteiro não deve
+          engolir este clique. */}
+      {state === 'digging' && rushCost != null && onRush && (
+        <button
+          className="absolute z-30 flex items-center gap-1 px-2 py-1 rounded-full whitespace-nowrap transition-transform active:scale-90"
+          style={{
+            bottom: BALLOON_BOTTOM,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            pointerEvents: 'auto',
+            background: 'rgba(8,14,5,0.92)',
+            border: '1px solid rgba(201,162,39,0.55)',
+            color: 'var(--color-gold)',
+            fontFamily: 'var(--font-display)',
+            fontSize: 9,
+            fontWeight: 900,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+            touchAction: 'manipulation',
+          }}
+          onClick={(e) => { e.stopPropagation(); onRush(); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          title={`Terminar agora por ${rushCost} moedas`}
+        >
+          ⏩ {rushCost} 🪙
+        </button>
+      )}
+
       {/* ── Balões de status — ancorados ACIMA do canteiro (não na planta) ── */}
       {state === 'planted' && isStressed && !hideStatusBalloons && (
         <div
@@ -232,7 +277,7 @@ export function HexPot({
           <div className="absolute inset-0 flex flex-col items-center justify-center z-10 gap-0.5" style={{ paddingBottom: '20.5%' }}>
             <Shovel className="w-4 h-4 animate-pulse" style={{ color: '#d4b483' }} />
             <span className="font-mono text-[10px] font-bold" style={{ color: '#f2e8d5' }}>
-              {formatSecondsLeft(msLeft)}
+              {formatDigLeft(msLeft)}
             </span>
           </div>
         )}

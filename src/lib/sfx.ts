@@ -15,7 +15,7 @@
  * Os demais efeitos (`drumroll`, `reveal`, `polen`) seguem como no-op: o motor
  * já está aqui, é só implementá-los quando quiser.
  */
-export type SfxName = 'drumroll' | 'reveal' | 'bee' | 'polen';
+export type SfxName = 'drumroll' | 'reveal' | 'bee' | 'polen' | 'dig_hit' | 'dig_miss';
 
 const MUTE_KEY = 'brotaria_sfx_muted';
 
@@ -95,12 +95,73 @@ function playBee(ac: AudioContext) {
   oscs[0].onended = () => { try { out.disconnect(); } catch { /* ignora */ } };
 }
 
+/** Rajada de ruído branco — base percussiva da pá na terra e da pedra. */
+function noiseBurst(ac: AudioContext, dur: number): AudioBufferSourceNode {
+  const frames = Math.max(1, Math.floor(ac.sampleRate * dur));
+  const buf = ac.createBuffer(1, frames, ac.sampleRate);
+  const ch = buf.getChannelData(0);
+  for (let i = 0; i < frames; i++) ch[i] = Math.random() * 2 - 1;
+  const src = ac.createBufferSource();
+  src.buffer = buf;
+  return src;
+}
+
+/** Pá entrando na terra: baque abafado (ruído grave) + corpo em seno. */
+function playDigHit(ac: AudioContext) {
+  const t0 = ac.currentTime;
+  const dur = 0.20;
+
+  const noise = noiseBurst(ac, dur);
+  const lp = ac.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 420; // terra é surda: corta o brilho
+  const gN = ac.createGain();
+  gN.gain.setValueAtTime(0.5, t0);
+  gN.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  noise.connect(lp).connect(gN).connect(ac.destination);
+
+  // Thump grave que dá peso ao golpe.
+  const osc = ac.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(110, t0);
+  osc.frequency.exponentialRampToValueAtTime(52, t0 + dur);
+  const gO = ac.createGain();
+  gO.gain.setValueAtTime(0.35, t0);
+  gO.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  osc.connect(gO).connect(ac.destination);
+
+  noise.start(t0); osc.start(t0);
+  osc.stop(t0 + dur);
+  noise.onended = () => { try { gN.disconnect(); gO.disconnect(); } catch { /* ignora */ } };
+}
+
+/** Pá batendo em pedra: estalo curto e agudo. */
+function playDigMiss(ac: AudioContext) {
+  const t0 = ac.currentTime;
+  const dur = 0.10;
+
+  const noise = noiseBurst(ac, dur);
+  const bp = ac.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 2600; // pedra é metálica: só o agudo passa
+  bp.Q.value = 6;
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0.4, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  noise.connect(bp).connect(g).connect(ac.destination);
+
+  noise.start(t0);
+  noise.onended = () => { try { g.disconnect(); } catch { /* ignora */ } };
+}
+
 export function playSfx(name: SfxName): void {
   if (isMuted()) return;
   const ac = audio();
   if (!ac || ac.state !== 'running') return; // sem gesto do usuário ainda
   try {
-    if (name === 'bee') playBee(ac);
+    if (name === 'bee')           playBee(ac);
+    else if (name === 'dig_hit')  playDigHit(ac);
+    else if (name === 'dig_miss') playDigMiss(ac);
     // drumroll / reveal / polen: a implementar (motor já pronto).
   } catch { /* som nunca pode quebrar a UI */ }
 }

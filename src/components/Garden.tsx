@@ -84,8 +84,11 @@ const PainelToggleIcon = ({ expanded }: { expanded: boolean }) => {
   );
 };
 import CoinPurchaseModal from './CoinPurchaseModal';
-import { usePots, useShovelStatus, useWateringStatus } from '@/hooks/useGardenData';
-import { SHOVEL_COOLDOWN_MS } from '@/config/economy';
+import { usePots, useWateringStatus } from '@/hooks/useGardenData';
+import { useRouter } from 'next/navigation';
+import { useShovelStatus, useRushDig } from '@/hooks/useShovel';
+import { digRushCostFor } from '@/config/economy';
+import { DigMinigame } from '@/components/DigMinigame';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
 import { useWallet } from '@/hooks/useWallet';
 import { authFetch } from '@/lib/authFetch';
@@ -115,7 +118,7 @@ import type { PlantRow } from '@/hooks/usePlantData';
 import { InventoryPanel } from '@/components/InventoryPanel';
 import { useWrapPlant } from '@/hooks/useInventory';
 import { HexButton } from '@/components/HexButton';
-import { HexPot, getPotState } from '@/components/HexPot';
+import { HexPot, getPotState, digDurationOf, formatDigLeft } from '@/components/HexPot';
 import { PotFx } from '@/components/PotFx';
 import { HerboFly, HerboFlight } from '@/components/HerboFly';
 import { lifecycleFromCode, isVisibleStageChange } from '@/config/lifecycle';
@@ -160,14 +163,6 @@ const PARTICLES = [
   { x: 28, y: 4,  s: 9,  d: 1.6, o: 0.13, dur: 5.9 },
 ];
 
-function formatCooldown(ms: number): string {
-  if (ms <= 0) return 'Pronta';
-  const h = Math.floor(ms / 3_600_000);
-  const m = Math.floor((ms % 3_600_000) / 60_000);
-  if (h > 0) return `${h}h ${m}m`;
-  const s = Math.ceil((ms % 60_000) / 1000);
-  return m > 0 ? `${m}m ${s}s` : `${s}s`;
-}
 
 // Wrapper para buscar plant e abrir o card story (histórico + navegação)
 function HistoryWrapper({
@@ -198,6 +193,7 @@ const IMAGE_STAGE_ORDERS = new Set([2, 5, 8, 11]);
 export default function Garden() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const router = useRouter();
 
   // ── Queries ─────────────────────────────────────────────────────────────
   const { data: pots = [], isPending: potsLoading, error: potsError } = usePots(user?.id);
@@ -219,21 +215,21 @@ export default function Garden() {
   );
   const { data: wateringStatus } = useWateringStatus(user?.id);
   const { data: pendingGifts = [] } = usePendingGifts(user?.id);
-  const shovelCooldownMs = shovelStatus?.cooldownRemainingMs ?? 0;
-  // Cooldown da pá com tick local (varredura/numero suaves, sem depender do refetch)
-  const [shovelCdMs, setShovelCdMs] = useState(0);
-  // Camada de segurança: com 0 canteiros a pá SEMPRE pode ser usada (o cooldown só
-  // vale enquanto houver ao menos um canteiro). Evita ficar preso sem jardim ao
-  // cavar e remover logo em seguida.
-  const noPots = pots.length === 0;
-  const shovelReady = noPots || shovelCdMs <= 0;
-  // Cooldown exibido: escondido quando não há canteiros (a pá está liberada).
-  const shovelCdShown = noPots ? 0 : shovelCdMs;
+  // A pá não tem mais cooldown: tem durabilidade (5 usos) e a obra é que escala
+  // com o nº de canteiros vazios. Com 0 canteiros a cavada é de cortesia — não
+  // gasta uso — para ninguém ficar preso sem jardim.
+  const shovelDurability = shovelStatus?.durability ?? 0;
+  const shovelMax        = shovelStatus?.max ?? 5;
+  const isFirstDig       = shovelStatus?.isFirstDig ?? pots.length === 0;
+  const shovelReady      = shovelStatus?.canDig ?? true;
+  const shovelBroken     = shovelStatus?.needsPurchase ?? false;
+  const nextDigMs        = shovelStatus?.nextDigDurationMs ?? 60_000;
   const waterBalance = wateringStatus?.balance ?? 0;
   const canWaterToday = waterBalance > 0;
 
   // ── Mutations ────────────────────────────────────────────────────────────
   const digMutation       = useDigMutation(user?.id ?? '');
+  const rushMutation      = useRushDig(user?.id);
   const plantMutation     = usePlantMutation(user?.id ?? '');
   const waterMutation     = useWaterMutation(user?.id ?? '');
   const deleteMutation    = useDeleteMutation(user?.id ?? '');
@@ -288,6 +284,11 @@ export default function Garden() {
   const [stressedPotIds, setStressedPotIds]         = useState<Set<string>>(new Set());
   // Pré-visualização da cava: silhueta-fantasma + validade (colisão/área)
   const [digPreview, setDigPreview]                 = useState<{ posX: number; posY: number; valid: boolean } | null>(null);
+  // Lugar escolhido, aguardando o minigame. Enquanto não for null, o overlay
+  // do DigMinigame está aberto e nenhuma outra cavada pode começar.
+  const [pendingDig, setPendingDig]                 = useState<{ posX: number; posY: number } | null>(null);
+  // Material achado na última cavada (aviso efêmero).
+  const [digLoot, setDigLoot]                       = useState<string[] | null>(null);
   const isDesktop = useIsDesktop();
   const [wrappingMode, setWrappingMode]             = useState(false);
   const [wrapError, setWrapError]                   = useState<string | null>(null);
@@ -451,23 +452,56 @@ export default function Garden() {
     return { posX, posY, valid: inArea && inside && !collides };
   }, [screenToGardenPct, potBoxWidthPx, pots]);
 
-  const digAt = useCallback(async (clientX: number, clientY: number) => {
-    if (digMutation.isPending || !user) return;
+  /**
+   * Escolher o lugar não cava mais na hora: guarda a posição e abre o minigame.
+   * Quem de fato cava é `confirmDig`, com a precisão obtida lá.
+   */
+  const digAt = useCallback((clientX: number, clientY: number) => {
+    if (digMutation.isPending || pendingDig || !user) return;
     const d = computeDig(clientX, clientY);
     if (!d) return;
     if (!d.valid) { setShovelError('Não dá pra cavar aqui — muito perto de outro canteiro ou fora da área.'); return; }
-    const posX = Math.min(94, Math.max(6, d.posX));
-    const posY = Math.min(92, Math.max(8, d.posY));
+    if (shovelBroken) { setShovelError('Sua pá quebrou. Pegue uma nova na loja.'); return; }
     setShovelError(null);
     setShovelActive(false);
     setDigPreview(null);
+    setPendingDig({
+      posX: Math.min(94, Math.max(6, d.posX)),
+      posY: Math.min(92, Math.max(8, d.posY)),
+    });
+  }, [digMutation.isPending, pendingDig, user, computeDig, shovelBroken]);
+
+  /** Paga moedas para terminar agora uma obra de 24h ou 7 dias. */
+  const handleRush = useCallback(async (potId: string) => {
+    if (rushMutation.isPending) return;
     try {
-      await digMutation.mutateAsync({ posX, posY });
+      await rushMutation.mutateAsync(potId);
     } catch (err: unknown) {
       const e = err as { code?: string; message?: string };
-      setShovelError(e.code === 'COOLDOWN' ? 'A pá ainda está recarregando.' : (e.message ?? 'Erro ao cavar.'));
+      setShovelError(
+        e.code === 'INSUFFICIENT_COINS' ? 'Moedas insuficientes para apressar.'
+        : (e.message ?? 'Não deu para apressar a obra.'),
+      );
     }
-  }, [digMutation, user, computeDig]);
+  }, [rushMutation]);
+
+  /** Fim do minigame: `accuracy` (0..1) só desloca a chance de material. */
+  const confirmDig = useCallback(async (accuracy: number) => {
+    if (!pendingDig) return;
+    const { posX, posY } = pendingDig;
+    setPendingDig(null);
+    try {
+      const res = await digMutation.mutateAsync({ posX, posY, accuracy });
+      setDigLoot(res.loot?.length ? res.loot : null);
+      if (res.loot?.length) setTimeout(() => setDigLoot(null), 3200);
+    } catch (err: unknown) {
+      const e = err as { code?: string; message?: string };
+      setShovelError(
+        e.code === 'NO_DURABILITY' ? 'Sua pá quebrou. Pegue uma nova na loja.'
+        : (e.message ?? 'Erro ao cavar.'),
+      );
+    }
+  }, [pendingDig, digMutation]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -1089,21 +1123,8 @@ export default function Garden() {
     };
   }, [gardenReady, clampPan, markInteracting]);
 
-  // ── Cooldown da pá: timer local p/ varredura/numero suaves (sem refetch) ──
-  // Ressincroniza durante o render (padrão React p/ estado derivado de prop),
-  // sem o re-render em cascata que um useEffect causaria.
-  const [prevCooldownMs, setPrevCooldownMs] = useState(shovelCooldownMs);
-  if (prevCooldownMs !== shovelCooldownMs) {
-    setPrevCooldownMs(shovelCooldownMs);
-    setShovelCdMs(shovelCooldownMs);
-  }
-  useEffect(() => {
-    if (shovelCdMs <= 0) return;
-    const id = setInterval(() => {
-      setShovelCdMs((ms) => Math.max(0, ms - 1000));
-    }, 1000);
-    return () => clearInterval(id);
-  }, [shovelCdMs > 0]); // eslint-disable-line react-hooks/exhaustive-deps
+  // (O timer local do cooldown da pá saiu: durabilidade não corre com o relógio.
+  //  Quem tem contagem regressiva agora é cada canteiro em obra, no HexPot.)
 
   // ── Early returns ─────────────────────────────────────────────────────────
 
@@ -1241,6 +1262,8 @@ export default function Garden() {
                 isSeedTarget={seedDrag && seedTargetPotId === pot.id}
                 isElixirTarget={elixirDrag && elixirTargetPotId === pot.id}
                 isPlanting={plantFx?.potId === pot.id}
+                rushCost={digRushCostFor(digDurationOf(displayPot))}
+                onRush={() => handleRush(pot.id)}
                 onClick={handlePotClick(pot)}
                 onDigComplete={handleDigComplete}
               />
@@ -1303,6 +1326,27 @@ export default function Garden() {
                 strokeLinejoin="round"
               />
             </svg>
+
+            {/* Quanto a obra vai durar, ANTES de cavar. Sem isto o jogador pode
+                cair numa espera de 7 dias sem saber o que aceitou. */}
+            {digPreview.valid && (
+              <div
+                className="absolute left-1/2 whitespace-nowrap px-2 py-1 rounded-full"
+                style={{
+                  bottom: '100%',
+                  transform: 'translateX(-50%)',
+                  background: 'rgba(8,14,5,0.92)',
+                  border: `1px solid ${nextDigMs > 3_600_000 ? 'rgba(239,68,68,0.6)' : 'rgba(201,162,39,0.45)'}`,
+                  color: nextDigMs > 3_600_000 ? '#fca5a5' : 'var(--color-text-light)',
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 9,
+                  fontWeight: 900,
+                }}
+              >
+                ⏳ {formatDigLeft(nextDigMs)}
+                {isFirstDig ? ' · de graça' : ''}
+              </div>
+            )}
           </div>
         )}
 
@@ -1528,6 +1572,34 @@ export default function Garden() {
         />
       )}
 
+      {/* Minigame de cavar — o lugar já foi escolhido; aqui se decide a precisão */}
+      {pendingDig && (
+        <DigMinigame
+          onDone={confirmDig}
+          onCancel={() => setPendingDig(null)}
+        />
+      )}
+
+      {/* O que a terra devolveu (some sozinho) */}
+      {digLoot && (
+        <div
+          className="fixed left-1/2 -translate-x-1/2 z-[10070] flex items-center gap-2 px-4 py-2 rounded-full evo-fade-in"
+          style={{
+            bottom: '18%',
+            background: 'rgba(8,14,5,0.94)',
+            border: '1px solid rgba(201,162,39,0.5)',
+            color: 'var(--color-text-light)',
+            fontFamily: 'var(--font-display)',
+            fontSize: 12,
+            fontWeight: 900,
+            boxShadow: '0 6px 20px rgba(0,0,0,0.5)',
+          }}
+        >
+          A terra devolveu:{' '}
+          {digLoot.map((l) => (l === 'minhoca' ? '🪱 Minhoca' : '🟤 Terra molhada')).join(' · ')}
+        </div>
+      )}
+
       {/* ── Canto superior esquerdo: botão de plantas ─────────────────────── */}
       <div className="absolute top-3 left-3 z-[100] flex flex-col items-start gap-2">
         <button
@@ -1591,18 +1663,28 @@ export default function Garden() {
               onClick={toggleInventory}
               title="Abrir mochila"
             />
-            {/* Pá — cooldown radial */}
+            {/* Pá — barra de durabilidade (5 usos). Quebrada, o botão vira o
+                atalho para a loja: o bloqueio explica a si mesmo. */}
             <HexButton
               className="painel-btn"
               tutorialId="shovel"
               icon={digMutation.isPending ? <SpinnerIcon /> : <ShovelIcon />}
               disabled={digMutation.isPending}
-              cooldown={shovelCdShown > 0 ? { remainingMs: shovelCdShown, totalMs: SHOVEL_COOLDOWN_MS, label: formatCooldown(shovelCdShown) } : undefined}
+              durability={{ left: shovelDurability, max: shovelMax }}
+              badge={shovelBroken ? '!' : undefined}
               active={shovelActive}
-              onClick={isDesktop ? toggleShovel : undefined}
-              onPointerDown={isDesktop ? undefined : handleShovelPointerDown}
+              onClick={
+                shovelBroken ? () => router.push('/loja')
+                : isDesktop  ? toggleShovel
+                :              undefined
+              }
+              onPointerDown={isDesktop || shovelBroken ? undefined : handleShovelPointerDown}
               label="Pá"
-              title={shovelReady ? 'Usar pá para cavar' : `Recarregando: ${formatCooldown(shovelCdShown)}`}
+              title={
+                shovelBroken ? 'Pá quebrada — toque para comprar outra'
+                : isFirstDig ? 'Cavar (o primeiro canteiro é de graça)'
+                :              `Usar pá para cavar · ${shovelDurability}/${shovelMax} usos · obra de ${formatDigLeft(nextDigMs)}`
+              }
             />
             {/* Regador — badge com nº de regas */}
             <HexButton

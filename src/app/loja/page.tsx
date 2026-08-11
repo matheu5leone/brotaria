@@ -15,7 +15,7 @@ import { authFetch } from '@/lib/authFetch';
 
 export default function LojaPage() {
   const { user, isLoading } = useAuth();
-  const { coins, refresh } = useWallet();
+  const { coins, herbo, refresh } = useWallet();
   const router = useRouter();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -51,6 +51,40 @@ export default function LojaPage() {
   }, []);
 
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
+
+  /**
+   * A pá não passa por /api/store/buy: ela aceita duas moedas e a recarga é
+   * atômica na RPC `buy_shovel` (débito + reposição na mesma transação).
+   */
+  const buyShovelWith = async (currency: 'coins' | 'herbo') => {
+    if (!user || buyingId) return;
+    setBuyingId('shovel');
+    try {
+      const res = await authFetch('/api/shovel/buy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currency }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        await refresh();
+        setToast('⛏️ Pá nova! 5 usos.');
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+        toastTimer.current = setTimeout(() => setToast(null), 2600);
+        setCoinPulse((n) => n + 1);
+      } else if (data.code === 'INSUFFICIENT_COINS') {
+        setModalOpen(true);
+      } else {
+        setToast(data.error ?? 'Falha na compra');
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+        toastTimer.current = setTimeout(() => setToast(null), 2600);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setBuyingId(null);
+    }
+  };
 
   const buyProduct = async (productId: string, costCoins: number) => {
     if (!user || buyingId) return;
@@ -203,6 +237,8 @@ export default function LojaPage() {
                     <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.5)', boxShadow: 'inset 0 2px 6px rgba(92,58,30,0.15)' }}>
                       {product.id === 'seed' ? (
                         <Image src="/imgs/seed.webp" alt="semente" width={48} height={48} className="object-contain w-12 h-12" />
+                      ) : product.id === 'shovel' ? (
+                        <Image src="/imgs/shovel.webp" alt="pá" width={48} height={48} className="object-contain w-12 h-12" />
                       ) : product.id === 'wrapping_kit' ? (
                         <span className="text-5xl leading-none">🎁</span>
                       ) : (
@@ -214,6 +250,38 @@ export default function LojaPage() {
                     <h3 className="font-black text-lg" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}>{product.name}</h3>
                     <p className="text-sm flex-1 mt-1" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)' }}>{product.description}</p>
 
+                    {/* A pá aceita as duas moedas: moeda é o atalho, herbo é o
+                        caminho longo de quem não paga. */}
+                    {product.cost_herbo != null ? (
+                      <div className="flex gap-2 mt-4">
+                        <button
+                          onClick={() => buyShovelWith('coins')}
+                          disabled={isBuying}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl font-bold text-sm transition-all active:scale-95"
+                          style={
+                            coins >= product.cost_coins
+                              ? { fontFamily: 'var(--font-display)', background: 'linear-gradient(135deg, #2a5a1e, #1e4014)', color: 'var(--color-parch-light)', border: '1px solid rgba(201,162,39,0.3)' }
+                              : { fontFamily: 'var(--font-display)', background: 'rgba(201,162,39,0.15)', color: 'var(--color-wood-dark)', border: '1px solid rgba(201,162,39,0.35)' }
+                          }
+                        >
+                          {isBuying ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CoinIcon size={16} />{product.cost_coins}</>}
+                        </button>
+                        <button
+                          onClick={() => buyShovelWith('herbo')}
+                          disabled={isBuying || herbo < product.cost_herbo}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl font-bold text-sm transition-all active:scale-95 disabled:opacity-45"
+                          style={{
+                            fontFamily: 'var(--font-display)',
+                            background: 'rgba(42,90,30,0.12)',
+                            color: '#2a5a1e',
+                            border: '1px solid rgba(42,90,30,0.35)',
+                          }}
+                          title={herbo < product.cost_herbo ? `Você tem ${herbo} herbo` : undefined}
+                        >
+                          🍃 {product.cost_herbo}
+                        </button>
+                      </div>
+                    ) : (
                     <div className="flex items-center justify-between mt-4">
                       <span className="flex items-center gap-1.5 font-black" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-wood-dark)' }}>
                         {product.cost_coins === 0 ? (
@@ -244,6 +312,7 @@ export default function LojaPage() {
                         )}
                       </button>
                     </div>
+                    )}
                   </div>
 
                   {/* Números flutuantes da compra (-moedas / +item) */}

@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { generateRandomDNA } from './dnaService';
-import { rollSede, stackMaxFor } from '@/config/economy';
+import { GAME, rollSede, stackMaxFor } from '@/config/economy';
 import { recordPendingReferral } from './referralService';
 import { grantDefaultAvatar } from './avatarService';
 import type { Rarity, Biome } from '@/types';
@@ -8,7 +8,10 @@ import type { Rarity, Biome } from '@/types';
 // ── Helpers de slot ────────────────────────────────────────────────────────
 
 /** Tipos empilháveis da mochila. O teto de cada um vem de `stackMaxFor`. */
-export type StackableItemType = 'seed' | 'wrapping_kit' | 'polen' | 'elixir';
+export type StackableItemType =
+  | 'seed' | 'wrapping_kit' | 'polen' | 'elixir'
+  // Materiais que saem da terra ao cavar (inertes por enquanto).
+  | 'minhoca' | 'terra_molhada';
 
 /**
  * Primeiro slot com espaço para empilhar (quantity < teto do tipo) do MESMO
@@ -157,6 +160,20 @@ export async function initializeUser(
     await grantDefaultAvatar(userId);
   } catch (err) {
     console.error('[Inventory] Falha ao conceder avatar default:', err);
+  }
+
+  // Pá inicial com a durabilidade cheia. Isolado: mesmo se falhar, a conta é
+  // criada — e o jogador ainda consegue cavar, porque a primeira cavada (com 0
+  // canteiros) é de cortesia e não consome uso.
+  try {
+    await supabaseAdmin
+      .from('user_tools')
+      .upsert(
+        { user_id: userId, tool_id: 'shovel', durability: GAME.SHOVEL_MAX_DURABILITY },
+        { onConflict: 'user_id,tool_id' },
+      );
+  } catch (err) {
+    console.error('[Inventory] Falha ao conceder a pá inicial:', err);
   }
 
   console.log(`[Inventory] Granting free seed to ${userId}`);

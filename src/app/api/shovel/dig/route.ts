@@ -1,79 +1,36 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseServer';
 import { getAuthUser } from '@/lib/getAuthUser';
+import { digPot } from '@/services/shovelService';
 
-const SHOVEL_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 1 day
-
+/** Cava um canteiro: gasta 1 uso da pá, agenda a obra e sorteia o material. */
 export async function POST(request: Request) {
   try {
     const user = await getAuthUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { posX, posY } = await request.json();
-    const userId = user.id;
+    const { posX, posY, accuracy } = await request.json();
 
-    if (posX == null || posY == null) {
-      return NextResponse.json({ error: 'Missing posX or posY' }, { status: 400 });
+    // `accuracy` é o desempenho no minigame (0..1). Vem do cliente e não tem
+    // como ser auditado — o service clampa e o ganho máximo é curto de propósito.
+    const result = await digPot(user.id, posX, posY, Number(accuracy) || 0);
+
+    if (!result.ok) {
+      const status = result.code === 'NO_DURABILITY' ? 409 : 400;
+      const error =
+        result.code === 'NO_DURABILITY'   ? 'Sua pá quebrou. Pegue uma nova na loja.'
+        : result.code === 'OCCUPIED'      ? 'Já existe um canteiro aqui.'
+        :                                   'Lugar inválido para cavar.';
+      return NextResponse.json({ error, code: result.code }, { status });
     }
 
-    if (posX < 0 || posX > 100 || posY < 0 || posY > 100) {
-      return NextResponse.json({ error: 'Invalid position' }, { status: 400 });
-    }
-
-    // Check shovel cooldown against server time
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('shovel_last_used_at')
-      .eq('id', userId)
-      .single();
-
-    if (profileError || !profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
-    }
-
-    // Camada de segurança: o cooldown só vale se o usuário já tiver ao menos um
-    // canteiro. Com 0 canteiros a pá está sempre liberada — assim ninguém fica
-    // preso sem jardim ao cavar e remover o buraco logo em seguida.
-    const { count: potCount } = await supabaseAdmin
-      .from('pots')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId);
-
-    if ((potCount ?? 0) > 0 && profile.shovel_last_used_at) {
-      const lastUsed = new Date(profile.shovel_last_used_at).getTime();
-      const cooldownRemaining = SHOVEL_COOLDOWN_MS - (Date.now() - lastUsed);
-      if (cooldownRemaining > 0) {
-        return NextResponse.json(
-          { error: 'Shovel on cooldown', code: 'COOLDOWN', cooldownRemainingMs: cooldownRemaining },
-          { status: 429 }
-        );
-      }
-    }
-
-    // Create a new pot at the requested position with digging timer started
-    const { data: pot, error: potError } = await supabaseAdmin
-      .from('pots')
-      .insert({
-        user_id: userId,
-        pos_x: posX,
-        pos_y: posY,
-        digging_started_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (potError) throw potError;
-
-    // Record shovel use (server timestamp is authoritative for cooldown)
-    await supabaseAdmin
-      .from('profiles')
-      .update({ shovel_last_used_at: new Date().toISOString() })
-      .eq('id', userId);
-
-    return NextResponse.json({ success: true, pot });
+    return NextResponse.json({
+      success: true,
+      pot: result.pot,
+      loot: result.loot,
+      durability: result.durability,
+    });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Failed to start digging';
     console.error('[Shovel Dig API] Error:', error);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Falha ao cavar.' }, { status: 500 });
   }
 }

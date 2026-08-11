@@ -3,15 +3,15 @@ import { authFetch } from '@/lib/authFetch';
 
 // ── helpers de fetch ──────────────────────────────────────────────────────
 
-async function digHole(posX: number, posY: number) {
+async function digHole(posX: number, posY: number, accuracy: number) {
   const res = await authFetch('/api/shovel/dig', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ posX, posY }),
+    body: JSON.stringify({ posX, posY, accuracy }),
   });
   const data = await res.json();
   if (!res.ok) throw Object.assign(new Error(data.error ?? 'Erro ao cavar'), { code: data.code });
-  return data.pot;
+  return data as { pot: unknown; loot: string[]; durability: number };
 }
 
 async function plantSeed(potId: string, seedRarity?: string | null, seedBiome?: string | null) {
@@ -60,14 +60,17 @@ async function recyclePlantsReq(plantIds: string[]) {
 
 // ── hooks ─────────────────────────────────────────────────────────────────
 
+/** `accuracy` (0..1) é o desempenho no minigame: desloca a chance de material. */
 export function useDigMutation(userId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ posX, posY }: { posX: number; posY: number }) =>
-      digHole(posX, posY),
+    mutationFn: ({ posX, posY, accuracy }: { posX: number; posY: number; accuracy: number }) =>
+      digHole(posX, posY, accuracy),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['garden', 'pots', userId] });
       qc.invalidateQueries({ queryKey: ['garden', 'shovel', userId] });
+      // A cavada pode ter rendido minhoca/terra molhada.
+      qc.invalidateQueries({ queryKey: ['inventory', userId] });
     },
   });
 }

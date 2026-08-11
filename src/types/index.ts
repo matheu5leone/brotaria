@@ -104,6 +104,13 @@ export interface Pot {
   pos_x: number | null;
   pos_y: number | null;
   digging_started_at: string | null;
+  /**
+   * Duração da obra deste canteiro, fixada no ato de cavar conforme o nº de
+   * canteiros vazios de então. Null em canteiros anteriores ao redesign da pá.
+   */
+  dig_duration_ms: number | null;
+  /** Raridade do solo, sorteada ao cavar. Inerte por enquanto (ver spec). */
+  soil_rarity: Rarity | null;
   created_at: string;
 }
 

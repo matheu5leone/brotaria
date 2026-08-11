@@ -420,6 +420,35 @@ html, body {
     drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
 }
 
+/* ---------- Minigame de cavar (camadas + timing) ---------- */
+/* O marcador varre a pista de ida e volta; acertar a faixa verde crava fundo. */
+@keyframes dig-sweep {
+  0%   { left: 0%; }
+  100% { left: 100%; }
+}
+/* Tremor da terra ao golpear */
+@keyframes dig-shake {
+  0%, 100% { transform: translate(0, 0); }
+  20%      { transform: translate(-3px, 2px); }
+  40%      { transform: translate(3px, -2px); }
+  60%      { transform: translate(-2px, -1px); }
+  80%      { transform: translate(2px, 1px); }
+}
+/* Camada sendo vencida: some para baixo revelando a próxima */
+@keyframes dig-layer-break {
+  0%   { opacity: 1; transform: translateY(0) scaleY(1); }
+  100% { opacity: 0; transform: translateY(14px) scaleY(0.7); }
+}
+/* Flash da faixa quando o golpe acerta em cheio */
+@keyframes dig-hit-flash {
+  0%   { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+.dig-shake { animation: dig-shake 0.3s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .dig-sweep, .dig-shake, .dig-layer-break { animation: none !important; }
+}
+
 /* ---------- Tutorial do pólen (modal ilustrado) ---------- */
 @keyframes polentut-buzz {
   0%, 100% { transform: translate(-50%, -50%) rotate(-5deg); }
