@@ -2,7 +2,6 @@
 
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
-import { Shovel } from 'lucide-react';
 import { Pot } from '@/types';
 import { usePlant, usePlantVersion } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
@@ -275,7 +274,10 @@ export function HexPot({
         {/* ── Conteúdo sobreposto ao canteiro ── */}
         {state === 'digging' && (
           <div className="absolute inset-0 flex flex-col items-center justify-center z-10 gap-0.5" style={{ paddingBottom: '20.5%' }}>
-            <Shovel className="w-4 h-4 animate-pulse" style={{ color: '#d4b483' }} />
+            {/* Pá cavando (gif/webp animado, 12 frames em loop) — ver public/imgs/pa-cavando.webp */}
+            <div className="relative" style={{ width: '56%', aspectRatio: '220 / 195' }}>
+              <Image src="/imgs/pa-cavando.webp" alt="cavando" fill className="object-contain" draggable={false} />
+            </div>
             <span className="font-mono text-[10px] font-bold" style={{ color: '#f2e8d5' }}>
               {formatDigLeft(msLeft)}
             </span>
