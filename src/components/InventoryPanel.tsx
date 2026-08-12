@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { Gift, X, Info, PackageOpen, SendHorizonal } from 'lucide-react';
+import { Gift, X, Info, PackageOpen, SendHorizonal, Move } from 'lucide-react';
 import { useInventory, useOpenGift, usePatchLabel } from '@/hooks/useInventory';
 import { useUnwrap } from '@/hooks/useGifts';
 import { GiftSendModal } from '@/components/GiftSendModal';
@@ -21,6 +21,43 @@ export type SeedDragMeta = { rarity: Rarity | null; biome: Biome | null };
 // ── Tipos de animação ────────────────────────────────────────────────────────
 
 type OpenPhase = 'idle' | 'shaking' | 'exploding' | 'revealing';
+
+// ── Dica de arraste ────────────────────────────────────────────────────────────
+
+/** Selo "arraste para usar" (mesma posição/estilo da lupa da grade "Minhas Plantas"). */
+function DragHintBadge() {
+  const [showHint, setShowHint] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
+  return (
+    <>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowHint(true);
+          if (timerRef.current) clearTimeout(timerRef.current);
+          timerRef.current = setTimeout(() => setShowHint(false), 2200);
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="absolute top-1 right-1 z-10 p-1 rounded-full transition-all hover:scale-110 active:scale-90"
+        style={{ background: 'rgba(8,14,5,0.6)', color: '#e8d5a0', backdropFilter: 'blur(2px)' }}
+        title="Este item se usa arrastando"
+      >
+        <Move className="w-3 h-3" />
+      </button>
+      {showHint && (
+        <span
+          className="absolute top-7 right-0.5 z-20 px-1.5 py-0.5 rounded-md text-[8px] font-bold whitespace-nowrap pointer-events-none"
+          style={{ background: 'rgba(8,14,5,0.88)', color: '#f2e8d5' }}
+        >
+          arraste para fora para usar
+        </span>
+      )}
+    </>
+  );
+}
 
 // ── Slot: Planta embrulhada ───────────────────────────────────────────────────
 
@@ -222,7 +259,7 @@ function SlotContent({
   onLabelSave,
   onSeedDragStart,
   onCraftElixir,
-  onUseElixir,
+  onElixirDragStart,
 }: {
   item: InventoryItem | undefined;
   userId: string;
@@ -232,7 +269,8 @@ function SlotContent({
   onLabelSave: (label: string) => void;
   onSeedDragStart?: (e: React.PointerEvent, seed?: SeedDragMeta) => void;
   onCraftElixir?: () => void;
-  onUseElixir?: () => void;
+  /** Inicia o arraste do Elixir Floral a partir do slot (fecha a mochila). */
+  onElixirDragStart?: (e: React.PointerEvent) => void;
 }) {
   if (animPhase !== 'idle') return <AnimatingSlot phase={animPhase} rarity={animRarity} />;
 
@@ -279,6 +317,7 @@ function SlotContent({
           <Image src={seedImage(seedBiome)} alt="semente" width={24} height={24} className="object-contain pointer-events-none" draggable={false} />
         )}
         <span className="text-[9px] font-bold pointer-events-none" style={{ color: seedRarity || seedBiome ? 'var(--color-text-dark)' : '#166534' }}>×{item.quantity}</span>
+        <DragHintBadge />
       </div>
     );
   }
@@ -324,19 +363,20 @@ function SlotContent({
   }
   if (item.item_type === 'elixir') {
     return (
-      <button
-        onClick={() => onUseElixir?.()}
-        title="Elixir Floral — use numa planta para re-sortear o intervalo de sede"
-        className="flex flex-col items-center justify-center gap-0.5 w-full h-full rounded-xl transition-transform active:scale-95"
+      <div
+        className="relative flex flex-col items-center justify-center gap-0.5 w-full h-full rounded-xl cursor-grab active:cursor-grabbing"
         style={{
+          touchAction: 'none',
           background: 'rgba(250,199,117,0.22)',
           border: '1px solid var(--color-gold)',
-          cursor: 'pointer',
         }}
+        onPointerDown={(e) => { e.stopPropagation(); onElixirDragStart?.(e); }}
+        title="Elixir Floral — arraste até uma planta para re-sortear o intervalo de sede"
       >
         <Image src="/imgs/elixir.webp" alt="Elixir Floral" width={30} height={30} className="object-contain pointer-events-none" draggable={false} />
-        <span className="text-[8px] font-bold pointer-events-none leading-none" style={{ color: '#7a4a10' }}>usar</span>
-      </button>
+        <span className="text-[8px] font-bold pointer-events-none leading-none" style={{ color: '#7a4a10' }}>arrastar</span>
+        <DragHintBadge />
+      </div>
     );
   }
   if (item.item_type === 'wrapped_plant') {
@@ -356,7 +396,7 @@ export function InventoryPanel({
   open,
   onClose,
   onSeedDragStart,
-  onUseElixir,
+  onElixirDragStart,
 }: {
   userId: string | undefined;
   onWrapMode: () => void;
@@ -364,8 +404,8 @@ export function InventoryPanel({
   onClose: () => void;
   /** Inicia o arraste de plantar a partir de um slot de semente (fecha a mochila). */
   onSeedDragStart?: (e: React.PointerEvent, seed?: SeedDragMeta) => void;
-  /** Abre a escolha de planta para usar o Elixir Floral (fecha a mochila). */
-  onUseElixir?: () => void;
+  /** Inicia o arraste do Elixir Floral a partir do slot (fecha a mochila). */
+  onElixirDragStart?: (e: React.PointerEvent) => void;
 }) {
   const craftElixir = useCraftElixir();
   const [animatingSlot, setAnimatingSlot] = useState<number | null>(null);
@@ -484,7 +524,7 @@ export function InventoryPanel({
                 onLabelSave={(label) => item && handleLabelSave(item, label)}
                 onSeedDragStart={onSeedDragStart}
                 onCraftElixir={() => craftElixir.mutate()}
-                onUseElixir={() => { onClose(); onUseElixir?.(); }}
+                onElixirDragStart={onElixirDragStart}
               />
             </div>
           ))}

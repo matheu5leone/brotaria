@@ -38,6 +38,7 @@ export function HexPot({
   isMoveTarget = false,
   isTrashTarget = false,
   isSeedTarget = false,
+  isElixirTarget = false,
   isPlanting = false,
   hideStatusBalloons = false,
   onClick,
@@ -52,6 +53,7 @@ export function HexPot({
   isMoveTarget?: boolean;
   isTrashTarget?: boolean;
   isSeedTarget?: boolean;
+  isElixirTarget?: boolean;
   isPlanting?: boolean;
   /** Esconde os balões de sede/estresse do DONO (usado na visita a outro jardim,
    *  onde só a planta que pede ajuda ao vizinho deve exibir balão). */
@@ -108,8 +110,9 @@ export function HexPot({
   const moveGlow  = 'drop-shadow(0 0 4px rgba(251,191,36,0.95)) drop-shadow(0 0 9px rgba(251,191,36,0.85))';
   const trashGlow = 'drop-shadow(0 0 4px rgba(239,68,68,0.95)) drop-shadow(0 0 9px rgba(239,68,68,0.85))';
   const seedGlow  = 'drop-shadow(0 0 4px rgba(74,222,128,0.95)) drop-shadow(0 0 9px rgba(74,222,128,0.85))';
+  const elixirGlow = 'drop-shadow(0 0 4px rgba(201,162,39,0.95)) drop-shadow(0 0 9px rgba(201,162,39,0.85))';
   const selectGlow = 'drop-shadow(0 0 10px rgba(201,162,39,0.85))';
-  const targetGlow = isWaterTarget ? waterGlow : isMoveTarget ? moveGlow : isTrashTarget ? trashGlow : isSeedTarget ? seedGlow : undefined;
+  const targetGlow = isWaterTarget ? waterGlow : isMoveTarget ? moveGlow : isTrashTarget ? trashGlow : isSeedTarget ? seedGlow : isElixirTarget ? elixirGlow : undefined;
   // Glow do canteiro: alvo (água/mover) tem prioridade sobre seleção
   const potGlow = targetGlow ?? (isSelected ? selectGlow : undefined);
 

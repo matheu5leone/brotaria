@@ -206,9 +206,9 @@ export default function Garden() {
   const beeDevSpawn = useBeeDevSpawn();
   const { data: beeStatus } = useBeeStatus();
 
-  // Elixir Floral: escolher a planta alvo → roleta do novo intervalo de sede.
+  // Elixir Floral: arraste até a planta alvo → confirmação → roleta do novo intervalo de sede.
   const useElixirMutation = useUseElixir();
-  const [elixirPicking, setElixirPicking] = useState(false);
+  const [elixirConfirmTarget, setElixirConfirmTarget] = useState<string | null>(null); // plantId aguardando confirmação
   const [elixirResult, setElixirResult] = useState<{ periodMs: number; previousMs: number | null } | null>(null);
 
   // Rastro: plantas que vizinhos regaram nas últimas 24h (brilho, só visual).
@@ -256,6 +256,10 @@ export default function Garden() {
   const [seedDragPos, setSeedDragPos]               = useState<{ x: number; y: number } | null>(null);
   const [seedTargetPotId, setSeedTargetPotId]       = useState<string | null>(null);
   const [seedDragImg, setSeedDragImg]               = useState<string>('/imgs/seed.webp');
+  // Drag-and-drop do Elixir Floral: arrasta até uma planta (estilo regador) → confirmação
+  const [elixirDrag, setElixirDrag]                 = useState(false);
+  const [elixirDragPos, setElixirDragPos]           = useState<{ x: number; y: number } | null>(null);
+  const [elixirTargetPotId, setElixirTargetPotId]   = useState<string | null>(null);
   // Feedback visual rápido no canteiro: plantar (terra) / regar (gotas)
   const [plantFx, setPlantFx]                       = useState<{ potId: string; nonce: number } | null>(null);
   const [waterFx, setWaterFx]                       = useState<{ potId: string; nonce: number } | null>(null);
@@ -732,6 +736,48 @@ export default function Garden() {
     captureEl.addEventListener('pointercancel', onUp);
   }, [plantMutation, findPotAtPoint, triggerPlantFx]);
 
+  // Usar o Elixir Floral arrastando da mochila até uma planta (estilo regador).
+  // Solta em cima da planta → abre confirmação; a mutation só roda ao confirmar.
+  const handleElixirDragStart = useCallback((e: React.PointerEvent) => {
+    if (useElixirMutation.isPending) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Mesma razão do drag de semente: captura no elemento ESTÁVEL (raiz do
+    // jardim), pois a mochila fecha e o slot de origem desmonta.
+    const captureEl = containerRef.current;
+    if (!captureEl) return;
+    const pointerId = e.pointerId;
+    try { captureEl.setPointerCapture(pointerId); } catch {}
+
+    setInventoryOpen(false); // fecha a mochila
+    setElixirDrag(true);
+    setElixirDragPos({ x: e.clientX, y: e.clientY });
+    setElixirTargetPotId(null);
+    setShovelActive(false);
+
+    const onMove = (ev: PointerEvent) => {
+      setElixirDragPos({ x: ev.clientX, y: ev.clientY });
+      const pot = findPotAtPoint(ev.clientX, ev.clientY);
+      setElixirTargetPotId(pot?.plant_id ? pot.id : null);
+    };
+    const onUp = (ev: PointerEvent) => {
+      setElixirDrag(false);
+      setElixirDragPos(null);
+      setElixirTargetPotId(null);
+      captureEl.removeEventListener('pointermove', onMove);
+      captureEl.removeEventListener('pointerup', onUp);
+      captureEl.removeEventListener('pointercancel', onUp);
+      try { captureEl.releasePointerCapture(pointerId); } catch {}
+
+      const pot = findPotAtPoint(ev.clientX, ev.clientY);
+      if (pot?.plant_id) setElixirConfirmTarget(pot.plant_id);
+    };
+    captureEl.addEventListener('pointermove', onMove);
+    captureEl.addEventListener('pointerup', onUp);
+    captureEl.addEventListener('pointercancel', onUp);
+  }, [useElixirMutation.isPending, findPotAtPoint]);
+
   // Remove canteiro vazio
   const handleRemovePot = useCallback(async (pot: Pot) => {
     if (pot.plant_id) { setRemoveError('Remova a planta antes de apagar o canteiro.'); return; }
@@ -1179,7 +1225,8 @@ export default function Garden() {
                   (wateringDrag && wateringTargetPotId === pot.id) ||
                   (barrowDrag && barrowTargetPotId === pot.id) ||
                   (trashDrag && trashTargetPotId === pot.id) ||
-                  (seedDrag && seedTargetPotId === pot.id) ? 100000 : 0
+                  (seedDrag && seedTargetPotId === pot.id) ||
+                  (elixirDrag && elixirTargetPotId === pot.id) ? 100000 : 0
                 ),
                 pointerEvents: 'none', // só o hitbox recortado dentro do HexPot clica
               }}
@@ -1192,6 +1239,7 @@ export default function Garden() {
                 isMoveTarget={barrowDrag && barrowTargetPotId === pot.id}
                 isTrashTarget={trashDrag && trashTargetPotId === pot.id}
                 isSeedTarget={seedDrag && seedTargetPotId === pot.id}
+                isElixirTarget={elixirDrag && elixirTargetPotId === pot.id}
                 isPlanting={plantFx?.potId === pot.id}
                 onClick={handlePotClick(pot)}
                 onDigComplete={handleDigComplete}
@@ -1357,6 +1405,16 @@ export default function Garden() {
         </div>
       )}
 
+      {/* ── Elixir Floral sendo arrastado (fixed) ────────────────────────── */}
+      {elixirDrag && elixirDragPos && (
+        <div
+          className="fixed pointer-events-none z-[9999] select-none"
+          style={{ left: elixirDragPos.x - 22, top: elixirDragPos.y - 26, width: 44, height: 44, filter: 'drop-shadow(0 2px 6px rgba(201,162,39,0.7))' }}
+        >
+          <Image src="/imgs/elixir.webp" alt="Elixir Floral" width={44} height={44} className="object-contain" draggable={false} />
+        </div>
+      )}
+
       {/* ── Trash cursor (fixed) ─────────────────────────────────────────── */}
       {trashDrag && trashDragPos && (
         <div
@@ -1375,7 +1433,7 @@ export default function Garden() {
           open={inventoryOpen}
           onClose={() => setInventoryOpen(false)}
           onSeedDragStart={handleSeedDragStart}
-          onUseElixir={() => setElixirPicking(true)}
+          onElixirDragStart={handleElixirDragStart}
         />
       )}
 
@@ -1392,56 +1450,74 @@ export default function Garden() {
         </button>
       )}
 
-      {/* Elixir Floral — escolha da planta que vai receber o reroll de sede */}
-      {elixirPicking && (
-        <div
-          className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
-          style={{ background: 'rgba(5,8,3,0.6)', backdropFilter: 'blur(4px)' }}
-          onClick={() => setElixirPicking(false)}
-        >
+      {/* Elixir Floral — confirmação antes de consumir (soltou arrastando sobre a planta) */}
+      {elixirConfirmTarget && (() => {
+        const targetPot = pots.find((p) => p.plant_id === elixirConfirmTarget);
+        if (!targetPot) return null;
+        const cachedVersion = qc.getQueryData<{ image_url: string | null }>(['plant', elixirConfirmTarget, 'version']);
+        return (
           <div
-            className="w-full rounded-3xl p-5 flex flex-col gap-3"
-            style={{
-              maxWidth: 340,
-              background: 'linear-gradient(180deg, var(--color-parch-light), var(--color-parch-dark))',
-              border: '1.5px solid var(--color-wood-light)',
-              boxShadow: '0 32px 80px rgba(0,0,0,0.5)',
-            }}
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+            style={{ background: 'rgba(5,8,3,0.6)', backdropFilter: 'blur(4px)' }}
+            onClick={() => setElixirConfirmTarget(null)}
           >
-            <h2 className="text-base font-black text-center" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}>
-              Usar o Elixir em qual planta?
-            </h2>
-            <p className="text-[11px] font-bold text-center -mt-1" style={{ fontFamily: 'var(--font-caption)', color: 'var(--color-text-mid)' }}>
-              O intervalo de sede será re-sorteado. Pode melhorar — ou piorar.
-            </p>
-            <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto">
-              {pots.filter((p) => p.plant_id).map((p) => (
+            <div
+              className="w-full rounded-3xl p-5 flex flex-col items-center gap-3"
+              style={{
+                maxWidth: 300,
+                background: 'linear-gradient(180deg, var(--color-parch-light), var(--color-parch-dark))',
+                border: '1.5px solid var(--color-wood-light)',
+                boxShadow: '0 32px 80px rgba(0,0,0,0.5)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                className="relative rounded-2xl overflow-hidden"
+                style={{ width: 76, height: 76, background: 'rgba(92,58,30,0.08)', border: '1px solid rgba(92,58,30,0.22)' }}
+              >
+                {cachedVersion?.image_url ? (
+                  <Image src={cachedVersion.image_url} alt="Planta" fill className="object-contain p-1" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Sprout className="w-8 h-8" style={{ color: 'var(--color-text-muted)' }} />
+                  </div>
+                )}
+              </div>
+              <h2 className="text-base font-black text-center" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}>
+                Usar o Elixir nesta planta?
+              </h2>
+              <p className="text-[11px] font-bold text-center" style={{ fontFamily: 'var(--font-caption)', color: 'var(--color-text-mid)' }}>
+                O intervalo de sede será re-sorteado. Pode melhorar — ou piorar.
+              </p>
+              <div className="flex gap-2 w-full mt-1">
                 <button
-                  key={p.id}
+                  onClick={() => setElixirConfirmTarget(null)}
+                  className="flex-1 py-2.5 px-3 rounded-xl text-sm font-black transition-transform active:scale-95"
+                  style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-mid)', background: 'rgba(92,58,30,0.10)', border: '1px solid rgba(92,58,30,0.35)' }}
+                >
+                  Cancelar
+                </button>
+                <button
                   disabled={useElixirMutation.isPending}
                   onClick={() => {
-                    const before = qc.getQueryData<PlantRow>(['plant', p.plant_id])?.water_period_ms ?? null;
-                    useElixirMutation.mutate(p.plant_id as string, {
+                    const before = qc.getQueryData<PlantRow>(['plant', elixirConfirmTarget])?.water_period_ms ?? null;
+                    useElixirMutation.mutate(elixirConfirmTarget, {
                       onSuccess: (data) => {
-                        setElixirPicking(false);
+                        setElixirConfirmTarget(null);
                         setElixirResult({ periodMs: data.periodMs, previousMs: before });
                       },
                     });
                   }}
-                  className="py-2.5 px-3 rounded-xl text-sm font-black text-left transition-transform active:scale-95 disabled:opacity-50"
-                  style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)', background: 'rgba(92,58,30,0.10)', border: '1px solid rgba(92,58,30,0.35)' }}
+                  className="flex-1 py-2.5 px-3 rounded-xl text-sm font-black transition-transform active:scale-95 disabled:opacity-50"
+                  style={{ fontFamily: 'var(--font-display)', color: '#3a2a08', background: 'var(--color-gold)', border: '1px solid rgba(201,162,39,0.6)' }}
                 >
-                  🌱 Planta no canteiro {(pots.filter((x) => x.plant_id).indexOf(p) + 1)}
+                  {useElixirMutation.isPending ? '...' : 'Confirmar'}
                 </button>
-              ))}
+              </div>
             </div>
-            <button onClick={() => setElixirPicking(false)} className="text-xs font-bold" style={{ color: 'var(--color-text-muted)' }}>
-              Agora não
-            </button>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Elixir Floral — roleta do novo intervalo de sede */}
       {elixirResult && (
