@@ -49,9 +49,13 @@ async function fetchPlantVersion(plantId: string): Promise<PlantVersionRow | nul
     .eq('plant_id', plantId)
     .order('created_at', { ascending: false })
     .limit(1)
-    .single();
-  // PGRST116 = no rows found — valid for plants that haven't evolved yet
-  if (error && error.code !== 'PGRST116') throw error;
+    // maybeSingle, não single: planta ainda sem versão (semente/broto antes da
+    // 1ª imagem) é caso NORMAL. Com `.single()` o PostgREST devolve 406 para
+    // zero linhas — o erro era engolido aqui, mas pintava o console de vermelho
+    // em toda visita ao jardim. O maybeSingle resolve a linha no cliente e
+    // devolve 200 com null. Mesmo padrão do /api/ranking.
+    .maybeSingle();
+  if (error) throw error;
   return (data as PlantVersionRow | null) ?? null;
 }
 

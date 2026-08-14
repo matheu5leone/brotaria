@@ -9,14 +9,19 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
+      // static.cloudflareinsights.com: a Cloudflare INJETA o beacon do Web
+      // Analytics automaticamente no HTML que passa por ela. Sem este host o
+      // script é bloqueado e o analytics simplesmente não coleta nada.
+      "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://static.cloudflareinsights.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob: https://*.supabase.co",
       // wss:// explícito p/ o realtime do Supabase: Chrome relaxa https->wss, mas
       // Firefox/Safari são estritos e bloqueiam o WebSocket sem isto (SecurityError
       // "The operation is insecure" → crash). Ver client-error-telemetry.
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://openrouter.ai",
+      // cloudflareinsights.com também no connect-src: o beacon POSTa a telemetria
+      // em /cdn-cgi/rum. Liberar só o script deixaria o erro trocar de directive.
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://openrouter.ai https://cloudflareinsights.com https://static.cloudflareinsights.com",
       "frame-src 'self' https://challenges.cloudflare.com",
     ].join('; '),
   },

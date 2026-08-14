@@ -3,8 +3,28 @@
 import { createClient } from '@supabase/supabase-js';
 import { reportClientError } from '@/lib/chunkReload';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+/**
+ * Limpa a env var antes de usar: BOM (U+FEFF), aspas e espaços/quebras nas pontas.
+ *
+ * Isso não é paranoia — aconteceu em produção. A anon key na Vercel entrou com
+ * BOM na frente (o valor provavelmente saiu de um arquivo escrito em
+ * UTF-8-with-BOM, que é o default do PowerShell). O sintoma foi traiçoeiro:
+ *
+ *   • REST continuava funcionando, porque o `safeFetch` abaixo já remove
+ *     não-ASCII de todo HEADER — o BOM sumia do `apikey` sem ninguém notar.
+ *   • O realtime quebrava, porque o WebSocket leva a chave na QUERY STRING
+ *     (`?apikey=%EF%BB%BF...`), que o safeFetch não toca. O Supabase recusava
+ *     a conexão e os presentes em tempo real paravam de chegar.
+ *
+ * Sanitizar na origem cobre os dois caminhos de uma vez.
+ */
+const cleanEnv = (v: string | undefined): string =>
+  // trim() já remove o BOM: U+FEFF entra no conjunto WhiteSpace do ECMAScript.
+  // Não escrevemos o caractere aqui — literal invisível no fonte é armadilha.
+  (v ?? '').trim().replace(/^["']|["']$/g, '');
+
+const supabaseUrl = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
+const supabaseAnonKey = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 /**
  * Fix para @supabase/supabase-js@2.107.0 + Next.js 16 Turbopack em Chrome Mobile Android.
