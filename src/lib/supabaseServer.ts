@@ -52,9 +52,16 @@ if (typeof globalThis !== 'undefined' && typeof (globalThis as { Headers?: unkno
   console.error('[supabaseServer] patch de Headers falhou — seguindo sem ele:', e);
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+// Mesma limpeza de env var do cliente (a explicação completa está em
+// src/lib/supabase.ts): BOM, aspas e espaços nas pontas. Duplicado aqui de
+// propósito, como já acontece com o safeFetch e o patch de Headers — os dois
+// lados da fronteira client/server precisam do mesmo cuidado.
+const cleanEnv = (v: string | undefined): string =>
+  (v ?? '').trim().replace(/^["']|["']$/g, '');
+
+const supabaseUrl = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
+const supabaseServiceKey = cleanEnv(process.env.SUPABASE_SERVICE_ROLE_KEY) || undefined;
+const supabaseAnonKey = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 const keyToUse = (supabaseServiceKey && supabaseServiceKey !== 'mock-service-role-key')
   ? supabaseServiceKey
