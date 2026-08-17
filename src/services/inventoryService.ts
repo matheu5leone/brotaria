@@ -205,6 +205,58 @@ export async function initializeUser(
   return { success: true, message: 'Free seed granted' };
 }
 
+// ── Reaproveitamento da primeira planta ────────────────────────────────────
+
+/**
+ * Escolhe uma planta do acervo para a PRIMEIRA planta desta conta copiar.
+ *
+ * Só entram doadoras que já têm imagem gerada (senão não há o que reaproveitar)
+ * e que não sejam do próprio jogador (a graça é conhecer a planta de outra
+ * pessoa). Devolve null — e o plantio segue gerando normalmente — quando o
+ * acervo ainda é pequeno ou a conta já usou o benefício.
+ *
+ * O gate é fechado AQUI, com CAS: duas chamadas simultâneas não podem ambas
+ * ganhar clone.
+ */
+async function pickDonorPlant(userId: string): Promise<string | null> {
+  const { data: claimed } = await supabaseAdmin
+    .from('profiles')
+    .update({ first_plant_cloned: true })
+    .eq('id', userId)
+    .eq('first_plant_cloned', false)   // CAS: só a primeira chamada passa
+    .select('id')
+    .maybeSingle();
+  if (!claimed) return null;           // conta já usou o benefício
+
+  // Candidatas: plantas de OUTROS jogadores que já têm ao menos uma versão.
+  const { data: pool } = await supabaseAdmin
+    .from('plant_versions')
+    .select('plant_id, plants!inner(user_id)')
+    .neq('plants.user_id', userId)
+    .limit(200);
+
+  const ids = [...new Set((pool ?? []).map((v) => v.plant_id as string))];
+  if (!ids.length) {
+    // Acervo vazio (jogo novo): devolve o gate e gera normalmente, para a conta
+    // não perder o benefício por azar de ter chegado cedo.
+    await supabaseAdmin.from('profiles').update({ first_plant_cloned: false }).eq('id', userId);
+    return null;
+  }
+  return ids[Math.floor(Math.random() * ids.length)];
+}
+
+/** DNA da doadora no estágio mais antigo registrado (o visual de origem). */
+async function donorBaseDna(donorId: string): Promise<unknown | null> {
+  const { data } = await supabaseAdmin
+    .from('plant_versions')
+    .select('dna_snapshot')
+    .eq('plant_id', donorId)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return data?.dna_snapshot ?? null;
+}
+
 // ── Plantar ────────────────────────────────────────────────────────────────
 
 export async function plantSeed(
@@ -244,7 +296,21 @@ export async function plantSeed(
   if (pot.plant_id) throw new Error('Pot is already occupied');
 
   // 3. Gera DNA (semente reciclada = piso de raridade; semente-bioma = bioma travado)
-  const dna = generateRandomDNA(seedRarity ?? undefined, seedBiome ?? undefined);
+  let dna = generateRandomDNA(seedRarity ?? undefined, seedBiome ?? undefined);
+
+  // 3b. PRIMEIRA planta da conta: reaproveita uma do acervo em vez de gastar
+  //     geração de IA. Copiamos o DNA da doadora agora e, a cada evolução, a
+  //     imagem daquele estágio (ver evolvePlant) — a clone vira uma repetição
+  //     fiel da vida dela, sem nenhuma chamada ao gerador.
+  //     O gate vive no profile, não na contagem de plantas: apagar e replantar
+  //     não pode renovar o benefício.
+  const donorId = await pickDonorPlant(userId);
+  if (donorId) {
+    const base = await donorBaseDna(donorId);
+    // Sem snapshot utilizável, mantém o DNA sorteado: a clone ainda reaproveita
+    // as IMAGENS da doadora, que é onde está o custo.
+    if (base) dna = base as typeof dna;
+  }
 
   // 4. Busca estágio inicial
   const { data: stage } = await supabaseAdmin
@@ -266,6 +332,7 @@ export async function plantSeed(
       user_id: userId,
       pot_id: potId,
       dna: dna,
+      cloned_from: donorId,
       current_stage_id: stage.id,
       current_stage_waters: 0,
       current_target: sede.waters[1],

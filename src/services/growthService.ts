@@ -131,6 +131,25 @@ export async function waterPlant(plantId: string, userId: string) {
   };
 }
 
+/**
+ * Versão da planta doadora para um estágio, se existir.
+ *
+ * Retorna null quando a doadora nunca chegou a este estágio (ou sumiu) — e aí
+ * a evolução cai no caminho normal e GERA. É o que garante que a clone nunca
+ * fica sem imagem só porque a doadora parou de crescer.
+ */
+async function fetchDonorVersion(donorId: string, stageId: string) {
+  const { data } = await supabaseAdmin
+    .from('plant_versions')
+    .select('image_url, prompt_used, dna_snapshot')
+    .eq('plant_id', donorId)
+    .eq('stage_id', stageId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data ?? null;
+}
+
 export async function evolvePlant(plantId: string) {
   console.log(`[Growth] Evolving plant ${plantId}`);
 
@@ -153,14 +172,30 @@ export async function evolvePlant(plantId: string) {
     return { success: true, maxGrowth: true };
   }
 
-  const newDNA = mutateDNA(plant.dna);
+  let newDNA = mutateDNA(plant.dna);
+
+  // Planta REAPROVEITADA (primeira da conta): em vez de gerar, copia a versão
+  // que a doadora já tem para este estágio — imagem e DNA. A clone repete a
+  // vida dela sem custo nenhum de IA. Ver a migração first_plant_cloned.
+  const donorVersion = plant.cloned_from && nextStage.generate_image
+    ? await fetchDonorVersion(plant.cloned_from, nextStage.id)
+    : null;
+  if (donorVersion?.dna_snapshot) newDNA = donorVersion.dna_snapshot as typeof newDNA;
 
   // 1) Se o estágio gera imagem, GERA ANTES de avançar o estágio.
   //    Se a geração falhar/der timeout, lançamos o erro e o estágio NÃO avança —
   //    a planta continua no estágio atual (visível) e o usuário pode regar de novo.
   //    Assim nunca ficamos com a planta num estágio sem imagem (invisível).
   let evolution: { visualDescription: string; imageUrl: string; modelUsed: string } | null = null;
-  if (nextStage.generate_image) {
+  if (donorVersion?.image_url) {
+    // Caminho barato: nenhuma chamada ao gerador.
+    evolution = {
+      visualDescription: donorVersion.prompt_used ?? '[REUSO] Planta reaproveitada do acervo.',
+      imageUrl: donorVersion.image_url,
+      modelUsed: 'REUSED-FROM-POOL',
+    };
+    console.log(`[Growth] Plant ${plantId} reaproveitou a versão de ${plant.cloned_from} (sem IA)`);
+  } else if (nextStage.generate_image) {
     console.log(`[IA] Triggering evolution for stage ${nextStage.code} | MODO: ${MODO_IA}`);
     if (MODO_IA === 'LLM') {
       const { data: lastVersion } = await supabaseAdmin
