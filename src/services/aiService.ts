@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
 import { encodeWebp } from '@/lib/imageProcessing';
+import { archetypeOf } from '@/config/genome/archetypes';
 
 /**
  * CONFIGURAÇÃO DE MODELOS
@@ -116,6 +117,7 @@ function buildLlmUserContent(dna: PlantDNA, stageCode: string, previousDescripti
   const f = dna.form;
   // Flores dependem do estágio: fase jovem (≤35% da altura) usa has_flowers_young;
   // fase média/grande usa has_flowers. Frutos só quando bem maduro.
+  const arch = archetypeOf(f.archetype);
   const early = fraction <= 0.35;
   const flowersNow = early ? f.has_flowers_young : f.has_flowers;
   const fruitNow = !early && f.has_fruit;
@@ -125,7 +127,10 @@ Plant DNA (source of truth — reproduce these exactly, identity has NO image re
 - Personality: ${dna.personality}
 - Rarity: ${dna.rarity}
 - Colors: primary ${dna.color.primary_hex}, secondary ${dna.color.secondary_hex}
-- Leaf style: ${f.leaf_style}, density: ${f.leaf_density}
+- BODY PLAN (most important — overrides any conflicting cue below): ${arch.prompt}
+- Leaf architecture: ${f.leaf_architecture ?? 'simple'}
+- Reproduction: ${f.reproduction ?? 'flower'}${(f.reproduction ?? 'flower') !== 'flower' ? ' (this plant NEVER produces flowers)' : ''}
+- Leaf style (applies to each blade/leaflet): ${f.leaf_style}, density: ${f.leaf_density}
 - Stem style: ${f.stem_style}, adult thickness: ${f.stem_thickness_grown}
 - Growth pattern: ${f.growth_pattern}, adult height: ~${f.max_height_cm}cm
 - Flowers at this stage: ${flowersNow ? `yes (color ${f.flower_color_hex})` : 'no'} | Fruit at this stage: ${fruitNow ? `yes (color ${f.fruit_color_hex})` : 'no'}

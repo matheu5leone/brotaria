@@ -19,6 +19,13 @@ export interface DNAColor {
 
 /** Forma botânica imutável da planta (o "genoma visual"). */
 export interface DNAForm {
+  /** Plano corporal (erva, samambaia, cacto…). Ausente = planta anterior ao
+   *  arquétipo, que é lida como 'erva'. Ver config/genome/archetypes.ts. */
+  archetype?: string;
+  /** Folha simples ou composta (folíolos num ráquis), fita, espinho… */
+  leaf_architecture?: string;
+  /** flower | spore | cone — decide se flor é sequer possível. */
+  reproduction?: string;
   leaf_style: LeafStyle;
   leaf_density: LeafDensity;
   stem_style: StemStyle;

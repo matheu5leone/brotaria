@@ -1,5 +1,6 @@
 import { PlantDNA, Biome, Rarity, DNAForm, TraitInstance, TraitDef, TraitParamSpec } from '../types';
 import { rarityRank } from '../config/rarity';
+import { ARCHETYPES, rollArchetype } from '../config/genome/archetypes';
 import {
   randomColor,
   LEAF_STYLES,
@@ -82,16 +83,27 @@ function instantiateTrait(def: TraitDef): TraitInstance {
 /* ------------------------------------------------------------------ */
 
 function randomForm(): DNAForm {
-  const has_flowers = Math.random() < FLOWER_CHANCE;
-  const has_flowers_young = Math.random() < YOUNG_FLOWER_CHANCE;
+  // O arquétipo vem primeiro: ele põe trilhos nos eixos que não podem brigar
+  // entre si (cacto não tem fronde) e zera a flor de quem não floresce.
+  const archetype = rollArchetype();
+  const arch = ARCHETYPES[archetype];
+
+  const has_flowers = Math.random() < FLOWER_CHANCE * arch.flowerMultiplier;
+  const has_flowers_young = Math.random() < YOUNG_FLOWER_CHANCE * arch.flowerMultiplier;
   const anyFlowers = has_flowers || has_flowers_young;
-  const has_fruit = Math.random() < FRUIT_CHANCE;
+  // Fruto segue a flor: quem não floresce não frutifica (samambaia, gramínea).
+  // Sem isto o DNA dizia 'tem fruto' enquanto o prompt dizia 'nunca frutifica'.
+  const has_fruit = anyFlowers && Math.random() < FRUIT_CHANCE;
   return {
+    archetype,
+    leaf_architecture: arch.leaf_architecture,
+    reproduction: arch.reproduction,
     leaf_style: pick(LEAF_STYLES),
     leaf_density: pick(LEAF_DENSITIES),
-    stem_style: pick(STEM_STYLES),
-    stem_thickness_grown: pick(STEM_THICKNESSES),
-    growth_pattern: pick(GROWTH_PATTERNS),
+    // Trilho do arquétipo quando existe; senão, sorteio livre de sempre.
+    stem_style: arch.stem_style ?? pick(STEM_STYLES),
+    stem_thickness_grown: arch.stem_thickness_grown ?? pick(STEM_THICKNESSES),
+    growth_pattern: arch.growth_pattern ?? pick(GROWTH_PATTERNS),
     max_height_cm: randInt(MAX_HEIGHT_CM_RANGE.min, MAX_HEIGHT_CM_RANGE.max),
     has_flowers,
     has_flowers_young,
