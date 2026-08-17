@@ -128,7 +128,9 @@ export const ARCHETYPES: Record<PlantArchetype, ArchetypeDef> = {
     reproduction: 'cone',
     stem_style: 'none',
     growth_pattern: 'tall',
-    flowerMultiplier: 0.2,
+    // 0, não 0.2: quem reproduz por cone NÃO floresce. A "flor" da gramínea é
+    // a espiga, que já está descrita no prompt abaixo.
+    flowerMultiplier: 0,
     prompt:
       'a grass-like plant: a TUFT of long narrow ribbon leaves rising from the base, topped by a dry seed spike instead of a flower',
   },

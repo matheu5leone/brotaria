@@ -87,6 +87,17 @@ export interface TraitDef {
    */
   minStageOrder?: number;
   /**
+   * Perk que fala de CAULE — some do pool em arquétipo sem caule (roseta,
+   * tufo, cacto). Sem isto o prompt dizia "caule principal curvado" numa
+   * planta cuja própria forma declara não ter caule.
+   */
+  requiresStem?: boolean;
+  /**
+   * Perk que adorna a LÂMINA da folha — some do pool onde não há folha de
+   * verdade (cacto tem espinho, musgo tem escama).
+   */
+  requiresLeaves?: boolean;
+  /**
    * Quando presente, o perk NÃO entra no pool: é sorteado à parte com esta
    * chance (0..1), depois de passar pela trava de raridade. Serve para o que
    * deve ser raro mesmo dentro do topo.

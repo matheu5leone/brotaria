@@ -131,6 +131,7 @@ export const TRAITS: TraitDef[] = [
   // ─── A partir de RARO ────────────────────────────────────────────────────
   {
     name: 'caule_retorcido',
+    requiresStem: true,
     minRarity: 'raro',
     params: [
       { key: 'twist', type: 'enum', values: ['gently curved', 'strongly curved', 'tightly spiralled'] },
@@ -141,6 +142,7 @@ export const TRAITS: TraitDef[] = [
   },
   {
     name: 'folhas_espiral',
+    requiresLeaves: true,
     minRarity: 'raro',
     params: [
       { key: 'curl', type: 'enum', values: ['short curled', 'coiled', 'tightly corkscrewed'] },
@@ -152,6 +154,7 @@ export const TRAITS: TraitDef[] = [
   },
   {
     name: 'folhas_peludas',
+    requiresLeaves: true,
     minRarity: 'raro',
     params: [
       { key: 'density', type: 'enum', values: ['fine sparse', 'dense velvety'] },
@@ -163,6 +166,7 @@ export const TRAITS: TraitDef[] = [
   },
   {
     name: 'folhagem_atipica',
+    requiresLeaves: true,
     minRarity: 'raro',
     params: [
       { key: 'shape', type: 'enum', values: [
@@ -175,6 +179,7 @@ export const TRAITS: TraitDef[] = [
   // ─── A partir de ÉPICO ───────────────────────────────────────────────────
   {
     name: 'caule_duplo',
+    requiresStem: true,
     minRarity: 'epico',
     params: [
       { key: 'symmetry', type: 'enum', values: ['twin, equally thick', 'one dominant and one slimmer'] },
@@ -186,6 +191,7 @@ export const TRAITS: TraitDef[] = [
   },
   {
     name: 'folhas_degrade',
+    requiresLeaves: true,
     minRarity: 'epico',
     params: [
       { key: 'from_hex', type: 'color' },
@@ -207,6 +213,7 @@ export const TRAITS: TraitDef[] = [
   },
   {
     name: 'cipos',
+    requiresStem: true,
     minRarity: 'epico',
     minStageOrder: 8,   // só a partir de "Jovem"
     params: [
@@ -260,11 +267,33 @@ export const PERKS_BY_RARITY: Record<Rarity, { base: number; extraChance: number
   brotaria: { base: 3, extraChance: 0.60 },
 };
 
-/** Perks elegíveis para uma raridade — respeita a trava e exclui os de sorteio próprio. */
-export function poolForRarity(rarity: Rarity): TraitDef[] {
+/** Arquiteturas em que não existe lâmina foliar para adornar. */
+const SEM_FOLHA_REAL = ['spines', 'scale'];
+
+/**
+ * Perks elegíveis: respeita a trava de raridade, exclui os de sorteio próprio
+ * e — importante — descarta o que a ANATOMIA do arquétipo não comporta.
+ *
+ * Sem o filtro anatômico, arquétipo e perk (sorteados por caminhos diferentes)
+ * se contradiziam no prompt: suculenta sem caule ganhando "caule retorcido",
+ * cacto sem folha ganhando "folhas peludas". O gerador recebia as duas frases
+ * e tinha que escolher qual obedecer.
+ */
+export function poolForRarity(
+  rarity: Rarity,
+  anatomia?: { stem_style?: string; leaf_architecture?: string },
+): TraitDef[] {
+  // Olha a FORMA QUE SAIU, não o trilho do arquétipo. `erva` não tem trilho de
+  // caule, então cai no sorteio livre — e 'none' está lá dentro. Filtrar pelo
+  // arquétipo deixava passar erva sem caule recebendo "caule retorcido".
+  const semCaule = anatomia?.stem_style === 'none';
+  const semFolha = SEM_FOLHA_REAL.includes(anatomia?.leaf_architecture ?? 'simple');
+
   return TRAITS.filter(
     (t) => t.independentChance == null
-      && (!t.minRarity || rarityRank(rarity) >= rarityRank(t.minRarity)),
+      && (!t.minRarity || rarityRank(rarity) >= rarityRank(t.minRarity))
+      && !(t.requiresStem && semCaule)
+      && !(t.requiresLeaves && semFolha),
   );
 }
 

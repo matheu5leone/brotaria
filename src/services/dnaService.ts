@@ -128,8 +128,10 @@ function randomForm(): DNAForm {
  * rolados à parte: é o que mantém `marca_do_bioma` rara mesmo numa lendária,
  * em vez de virar quase certa por ser um entre poucos do topo.
  */
-function rollInitialTraits(rarity: Rarity): TraitInstance[] {
-  const pool = poolForRarity(rarity);
+function rollInitialTraits(rarity: Rarity, form?: DNAForm): TraitInstance[] {
+  // A forma entra aqui para o pool descartar o que a anatomia não comporta
+  // (perk de caule em planta sem caule, perk de folha em cacto).
+  const pool = poolForRarity(rarity, form);
   const chosen: TraitDef[] = [];
   const take = () => chosen.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
 
@@ -153,13 +155,16 @@ function rollInitialTraits(rarity: Rarity): TraitInstance[] {
 export function generateRandomDNA(minRarity?: Rarity, biome?: Biome): PlantDNA {
   let rarity = calculateRarity();
   if (minRarity && rarityRank(rarity) < rarityRank(minRarity)) rarity = minRarity;
+  // A FORMA vem primeiro: os perks precisam saber o arquétipo para não
+  // contradizerem a anatomia dela.
+  const form = randomForm();
   return {
     biome: biome ?? pick(BIOMES),
     rarity,
     personality: pick(PERSONALITIES),
     color: randomColor(),
-    form: randomForm(),
-    traits: rollInitialTraits(rarity),
+    form,
+    traits: rollInitialTraits(rarity, form),
   };
 }
 
@@ -202,7 +207,7 @@ export function mutateDNA(dna: PlantDNA): PlantDNA {
   // porta dos fundos, driblando a trava do plantio.
   if (rarity !== 'comum') {
     const owned = new Set(newDNA.traits.map((t) => t.name));
-    const available = poolForRarity(dna.rarity).filter((t) => !owned.has(t.name));
+    const available = poolForRarity(dna.rarity, dna.form).filter((t) => !owned.has(t.name));
     if (available.length > 0) {
       newDNA.traits.push(instantiateTrait(pick(available)));
     }
