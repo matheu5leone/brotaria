@@ -1,0 +1,66 @@
+[
+  {
+    "version": "0.9.0",
+    "date": "2026-08-17",
+    "title": "O DNA ganhou personalidade",
+    "image": "/imgs/seed.webp",
+    "intro": "Cada semente agora carrega um arquétipo — e os poderes raros pararam de cair no colo de qualquer planta.",
+    "notes": [
+      { "type": "novo", "text": "Toda planta nasce com um arquétipo: samambaia, cacto, suculenta e outros. Ele guia o formato, a postura e o jeitão dela desde a primeira folha." },
+      { "type": "balanceamento", "text": "Os perks agora respeitam a raridade. Poder lendário só aparece em planta lendária — e chegaram 9 perks novos pra preencher a escada." },
+      { "type": "melhoria", "text": "A primeira planta da sua conta aparece na hora, sem espera de geração." },
+      { "type": "correcao", "text": "O \"+\" fantasma sumiu do canteiro vazio." }
+    ]
+  },
+  {
+    "version": "0.8.0",
+    "date": "2026-08-17",
+    "title": "A mochila tem fundo",
+    "image": "/imgs/backpack.webp",
+    "intro": "Agora existe limite de espaço — e uma tela pra você escolher o que fica e o que sobra.",
+    "notes": [
+      { "type": "novo", "text": "Mochila cheia abre uma tela de decisão: você escolhe o que guardar e o que deixar pra trás, em vez de perder item em silêncio." },
+      { "type": "novo", "text": "Missão Provedor: cumpra e leve um avatar exclusivo." },
+      { "type": "melhoria", "text": "Dá pra plantar direto de dentro da mochila." },
+      { "type": "melhoria", "text": "A obra do canteiro ganhou cronômetro, e tocar o canteiro oferece um atalho pago pra quem não quer esperar." }
+    ]
+  },
+  {
+    "version": "0.7.0",
+    "date": "2026-08-11",
+    "title": "Cavar virou trabalho de verdade",
+    "image": "/imgs/shovel.webp",
+    "intro": "A pá gasta, a obra leva tempo e abrir canteiro deixou de ser um clique.",
+    "notes": [
+      { "type": "novo", "text": "A pá agora tem 5 usos — a barrinha embaixo dela mostra quanto sobrou. O primeiro canteiro continua de graça." },
+      { "type": "novo", "text": "Minigame de camadas: cave atravessando a terra pra terminar a obra mais rápido." },
+      { "type": "balanceamento", "text": "A obra é escalonada — quanto mais canteiros você tem, mais demorada fica a próxima." },
+      { "type": "melhoria", "text": "O Elixir Floral passou a ser usado arrastando até a planta, com confirmação antes de gastar." }
+    ]
+  },
+  {
+    "version": "0.6.0",
+    "date": "2026-08-08",
+    "title": "A abelha achou o seu jardim",
+    "image": "/imgs/abelha.webp",
+    "intro": "De vez em quando uma abelha aparece. Clique nela — é o começo de uma cadeia nova.",
+    "notes": [
+      { "type": "novo", "text": "Abelhas visitam o jardim. Clicar numa rende pólen." },
+      { "type": "novo", "text": "Pólen vira Elixir Floral, e o elixir sorteia um novo destino pra sede da sua planta." },
+      { "type": "melhoria", "text": "A abelha zumbe, brilha ao passar o mouse e responde na hora ao clique." },
+      { "type": "melhoria", "text": "Na primeira abelha, um tutorial explica a cadeia inteira." }
+    ]
+  },
+  {
+    "version": "0.5.0",
+    "date": "2026-08-04",
+    "title": "Jardim de vizinho também dá sede",
+    "image": "/imgs/watering-can.webp",
+    "intro": "Visitar o jardim dos outros deixou de ser passeio: agora você pode regar e ganhar reputação por isso.",
+    "notes": [
+      { "type": "novo", "text": "Arraste o regador nas plantas de um jardim visitado pra ajudar o vizinho." },
+      { "type": "novo", "text": "Regar os outros rende reputação — e cada jardim só tem uma planta pedindo água por vez." },
+      { "type": "melhoria", "text": "Planta regada por vizinho fica com um brilho de gratidão por 24 horas." }
+    ]
+  }
+]

@@ -9,8 +9,10 @@ import { useWallet } from '@/hooks/useWallet';
 import {
   LogOut, LayoutDashboard, Store,
   ChevronLeft, ChevronRight, Trophy, Target,
-  MoreVertical, UserPlus, Check, Droplets, Camera, Heart,
+  MoreVertical, UserPlus, Check, Droplets, Camera, Heart, ScrollText,
 } from 'lucide-react';
+import { ChangelogModal } from '@/components/ChangelogModal';
+import { CURRENT_VERSION, hasUnreadChangelog } from '@/config/changelog';
 import { CoinIcon } from '@/components/CoinIcon';
 import { HerboIcon } from '@/components/HerboIcon';
 import { AvatarCircle } from '@/components/AvatarCircle';
@@ -30,10 +32,12 @@ function NotifDot() {
 
 export default function Sidebar() {
   const { user, signOut } = useAuth();
-  const { coins, herbo, nickname, referralCode, avatarUrl } = useWallet();
+  const { coins, herbo, nickname, referralCode, avatarUrl, lastChangelogVersion } = useWallet();
   const { data: myLikes } = useLikes(user?.id); // curtidas recebidas no próprio jardim
   const hasClaimableMission = useHasClaimableMission(); // badge de resgate no menu Missões
+  const unreadChangelog = hasUnreadChangelog(lastChangelogVersion);
   const myGarden = nickname ? `/jardim/${nickname}` : '/';
+  const [changelogOpen, setChangelogOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -95,6 +99,7 @@ export default function Sidebar() {
   return (
     <>
     {pickerOpen && <AvatarPickerModal onClose={() => setPickerOpen(false)} />}
+    {changelogOpen && <ChangelogModal onClose={() => setChangelogOpen(false)} />}
     <aside
       className={`${
         isSidebarCollapsed ? 'w-20' : 'w-64'
@@ -230,6 +235,20 @@ export default function Sidebar() {
             <Droplets className="w-5 h-5 min-w-[20px]" />
             {!isSidebarCollapsed && <span style={{ fontFamily: 'var(--font-body)' }}>Coleta de Água</span>}
           </NavLink>
+
+          {/* Abre o modal em vez de navegar — por isso não usa NavLink. O
+              navItemClass recebe uma rota que nunca casa (sempre estado inativo). */}
+          <button
+            onClick={() => setChangelogOpen(true)}
+            title="Nota de atualização"
+            className={`${navItemClass('__nota__')} w-full text-left`}
+          >
+            <span className="relative min-w-[20px] w-5 h-5">
+              <ScrollText className="w-5 h-5" />
+              {unreadChangelog && <NotifDot />}
+            </span>
+            {!isSidebarCollapsed && <span style={{ fontFamily: 'var(--font-body)' }}>Nota de atualização</span>}
+          </button>
         </div>
 
       </nav>
@@ -373,6 +392,18 @@ export default function Sidebar() {
                 )}
               </button>
             </div>
+
+            {/* Versão do jogo — clicar abre a nota de atualização */}
+            {!isSidebarCollapsed && (
+              <button
+                onClick={() => setChangelogOpen(true)}
+                title="Ver a nota de atualização"
+                className="text-[10px] font-bold tracking-widest text-center transition-colors hover:text-[var(--color-text-mid)]"
+                style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-muted)' }}
+              >
+                v{CURRENT_VERSION}
+              </button>
+            )}
           </div>
         ) : null}
       </div>

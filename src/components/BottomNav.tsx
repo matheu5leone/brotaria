@@ -7,8 +7,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import {
   LayoutDashboard, Store, Trophy, Target, Menu, Droplets, X,
-  UserPlus, LogOut, Check, Camera, Heart,
+  UserPlus, LogOut, Check, Camera, Heart, ScrollText,
 } from 'lucide-react';
+import { ChangelogModal } from '@/components/ChangelogModal';
+import { CURRENT_VERSION, hasUnreadChangelog } from '@/config/changelog';
 import { CoinIcon } from '@/components/CoinIcon';
 import { HerboIcon } from '@/components/HerboIcon';
 import { AvatarCircle } from '@/components/AvatarCircle';
@@ -101,11 +103,48 @@ function SheetItem({
   );
 }
 
+/** Mesmo visual do SheetItem, mas para ação (abre modal em vez de navegar). */
+function SheetButton({
+  label,
+  onClick,
+  dot = false,
+  trailing,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  dot?: boolean;
+  trailing?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all active:scale-[0.98] w-full"
+      style={{ background: 'rgba(92,58,30,0.04)', border: '1px solid rgba(92,58,30,0.15)' }}
+    >
+      <div className="relative" style={{ color: 'var(--color-text-muted)' }}>
+        {children}
+        {dot && <NotifDot />}
+      </div>
+      <span
+        className="text-sm font-bold"
+        style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}
+      >
+        {label}
+      </span>
+      {trailing && <span className="ml-auto">{trailing}</span>}
+    </button>
+  );
+}
+
 export function BottomNav() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
-  const { coins, herbo, nickname, referralCode, avatarUrl } = useWallet();
+  const { coins, herbo, nickname, referralCode, avatarUrl, lastChangelogVersion } = useWallet();
   const myGarden = nickname ? `/jardim/${nickname}` : '/';
+  const unreadChangelog = hasUnreadChangelog(lastChangelogVersion);
+  const [changelogOpen, setChangelogOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -149,6 +188,7 @@ export function BottomNav() {
   return (
     <>
       {pickerOpen && <AvatarPickerModal onClose={() => setPickerOpen(false)} />}
+      {changelogOpen && <ChangelogModal onClose={() => setChangelogOpen(false)} />}
 
       {/* Bottom sheet do menu ☰ */}
       {menuOpen && (
@@ -185,6 +225,21 @@ export function BottomNav() {
               <SheetItem href="/missoes" label="Missões" active={pathname === '/missoes'} onClick={() => setMenuOpen(false)} dot={hasClaimableMission}>
                 <Target className="w-5 h-5" />
               </SheetItem>
+              <SheetButton
+                label="Nota de atualização"
+                onClick={() => { setMenuOpen(false); setChangelogOpen(true); }}
+                dot={unreadChangelog}
+                trailing={
+                  <span
+                    className="text-[10px] font-black"
+                    style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-muted)' }}
+                  >
+                    v{CURRENT_VERSION}
+                  </span>
+                }
+              >
+                <ScrollText className="w-5 h-5" />
+              </SheetButton>
             </div>
           </div>
         </div>
@@ -332,7 +387,7 @@ export function BottomNav() {
         >
           <div className="relative" style={{ color: menuOpen || secondaryActive ? 'var(--color-wood-mid)' : 'var(--color-text-muted)' }}>
             <Menu className="w-5 h-5" />
-            {hasClaimableMission && !menuOpen && <NotifDot />}
+            {(hasClaimableMission || unreadChangelog) && !menuOpen && <NotifDot />}
           </div>
           <span
             className="text-[8px] uppercase tracking-wide font-black"
