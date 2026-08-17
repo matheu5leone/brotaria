@@ -184,15 +184,20 @@ function WrappedPlantSlot({
 
 // ── Slot: Planta revelada ─────────────────────────────────────────────────────
 
-function PlantSlot({ item }: { item: InventoryItem }) {
+function PlantSlot({ item, onPlantDragStart }: {
+  item: InventoryItem;
+  onPlantDragStart?: (e: React.PointerEvent, itemId: string) => void;
+}) {
   const { data: version } = usePlantVersion(item.plant_id);
   const { data: plant } = usePlant(item.plant_id);
   const rarity: Rarity = (plant?.dna?.rarity as Rarity) ?? 'comum';
 
   return (
     <div
-      className="relative flex flex-col items-center justify-center w-full h-full rounded-xl overflow-hidden"
-      style={{ background: 'rgba(92,58,30,0.08)', border: '1px solid rgba(92,58,30,0.22)' }}
+      className="relative flex flex-col items-center justify-center w-full h-full rounded-xl overflow-hidden cursor-grab active:cursor-grabbing"
+      style={{ touchAction: 'none', background: 'rgba(92,58,30,0.08)', border: '1px solid rgba(92,58,30,0.22)' }}
+      onPointerDown={(e) => { e.stopPropagation(); onPlantDragStart?.(e, item.id); }}
+      title="Arraste até um canteiro vazio para plantar"
     >
       <RarityEffect rarity={rarity} alwaysVisible>
         {version?.image_url ? (
@@ -203,6 +208,7 @@ function PlantSlot({ item }: { item: InventoryItem }) {
           <div className="w-6 h-6 rounded-full animate-pulse" style={{ background: 'rgba(92,58,30,0.25)' }} />
         )}
       </RarityEffect>
+      <DragHintBadge />
     </div>
   );
 }
@@ -260,6 +266,7 @@ function SlotContent({
   onSeedDragStart,
   onCraftElixir,
   onElixirDragStart,
+  onPlantDragStart,
 }: {
   item: InventoryItem | undefined;
   userId: string;
@@ -271,6 +278,8 @@ function SlotContent({
   onCraftElixir?: () => void;
   /** Inicia o arraste do Elixir Floral a partir do slot (fecha a mochila). */
   onElixirDragStart?: (e: React.PointerEvent) => void;
+  /** Arrastar uma planta da mochila até um canteiro vazio. */
+  onPlantDragStart?: (e: React.PointerEvent, itemId: string) => void;
 }) {
   if (animPhase !== 'idle') return <AnimatingSlot phase={animPhase} rarity={animRarity} />;
 
@@ -409,7 +418,7 @@ function SlotContent({
     return <WrappedPlantSlot item={item} userId={userId} onOpen={onOpenGift} onLabelSave={onLabelSave} />;
   }
   if (item.item_type === 'plant') {
-    return <PlantSlot item={item} />;
+    return <PlantSlot item={item} onPlantDragStart={onPlantDragStart} />;
   }
   return null;
 }
@@ -423,6 +432,7 @@ export function InventoryPanel({
   onClose,
   onSeedDragStart,
   onElixirDragStart,
+  onPlantDragStart,
 }: {
   userId: string | undefined;
   onWrapMode: () => void;
@@ -432,6 +442,8 @@ export function InventoryPanel({
   onSeedDragStart?: (e: React.PointerEvent, seed?: SeedDragMeta) => void;
   /** Inicia o arraste do Elixir Floral a partir do slot (fecha a mochila). */
   onElixirDragStart?: (e: React.PointerEvent) => void;
+  /** Arrastar uma planta da mochila até um canteiro vazio. */
+  onPlantDragStart?: (e: React.PointerEvent, itemId: string) => void;
 }) {
   const craftElixir = useCraftElixir();
   const [animatingSlot, setAnimatingSlot] = useState<number | null>(null);

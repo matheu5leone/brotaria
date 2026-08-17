@@ -51,6 +51,7 @@ export const MISSIONS: Mission[] = [
   { key: 'likes_recv_10', title: 'Jardim Querido',    description: 'Receba 10 curtidas no seu jardim', goal: 10,  metric: 'likes_received', reward: 'seed' },
   { key: 'likes_give_10', title: 'Bom Vizinho',       description: 'Curta 10 jardins de outros',       goal: 10,  metric: 'likes_given',    reward: 'seed' },
   { key: 'gift_1',        title: 'Presente da Casa',  description: 'Presenteie alguém com uma planta',  goal: 1,   metric: 'gifts_sent',     reward: 'seed' },
+  { key: 'gift_avatar',   title: 'Provedor',          description: 'Dê uma planta de presente',        goal: 1,   metric: 'gifts_sent',     reward: 'avatar', avatar: { key: 'provedor', name: 'Provedor', image: '/imgs/avatar-provedor.webp' } },
   { key: 'refer_1',       title: 'Convide um Amigo',  description: 'Indique 1 amigo',                  goal: 1,   metric: 'referrals',      reward: 'wrapping_kit', info: REFERRAL_INFO },
   { key: 'refer_2',       title: 'Amigos no Jardim',  description: 'Indique 2 amigos',                 goal: 2,   metric: 'referrals',      reward: 'seed',         info: REFERRAL_INFO },
 ];

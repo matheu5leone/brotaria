@@ -783,6 +783,69 @@ export default function Garden() {
     captureEl.addEventListener('pointercancel', onUp);
   }, [plantMutation, findPotAtPoint, triggerPlantFx]);
 
+  /**
+   * Plantar no canteiro uma planta que está NA MOCHILA (recebida de presente
+   * ou recolhida com o carrinho). Espelha o arraste da semente; a diferença é
+   * que a planta já existe — vai para /api/plants/place, não para o plantio
+   * por semente.
+   */
+  const handlePlantDragStart = useCallback((e: React.PointerEvent, itemId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Captura no jardim (elemento estável): o slot desmonta junto com a mochila.
+    const captureEl = containerRef.current;
+    if (!captureEl) return;
+    const pointerId = e.pointerId;
+    try { captureEl.setPointerCapture(pointerId); } catch {}
+
+    setInventoryOpen(false);
+    setSeedDrag(true);                 // reusa o realce verde de "canteiro alvo"
+    setSeedDragPos({ x: e.clientX, y: e.clientY });
+    setSeedTargetPotId(null);
+    setSeedDragImg('/imgs/seed.webp');
+    setShovelActive(false);
+
+    const isPlantable = (pot: Pot | null): pot is Pot =>
+      !!pot && !pot.plant_id && getPotState(pot) === 'ready';
+
+    const onMove = (ev: PointerEvent) => {
+      setSeedDragPos({ x: ev.clientX, y: ev.clientY });
+      const pot = findPotAtPoint(ev.clientX, ev.clientY);
+      setSeedTargetPotId(isPlantable(pot) ? pot.id : null);
+    };
+    const onUp = async (ev: PointerEvent) => {
+      setSeedDrag(false);
+      setSeedDragPos(null);
+      setSeedTargetPotId(null);
+      captureEl.removeEventListener('pointermove', onMove);
+      captureEl.removeEventListener('pointerup', onUp);
+      captureEl.removeEventListener('pointercancel', onUp);
+      try { captureEl.releasePointerCapture(pointerId); } catch {}
+
+      const pot = findPotAtPoint(ev.clientX, ev.clientY);
+      if (!isPlantable(pot)) return;
+      try {
+        const res = await authFetch('/api/plants/place', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ itemId, potId: pot.id }),
+        });
+        const d = await res.json();
+        if (!res.ok) { setShovelError(d.error ?? 'Não deu para plantar.'); return; }
+        triggerPlantFx(pot.id);
+        const uid = user?.id;
+        qc.invalidateQueries({ queryKey: ['garden', 'pots', uid] });
+        qc.invalidateQueries({ queryKey: ['inventory', uid] });
+      } catch {
+        setShovelError('Não deu para plantar.');
+      }
+    };
+    captureEl.addEventListener('pointermove', onMove);
+    captureEl.addEventListener('pointerup', onUp);
+    captureEl.addEventListener('pointercancel', onUp);
+  }, [findPotAtPoint, triggerPlantFx, qc, user?.id]);
+
   // Usar o Elixir Floral arrastando da mochila até uma planta (estilo regador).
   // Solta em cima da planta → abre confirmação; a mutation só roda ao confirmar.
   const handleElixirDragStart = useCallback((e: React.PointerEvent) => {
@@ -1531,6 +1594,7 @@ export default function Garden() {
           open={inventoryOpen}
           onClose={() => setInventoryOpen(false)}
           onSeedDragStart={handleSeedDragStart}
+          onPlantDragStart={handlePlantDragStart}
           onElixirDragStart={handleElixirDragStart}
         />
       )}
