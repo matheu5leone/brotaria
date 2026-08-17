@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Cinzel_Decorative, Crimson_Text, IM_Fell_English } f
 import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
 import { WalletProvider } from "@/hooks/useWallet";
+import { ItemGainProvider } from "@/components/ItemGain";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { CHUNK_GUARD_INLINE } from "@/lib/chunkReload";
 import { getSiteUrl } from "@/lib/siteUrl";
@@ -112,7 +113,9 @@ export default function RootLayout({
         <QueryProvider>
           <AuthProvider>
             <WalletProvider>
+              <ItemGainProvider>
               {children}
+              </ItemGainProvider>
             </WalletProvider>
           </AuthProvider>
         </QueryProvider>

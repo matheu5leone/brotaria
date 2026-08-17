@@ -379,6 +379,32 @@ function SlotContent({
       </div>
     );
   }
+  // Materiais da terra — sem uso mecânico ainda, então só ocupam o slot com
+  // emoji. Ganham arte própria quando a fertilidade sair do armário.
+  if (item.item_type === 'minhoca' || item.item_type === 'terra_molhada') {
+    const isMinhoca = item.item_type === 'minhoca';
+    return (
+      <div
+        className="relative flex flex-col items-center justify-center gap-0.5 w-full h-full rounded-xl"
+        style={{ background: 'rgba(107,68,35,0.18)', border: '1px solid rgba(107,68,35,0.5)' }}
+        title={isMinhoca
+          ? 'Minhoca — achada ao cavar. Ainda sem uso.'
+          : 'Terra molhada — achada ao cavar. Ainda sem uso.'}
+      >
+        <span className="leading-none pointer-events-none" style={{ fontSize: 26 }}>
+          {isMinhoca ? '🪱' : '🟫'}
+        </span>
+        {item.quantity > 1 && (
+          <span
+            className="absolute bottom-0.5 right-1 text-[9px] font-black pointer-events-none"
+            style={{ color: '#f2e8d5', textShadow: '0 1px 2px rgba(0,0,0,0.9)' }}
+          >
+            {item.quantity}
+          </span>
+        )}
+      </div>
+    );
+  }
   if (item.item_type === 'wrapped_plant') {
     return <WrappedPlantSlot item={item} userId={userId} onOpen={onOpenGift} onLabelSave={onLabelSave} />;
   }

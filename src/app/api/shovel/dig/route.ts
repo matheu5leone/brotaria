@@ -26,7 +26,6 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       pot: result.pot,
-      loot: result.loot,
       durability: result.durability,
     });
   } catch (error: unknown) {

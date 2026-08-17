@@ -111,6 +111,10 @@ export interface Pot {
   dig_duration_ms: number | null;
   /** Raridade do solo, sorteada ao cavar. Inerte por enquanto (ver spec). */
   soil_rarity: Rarity | null;
+  /** Quando o jogador tocou em "Concluir". Null + obra vencida = espera o toque. */
+  dig_claimed_at: string | null;
+  /** Precisão do minigame, guardada para o sorteio de material na conclusão. */
+  dig_accuracy: number | null;
   created_at: string;
 }
 
@@ -134,8 +138,11 @@ export type InventoryItemType =
   | 'plant'
   /** Coletado da abelha; empilha até 20 (ver STACK_MAX_BY_TYPE). */
   | 'polen'
-  /** Forjado com 20 pólen; não empilha (1 por slot). */
-  | 'elixir';
+  /** Forjado com pólen; não empilha (1 por slot). */
+  | 'elixir'
+  /** Materiais que saem da terra ao concluir uma obra. Inertes por enquanto. */
+  | 'minhoca'
+  | 'terra_molhada';
 
 export interface InventoryItem {
   id: string;

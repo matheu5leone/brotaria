@@ -87,10 +87,11 @@ type PotRow = {
   digging_started_at: string | null;
   dig_duration_ms: number | null;
   soil_rarity: string | null;
+  dig_claimed_at: string | null;
 };
 
 export type DigResult =
-  | { ok: true; pot: PotRow; loot: DigLootType[]; durability: number }
+  | { ok: true; pot: PotRow; durability: number }
   | { ok: false; code: 'NO_DURABILITY' | 'INVALID_POSITION' | 'OCCUPIED' };
 
 /**
@@ -163,8 +164,10 @@ export async function digPot(
       digging_started_at: new Date().toISOString(),
       dig_duration_ms: digDurationMs,
       soil_rarity: soilRarity,
+      // Guardada para o sorteio de material lá na conclusão da obra.
+      dig_accuracy: isFirstDig ? null : Math.min(1, Math.max(0, accuracy)),
     })
-    .select('id, pos_x, pos_y, digging_started_at, dig_duration_ms, soil_rarity')
+    .select('id, pos_x, pos_y, digging_started_at, dig_duration_ms, soil_rarity, dig_claimed_at')
     .single();
 
   if (potError || !pot) {
@@ -179,10 +182,54 @@ export async function digPot(
     throw potError ?? new Error('Falha ao criar o canteiro');
   }
 
-  // A primeira cavada é blindada: sem loot e sem raridade sorteada, para o
-  // novato não aprender o jogo através de um resultado atípico.
+  // O loot NÃO sai aqui: ele é revelado quando o jogador conclui a obra
+  // (concludeDig), para a recompensa acontecer com ele olhando.
+  return { ok: true, pot, durability };
+}
+
+// ── Concluir a obra ─────────────────────────────────────────────────────────
+
+export type ConcludeResult =
+  | { ok: true; loot: DigLootType[] }
+  | { ok: false; code: 'NOT_FOUND' | 'STILL_DIGGING' | 'ALREADY_CLAIMED' };
+
+/**
+ * Fecha a obra e revela o que a terra guardava.
+ *
+ * A precisão do minigame foi gravada no canteiro lá no ato de cavar — é ela que
+ * desloca a chance aqui. A primeira cavada (a de cortesia) tem accuracy nula e
+ * fica sem sorteio, igual antes.
+ */
+export async function concludeDig(userId: string, potId: string): Promise<ConcludeResult> {
+  const { data: pot } = await supabaseAdmin
+    .from('pots')
+    .select('id, digging_started_at, dig_duration_ms, dig_claimed_at, dig_accuracy')
+    .eq('id', potId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (!pot || !pot.digging_started_at) return { ok: false, code: 'NOT_FOUND' };
+  if (pot.dig_claimed_at) return { ok: false, code: 'ALREADY_CLAIMED' };
+
+  const endsAt = new Date(pot.digging_started_at).getTime() + (pot.dig_duration_ms ?? 60_000);
+  if (Date.now() < endsAt) return { ok: false, code: 'STILL_DIGGING' };
+
+  // CAS em dig_claimed_at: dois toques simultâneos no "Concluir" não podem
+  // render dois lotes de material.
+  const { data: claimed } = await supabaseAdmin
+    .from('pots')
+    .update({ dig_claimed_at: new Date().toISOString() })
+    .eq('id', potId)
+    .is('dig_claimed_at', null)
+    .select('id')
+    .maybeSingle();
+
+  if (!claimed) return { ok: false, code: 'ALREADY_CLAIMED' };
+
+  // accuracy null = cavada de cortesia do novato: sem sorteio.
+  const accuracy = pot.dig_accuracy;
   const loot: DigLootType[] = [];
-  if (!isFirstDig) {
+  if (accuracy != null) {
     for (const type of Object.keys(DIG_LOOT) as DigLootType[]) {
       if (Math.random() < digLootChance(type, accuracy)) loot.push(type);
     }
@@ -190,14 +237,14 @@ export async function digPot(
       try {
         await addStackableItem(userId, type);
       } catch (err) {
-        // Mochila cheia não pode invalidar a cavada — o canteiro já existe e a
-        // pá já foi gasta. O material se perde e o jogador segue o jogo.
+        // Mochila cheia não pode desfazer a conclusão — o canteiro já está
+        // liberado. O material se perde e o jogador segue o jogo.
         console.warn('[Shovel] Loot descartado (mochila cheia?):', type, err);
       }
     }
   }
 
-  return { ok: true, pot, loot, durability };
+  return { ok: true, loot };
 }
 
 // ── Comprar pá ──────────────────────────────────────────────────────────────

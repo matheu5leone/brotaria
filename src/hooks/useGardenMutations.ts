@@ -11,7 +11,8 @@ async function digHole(posX: number, posY: number, accuracy: number) {
   });
   const data = await res.json();
   if (!res.ok) throw Object.assign(new Error(data.error ?? 'Erro ao cavar'), { code: data.code });
-  return data as { pot: unknown; loot: string[]; durability: number };
+  // Sem loot: o material só é revelado ao concluir a obra (useConcludeDig).
+  return data as { pot: unknown; durability: number };
 }
 
 async function plantSeed(potId: string, seedRarity?: string | null, seedBiome?: string | null) {
@@ -69,8 +70,6 @@ export function useDigMutation(userId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['garden', 'pots', userId] });
       qc.invalidateQueries({ queryKey: ['garden', 'shovel', userId] });
-      // A cavada pode ter rendido minhoca/terra molhada.
-      qc.invalidateQueries({ queryKey: ['inventory', userId] });
     },
   });
 }

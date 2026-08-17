@@ -86,7 +86,8 @@ const PainelToggleIcon = ({ expanded }: { expanded: boolean }) => {
 import CoinPurchaseModal from './CoinPurchaseModal';
 import { usePots, useWateringStatus } from '@/hooks/useGardenData';
 import { useRouter } from 'next/navigation';
-import { useShovelStatus, useRushDig } from '@/hooks/useShovel';
+import { useShovelStatus, useRushDig, useConcludeDig } from '@/hooks/useShovel';
+import { useItemGain } from '@/components/ItemGain';
 import { digRushCostFor } from '@/config/economy';
 import { DigMinigame } from '@/components/DigMinigame';
 import { DigBoostModal } from '@/components/DigBoostModal';
@@ -195,6 +196,7 @@ export default function Garden() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const router = useRouter();
+  const gainItem = useItemGain();
 
   // ── Queries ─────────────────────────────────────────────────────────────
   const { data: pots = [], isPending: potsLoading, error: potsError } = usePots(user?.id);
@@ -231,6 +233,7 @@ export default function Garden() {
   // ── Mutations ────────────────────────────────────────────────────────────
   const digMutation       = useDigMutation(user?.id ?? '');
   const rushMutation      = useRushDig(user?.id);
+  const concludeMutation  = useConcludeDig(user?.id);
   const plantMutation     = usePlantMutation(user?.id ?? '');
   const waterMutation     = useWaterMutation(user?.id ?? '');
   const deleteMutation    = useDeleteMutation(user?.id ?? '');
@@ -292,8 +295,6 @@ export default function Garden() {
   // Lugar escolhido, aguardando o minigame. Enquanto não for null, o overlay
   // do DigMinigame está aberto e nenhuma outra cavada pode começar.
   const [pendingDig, setPendingDig]                 = useState<{ posX: number; posY: number } | null>(null);
-  // Material achado na última cavada (aviso efêmero).
-  const [digLoot, setDigLoot]                       = useState<string[] | null>(null);
   const isDesktop = useIsDesktop();
   const [wrappingMode, setWrappingMode]             = useState(false);
   const [wrapError, setWrapError]                   = useState<string | null>(null);
@@ -502,9 +503,8 @@ export default function Garden() {
     const { posX, posY } = pendingDig;
     setPendingDig(null);
     try {
-      const res = await digMutation.mutateAsync({ posX, posY, accuracy });
-      setDigLoot(res.loot?.length ? res.loot : null);
-      if (res.loot?.length) setTimeout(() => setDigLoot(null), 3200);
+      // O material não sai aqui: ele é revelado no "Concluir", quando a obra vence.
+      await digMutation.mutateAsync({ posX, posY, accuracy });
     } catch (err: unknown) {
       const e = err as { code?: string; message?: string };
       setShovelError(
@@ -987,6 +987,23 @@ export default function Garden() {
     // Canteiro em obra: abre o cronômetro + oferta de terminar na hora.
     if (getPotState(pot) === 'digging') {
       setBoostPotId(pot.id);
+      return;
+    }
+
+    // Obra vencida: concluir revela o material. O ganho parte do PONTO DO
+    // CLIQUE, então a animação sai de onde o jogador tocou.
+    if (getPotState(pot) === 'done') {
+      if (concludeMutation.isPending) return;
+      const origem = { x: e.clientX, y: e.clientY };
+      try {
+        const { loot } = await concludeMutation.mutateAsync(pot.id);
+        loot?.forEach((item, i) => {
+          // Escalona: dois itens saindo no mesmo quadro viram um borrão só.
+          setTimeout(() => gainItem({ item, from: origem }), i * 260);
+        });
+      } catch (err: unknown) {
+        setShovelError((err as { message?: string }).message ?? 'Não deu para concluir a obra.');
+      }
       return;
     }
 
@@ -1611,25 +1628,6 @@ export default function Garden() {
         />
       )}
 
-      {/* O que a terra devolveu (some sozinho) */}
-      {digLoot && (
-        <div
-          className="fixed left-1/2 -translate-x-1/2 z-[10070] flex items-center gap-2 px-4 py-2 rounded-full evo-fade-in"
-          style={{
-            bottom: '18%',
-            background: 'rgba(8,14,5,0.94)',
-            border: '1px solid rgba(201,162,39,0.5)',
-            color: 'var(--color-text-light)',
-            fontFamily: 'var(--font-display)',
-            fontSize: 12,
-            fontWeight: 900,
-            boxShadow: '0 6px 20px rgba(0,0,0,0.5)',
-          }}
-        >
-          A terra devolveu:{' '}
-          {digLoot.map((l) => (l === 'minhoca' ? '🪱 Minhoca' : '🟤 Terra molhada')).join(' · ')}
-        </div>
-      )}
 
       {/* ── Canto superior esquerdo: botão de plantas ─────────────────────── */}
       <div className="absolute top-3 left-3 z-[100] flex flex-col items-start gap-2">

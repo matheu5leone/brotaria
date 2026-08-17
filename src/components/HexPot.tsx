@@ -32,13 +32,15 @@ const DIG_DIRT = [
   { dx: '4px',   dy: '-17px', size: 2,   delay: '-0.09s', color: '#8a5a2b' },
 ] as const;
 
-export type PotState = 'digging' | 'ready' | 'planted';
+export type PotState = 'digging' | 'done' | 'ready' | 'planted';
 
 export function getPotState(pot: Pot): PotState {
   if (pot.plant_id) return 'planted';
   if (pot.digging_started_at) {
     const elapsed = Date.now() - new Date(pot.digging_started_at).getTime();
     if (elapsed < digDurationOf(pot)) return 'digging';
+    // Obra vencida mas não recolhida: espera o jogador tocar em "Concluir".
+    if (!pot.dig_claimed_at) return 'done';
   }
   return 'ready';
 }
@@ -158,6 +160,11 @@ export function HexPot({
   // Segue POT_FOOTPRINT (potGeometry): coluna 37–63% da planta + hexágono do tile.
   const HITBOX_CLIP =
     'polygon(37% 8%, 63% 8%, 63% 62%, 90.4% 69.3%, 95.3% 85.6%, 86.8% 89.6%, 50% 97.1%, 10.1% 89.1%, 5.1% 86%, 9.2% 69.2%, 37% 62%)';
+  // Sem planta, a coluna central não existe — o hitbox é só a silhueta do tile.
+  // Antes ela ficava lá em TODO estado, cobrindo o que estivesse atrás do
+  // canteiro e roubando cliques de canteiros/plantas vizinhas.
+  const HITBOX_CLIP_TILE =
+    'polygon(90.4% 69.3%, 95.3% 85.6%, 86.8% 89.6%, 50% 97.1%, 10.1% 89.1%, 5.1% 86%, 9.2% 69.2%, 49.1% 62.1%)';
 
   return (
     <div className="relative w-full h-full select-none" style={{ pointerEvents: 'none' }}>
@@ -167,7 +174,7 @@ export function HexPot({
         className="absolute inset-0 z-30"
         style={{
           pointerEvents: 'auto',
-          clipPath: HITBOX_CLIP,
+          clipPath: state === 'planted' ? HITBOX_CLIP : HITBOX_CLIP_TILE,
           cursor: moveMode && state === 'planted' ? 'grab' : 'pointer',
         }}
         onClick={onClick}
@@ -362,18 +369,37 @@ export function HexPot({
           </>
         )}
 
+        {/* Obra vencida: a terra ainda guarda o que foi revirado. O jogador
+            precisa tocar em Concluir — é aí que o material aparece, com ele
+            olhando, em vez de cair na mochila enquanto estava fora do jogo. */}
+        {state === 'done' && (
+          <div className="absolute inset-0 flex items-center justify-center z-10" style={{ paddingBottom: '18%' }}>
+            <span
+              className="px-1.5 py-0.5 rounded-full uppercase tracking-wider font-black whitespace-nowrap"
+              style={{
+                fontSize: 7,
+                fontFamily: 'var(--font-display)',
+                background: 'linear-gradient(135deg, #4ade80, #22a55a)',
+                color: '#08210a',
+                border: '1px solid rgba(8,33,10,0.35)',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.45)',
+                animation: 'water-bubble 1.8s ease-in-out infinite',
+              }}
+            >
+              ✓ Concluir
+            </span>
+          </div>
+        )}
+
+        {/* Canteiro pronto: só o "+" discreto, que cresce quando a semente
+            está sendo arrastada até aqui. O rótulo "Plantar" saiu — junto com
+            ele saiu o hitbox retangular que cobria o que estava atrás. */}
         {state === 'ready' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-10 gap-0.5" style={{ paddingBottom: '20.5%' }}>
+          <div className="absolute inset-0 flex items-center justify-center z-10" style={{ paddingBottom: '20.5%' }}>
             <span
               className="text-sm font-bold leading-none transition-transform"
               style={{ color: isSeedTarget ? '#4ade80' : 'rgba(210,165,100,0.8)', transform: isSeedTarget ? 'scale(1.4)' : 'scale(1)' }}
             >+</span>
-            <span
-              className="text-[7px] uppercase tracking-widest font-black"
-              style={{ color: isSeedTarget ? '#4ade80' : 'rgba(210,165,100,0.65)', fontFamily: 'var(--font-display)' }}
-            >
-              Plantar
-            </span>
           </div>
         )}
       </div>

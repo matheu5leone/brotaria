@@ -914,6 +914,33 @@ body {
   .dig-dirt   { animation: none; opacity: 0; }
 }
 
+/* ── Ganho de item: PADRÃO DO JOGO ────────────────────────────────────────
+   Toda ação que dá item usa isto: o ícone voa até a mochila e um "+1 <item>"
+   sobe no lugar. Duas camadas separadas de propósito — o voo diz PARA ONDE foi,
+   o texto diz O QUE foi. Ver src/components/ItemGain.tsx.                   */
+@keyframes gain-fly {
+  0%   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  70%  { opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--fly-dx)), calc(-50% + var(--fly-dy))) scale(0.4); opacity: 0; }
+}
+@keyframes gain-rise {
+  0%   { transform: translate(-50%, -50%) scale(0.7); opacity: 0; }
+  18%  { transform: translate(-50%, -50%) scale(1.12); opacity: 1; }
+  32%  { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  75%  { opacity: 1; }
+  100% { transform: translate(-50%, calc(-50% - 46px)) scale(1); opacity: 0; }
+}
+.gain-fly  { animation: gain-fly 0.9s cubic-bezier(.4,0,.6,1) forwards; }
+.gain-rise {
+  animation: gain-rise 1.5s cubic-bezier(.2,.7,.3,1) forwards;
+  /* Contorno de 3px que NÃO come a letra: paint-order desenha o traço atrás. */
+  -webkit-text-stroke: 3px rgba(6, 24, 4, 0.92);
+  paint-order: stroke fill;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gain-fly, .gain-rise { animation-duration: 0.01ms; }
+}
+
 /* ── Cronômetro da obra ───────────────────────────────────────────────────
    Mostrador redondo atrás do contador. O anel é um conic-gradient girado por
    --prog (fração já percorrida da obra), então a "carga" do relógio conta a
