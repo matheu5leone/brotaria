@@ -68,7 +68,6 @@ export function HexPot({
   isPlanting = false,
   hideStatusBalloons = false,
   rushCost = null,
-  onRush,
   onClick,
   onPointerDown,
   onDigComplete,
@@ -86,9 +85,9 @@ export function HexPot({
   /** Esconde os balões de sede/estresse do DONO (usado na visita a outro jardim,
    *  onde só a planta que pede ajuda ao vizinho deve exibir balão). */
   hideStatusBalloons?: boolean;
-  /** Moedas para apressar esta obra, ou null se a faixa não tem atalho. */
+  /** Moedas para apressar esta obra, ou null se a faixa não tem atalho.
+   *  Só desenha a isca — quem apressa é o modal, aberto pelo onClick do canteiro. */
   rushCost?: number | null;
-  onRush?: () => void;
   onClick: (e: React.MouseEvent) => void;
   onPointerDown?: (e: React.PointerEvent) => void;
   onDigComplete?: () => void;
@@ -120,6 +119,11 @@ export function HexPot({
     const id = setInterval(update, deadline - Date.now() > 3_600_000 ? 30_000 : 250);
     return () => clearInterval(id);
   }, [state, pot, onDigComplete]);
+
+  // Fração da obra já cumprida — alimenta o anel do cronômetro.
+  const digProgress = state === 'digging'
+    ? Math.min(1, Math.max(0, 1 - msLeft / digDurationOf(pot)))
+    : 0;
 
   // Tile de terra hexagonal — imagem landscape em container portrait
   const POT_HEIGHT = `${POT_IMG_HEIGHT_PCT * 100}%`;
@@ -209,17 +213,16 @@ export function HexPot({
         </div>
       )}
 
-      {/* Apressar a obra — só nas faixas longas (24h / 7 dias). Fica acima do
-          canteiro, com pointerEvents próprio: o hitbox do canteiro não deve
-          engolir este clique. */}
-      {state === 'digging' && rushCost != null && onRush && (
-        <button
-          className="absolute z-30 flex items-center gap-1 px-2 py-1 rounded-full whitespace-nowrap transition-transform active:scale-90"
+      {/* Isca do atalho pago — só nas faixas longas (24h / 7 dias). É um AVISO,
+          não um botão de compra: tocar abre o modal, que explica e confirma.
+          Antes isto gastava moeda num toque só, sem confirmação. */}
+      {state === 'digging' && rushCost != null && (
+        <div
+          className="absolute z-20 flex items-center gap-1 px-2 py-0.5 rounded-full whitespace-nowrap pointer-events-none"
           style={{
             bottom: BALLOON_BOTTOM,
             left: '50%',
             transform: 'translateX(-50%)',
-            pointerEvents: 'auto',
             background: 'rgba(8,14,5,0.92)',
             border: '1px solid rgba(201,162,39,0.55)',
             color: 'var(--color-gold)',
@@ -227,14 +230,10 @@ export function HexPot({
             fontSize: 9,
             fontWeight: 900,
             boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
-            touchAction: 'manipulation',
           }}
-          onClick={(e) => { e.stopPropagation(); onRush(); }}
-          onPointerDown={(e) => e.stopPropagation()}
-          title={`Terminar agora por ${rushCost} moedas`}
         >
           ⏩ {rushCost} 🪙
-        </button>
+        </div>
       )}
 
       {/* ── Balões de status — ancorados ACIMA do canteiro (não na planta) ── */}
@@ -322,14 +321,43 @@ export function HexPot({
               ))}
             </div>
 
-            {/* Contador no topo do tile, fora do caminho da pá */}
-            <div className="absolute inset-x-0 z-20 flex justify-center pointer-events-none" style={{ top: '6%' }}>
-              <span
-                className="font-mono text-[10px] font-bold px-1 rounded"
-                style={{ color: '#f2e8d5', background: 'rgba(8,14,5,0.55)' }}
+            {/* Cronômetro: mostrador redondo com o anel marcando o quanto da obra
+                já passou, ponteiro tiquetaqueando e o tempo restante no centro. */}
+            <div className="absolute inset-x-0 z-20 flex justify-center pointer-events-none" style={{ top: '2%' }}>
+              <div
+                className="dig-clock-ring relative rounded-full flex items-center justify-center"
+                style={{
+                  width: 30,
+                  height: 30,
+                  padding: 2.5,
+                  ['--prog' as string]: `${digProgress * 360}deg`,
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.55)',
+                }}
               >
-                {formatDigLeft(msLeft)}
-              </span>
+                {/* Mostrador */}
+                <div
+                  className="relative w-full h-full rounded-full flex items-center justify-center overflow-hidden"
+                  style={{ background: 'rgba(12,20,8,0.96)', border: '1px solid rgba(201,162,39,0.35)' }}
+                >
+                  {/* Ponteiro atrás do número */}
+                  <span
+                    className="dig-clock-hand absolute"
+                    style={{
+                      width: 1.5,
+                      height: '38%',
+                      top: '12%',
+                      background: 'rgba(201,162,39,0.55)',
+                      borderRadius: 1,
+                    }}
+                  />
+                  <span
+                    className="relative font-mono font-bold leading-none"
+                    style={{ fontSize: 8, color: '#f2e8d5', textShadow: '0 1px 2px rgba(0,0,0,0.9)' }}
+                  >
+                    {formatDigLeft(msLeft)}
+                  </span>
+                </div>
+              </div>
             </div>
           </>
         )}

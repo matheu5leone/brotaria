@@ -89,6 +89,7 @@ import { useRouter } from 'next/navigation';
 import { useShovelStatus, useRushDig } from '@/hooks/useShovel';
 import { digRushCostFor } from '@/config/economy';
 import { DigMinigame } from '@/components/DigMinigame';
+import { DigBoostModal } from '@/components/DigBoostModal';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
 import { useWallet } from '@/hooks/useWallet';
 import { authFetch } from '@/lib/authFetch';
@@ -240,6 +241,10 @@ export default function Garden() {
   // ── UI state ─────────────────────────────────────────────────────────────
   const [selectedPotId, setSelectedPotId]           = useState<string | null>(null);
   const [coinModalPotId, setCoinModalPotId]         = useState<string | null>(null);
+  // Canteiro cuja obra está sendo consultada (cronômetro + atalho pago).
+  const [boostPotId, setBoostPotId]                 = useState<string | null>(null);
+  // Compra de moedas avulsa (sem vaso alvo) — usada quando falta saldo p/ apressar.
+  const [coinModalOpen, setCoinModalOpen]           = useState(false);
   const [shovelActive, setShovelActive]             = useState(false);
   const [shovelError, setShovelError]               = useState<string | null>(null);
   // Drag-and-drop do regador
@@ -470,6 +475,12 @@ export default function Garden() {
       posY: Math.min(92, Math.max(8, d.posY)),
     });
   }, [digMutation.isPending, pendingDig, user, computeDig, shovelBroken]);
+
+  // O canteiro do modal vem sempre da lista viva: se a obra terminar (ou o
+  // canteiro sumir) enquanto o modal está aberto, ele se fecha sozinho.
+  const boostPot = boostPotId
+    ? pots.find((p) => p.id === boostPotId && getPotState(p) === 'digging') ?? null
+    : null;
 
   /** Paga moedas para terminar agora uma obra de 24h ou 7 dias. */
   const handleRush = useCallback(async (potId: string) => {
@@ -973,8 +984,14 @@ export default function Garden() {
       return;
     }
 
-    // Canteiro vazio: plantar agora é por ARRASTE da semente (mochila → canteiro),
-    // não mais por clique. Clique num canteiro vazio não faz nada.
+    // Canteiro em obra: abre o cronômetro + oferta de terminar na hora.
+    if (getPotState(pot) === 'digging') {
+      setBoostPotId(pot.id);
+      return;
+    }
+
+    // Canteiro vazio e pronto: plantar é por ARRASTE da semente (mochila →
+    // canteiro), não por clique. Clique aqui não faz nada.
   };
 
   // Confirmação da lixeira: exclui a planta do pot pendente
@@ -1263,7 +1280,6 @@ export default function Garden() {
                 isElixirTarget={elixirDrag && elixirTargetPotId === pot.id}
                 isPlanting={plantFx?.potId === pot.id}
                 rushCost={digRushCostFor(digDurationOf(displayPot))}
-                onRush={() => handleRush(pot.id)}
                 onClick={handlePotClick(pot)}
                 onDigComplete={handleDigComplete}
               />
@@ -1572,6 +1588,21 @@ export default function Garden() {
         />
       )}
 
+      {/* Obra em andamento: cronômetro + atalho pago (com confirmação) */}
+      {boostPot && (
+        <DigBoostModal
+          msLeft={Math.max(0, new Date(boostPot.digging_started_at!).getTime() + digDurationOf(boostPot) - Date.now())}
+          totalMs={digDurationOf(boostPot)}
+          cost={digRushCostFor(digDurationOf(boostPot))}
+          busy={rushMutation.isPending}
+          onRush={async () => { await handleRush(boostPot.id); setBoostPotId(null); }}
+          // Abre a compra de moedas SEM potId: com ele, o modal oferece "comprar
+          // semente e plantar neste vaso" — e este vaso ainda está em obra.
+          onBuyCoins={() => { setBoostPotId(null); setCoinModalOpen(true); }}
+          onClose={() => setBoostPotId(null)}
+        />
+      )}
+
       {/* Minigame de cavar — o lugar já foi escolhido; aqui se decide a precisão */}
       {pendingDig && (
         <DigMinigame
@@ -1806,8 +1837,8 @@ export default function Garden() {
 
       {/* ── Coin purchase modal ──────────────────────────────────────────── */}
       <CoinPurchaseModal
-        open={coinModalPotId !== null}
-        onClose={() => setCoinModalPotId(null)}
+        open={coinModalPotId !== null || coinModalOpen}
+        onClose={() => { setCoinModalPotId(null); setCoinModalOpen(false); }}
         potId={coinModalPotId ?? undefined}
         onComplete={() => {
           const uid = user?.id;

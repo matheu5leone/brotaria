@@ -914,6 +914,32 @@ body {
   .dig-dirt   { animation: none; opacity: 0; }
 }
 
+/* ── Cronômetro da obra ───────────────────────────────────────────────────
+   Mostrador redondo atrás do contador. O anel é um conic-gradient girado por
+   --prog (fração já percorrida da obra), então a "carga" do relógio conta a
+   história inteira num relance — de 1 min a 7 dias, sempre a mesma leitura. */
+.dig-clock-ring {
+  background: conic-gradient(
+    from -90deg,
+    var(--color-gold) 0 var(--prog, 0deg),
+    rgba(8, 14, 5, 0.55) var(--prog, 0deg) 360deg
+  );
+}
+
+/* Ponteiro em passos: relógio mecânico tiquetaqueando, não varredura lisa. */
+@keyframes dig-clock-tick {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.dig-clock-hand {
+  animation: dig-clock-tick 2.4s steps(12, end) infinite;
+  transform-origin: 50% 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dig-clock-hand { animation: none; }
+}
+
 /* ── Rega: gotas caindo na terra (começam ~40px acima, terminam na base) ──── */
 @keyframes water-drop-fall {
   0%   { opacity: 0; transform: translate(-50%, var(--drop-start)) scaleY(0.8); }
