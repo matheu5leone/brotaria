@@ -15,6 +15,23 @@ const LEGACY_DIG_DURATION_MS = 60_000;
 export const digDurationOf = (pot: Pot): number =>
   pot.dig_duration_ms ?? LEGACY_DIG_DURATION_MS;
 
+/**
+ * Torrões de terra da obra. Determinísticos e constantes de módulo (mesmo padrão
+ * do WaterOverflowFx): nada de Math.random em render, senão as partículas
+ * "pulariam" de lugar a cada re-render do canteiro.
+ *
+ * `delay` negativo faz o CSS entrar com a animação JÁ em andamento — os torrões
+ * saem espalhados dentro do mesmo golpe, em vez de todos no mesmo instante.
+ */
+const DIG_DIRT = [
+  { dx: '-13px', dy: '-11px', size: 3.5, delay: '0s',     color: '#6b4423' },
+  { dx: '-8px',  dy: '-15px', size: 2.5, delay: '-0.04s', color: '#8a5a2b' },
+  { dx: '-16px', dy: '-6px',  size: 2,   delay: '-0.07s', color: '#4a2e18' },
+  { dx: '9px',   dy: '-13px', size: 3,   delay: '-0.02s', color: '#5c3a1e' },
+  { dx: '14px',  dy: '-8px',  size: 2.5, delay: '-0.06s', color: '#6b4423' },
+  { dx: '4px',   dy: '-17px', size: 2,   delay: '-0.09s', color: '#8a5a2b' },
+] as const;
+
 export type PotState = 'digging' | 'ready' | 'planted';
 
 export function getPotState(pot: Pot): PotState {
@@ -273,15 +290,48 @@ export function HexPot({
 
         {/* ── Conteúdo sobreposto ao canteiro ── */}
         {state === 'digging' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-10 gap-0.5" style={{ paddingBottom: '20.5%' }}>
-            {/* Pá cavando (gif/webp animado, 12 frames em loop) — ver public/imgs/pa-cavando.webp */}
-            <div className="relative" style={{ width: '56%', aspectRatio: '220 / 195' }}>
-              <Image src="/imgs/pa-cavando.webp" alt="cavando" fill className="object-contain" draggable={false} />
+          <>
+            {/* A pá cava NA TERRA, não no ar: ancorada perto da base do tile, que
+                é onde o hexágono de terra aparece (a imagem é object-bottom).
+                É a MESMA arte da pá da barra de ferramentas, só girada por CSS —
+                o jogador reconhece a ferramenta dele trabalhando. */}
+            <div
+              className="absolute left-1/2 z-10 pointer-events-none"
+              style={{ bottom: '14%', width: '40%', aspectRatio: '1 / 1', transform: 'translateX(-42%)' }}
+            >
+              <div className="dig-shovel absolute inset-0">
+                <Image src="/imgs/shovel.webp" alt="cavando" fill className="object-contain" draggable={false} />
+              </div>
+
+              {/* Terra jogada a cada golpe, saindo da ponta da pá */}
+              {DIG_DIRT.map((d, i) => (
+                <span
+                  key={i}
+                  className="dig-dirt absolute rounded-full"
+                  style={{
+                    left: '38%',
+                    top: '72%',
+                    width: d.size,
+                    height: d.size,
+                    background: d.color,
+                    animationDelay: d.delay,
+                    ['--dx' as string]: d.dx,
+                    ['--dy' as string]: d.dy,
+                  }}
+                />
+              ))}
             </div>
-            <span className="font-mono text-[10px] font-bold" style={{ color: '#f2e8d5' }}>
-              {formatDigLeft(msLeft)}
-            </span>
-          </div>
+
+            {/* Contador no topo do tile, fora do caminho da pá */}
+            <div className="absolute inset-x-0 z-20 flex justify-center pointer-events-none" style={{ top: '6%' }}>
+              <span
+                className="font-mono text-[10px] font-bold px-1 rounded"
+                style={{ color: '#f2e8d5', background: 'rgba(8,14,5,0.55)' }}
+              >
+                {formatDigLeft(msLeft)}
+              </span>
+            </div>
+          </>
         )}
 
         {state === 'ready' && (

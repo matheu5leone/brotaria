@@ -876,6 +876,44 @@ body {
 }
 .dirt-fly-piece { animation: dirt-fly 0.6s ease-out forwards; }
 
+/* ── Obra em andamento: a pá cavando no canteiro ──────────────────────────
+   Substitui o webp de 12 frames por CSS puro: um ciclo só (DIG_CYCLE) move a
+   pá e dispara a terra, então os dois nunca saem de sincronia — a terra pula
+   exatamente no golpe. Roda em loop pela obra inteira, de 1 min a 7 dias.
+   Só transform/opacity: fica no compositor e não custa layout.            */
+@keyframes dig-strike {
+  0%   { transform: rotate(-42deg) translate(6%, -14%); }
+  16%  { transform: rotate(8deg)   translate(0, 8%); }   /* crava na terra */
+  24%  { transform: rotate(4deg)   translate(0, 5%); }   /* repique do impacto */
+  30%  { transform: rotate(-6deg)  translate(1%, 0); }   /* alavanca, tirando terra */
+  58%  { transform: rotate(-42deg) translate(6%, -14%); }/* volta ao alto */
+  100% { transform: rotate(-42deg) translate(6%, -14%); }/* respira antes do próximo */
+}
+
+/* Torrão de terra: sai no golpe (16%), faz o arco e cai. --dx/--dy por
+   partícula, pré-computados no componente (nada de random em render). */
+@keyframes dig-dirt-arc {
+  0%, 14% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+  20%     { opacity: 1; transform: translate(calc(-50% + var(--dx) * 0.35), calc(-50% + var(--dy))) scale(1); }
+  48%     { opacity: 0.9; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy) * 0.3)) scale(0.85); }
+  72%     { opacity: 0; transform: translate(calc(-50% + var(--dx) * 1.12), calc(-50% + 5px)) scale(0.5); }
+  100%    { opacity: 0; transform: translate(calc(-50% + var(--dx) * 1.12), calc(-50% + 5px)) scale(0.5); }
+}
+
+.dig-shovel {
+  animation: dig-strike var(--dig-cycle, 1.15s) cubic-bezier(.34, .05, .3, 1) infinite;
+  transform-origin: 72% 12%; /* pivô no punho: a pá gira pela mão, não pelo centro */
+  will-change: transform;
+}
+.dig-dirt { animation: dig-dirt-arc var(--dig-cycle, 1.15s) ease-out infinite; }
+
+/* Sem movimento: a pá fica cravada e a terra some — o contador ao lado
+   continua dizendo que a obra corre. */
+@media (prefers-reduced-motion: reduce) {
+  .dig-shovel { animation: none; transform: rotate(-14deg); }
+  .dig-dirt   { animation: none; opacity: 0; }
+}
+
 /* ── Rega: gotas caindo na terra (começam ~40px acima, terminam na base) ──── */
 @keyframes water-drop-fall {
   0%   { opacity: 0; transform: translate(-50%, var(--drop-start)) scaleY(0.8); }
