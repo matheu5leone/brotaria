@@ -391,17 +391,9 @@ export function HexPot({
           </div>
         )}
 
-        {/* Canteiro pronto: só o "+" discreto, que cresce quando a semente
-            está sendo arrastada até aqui. O rótulo "Plantar" saiu — junto com
-            ele saiu o hitbox retangular que cobria o que estava atrás. */}
-        {state === 'ready' && (
-          <div className="absolute inset-0 flex items-center justify-center z-10" style={{ paddingBottom: '20.5%' }}>
-            <span
-              className="text-sm font-bold leading-none transition-transform"
-              style={{ color: isSeedTarget ? '#4ade80' : 'rgba(210,165,100,0.8)', transform: isSeedTarget ? 'scale(1.4)' : 'scale(1)' }}
-            >+</span>
-          </div>
-        )}
+        {/* Canteiro pronto não desenha nada: fica só a terra. O aviso de alvo
+            durante o arraste da semente continua existindo — é o glow verde do
+            tile (seedGlow), não um ícone. */}
       </div>
 
       {/* Move mode: glow âmbar */}
