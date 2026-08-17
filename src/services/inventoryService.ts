@@ -54,6 +54,23 @@ export async function findFreeSlot(userId: string): Promise<number | null> {
 }
 
 /**
+ * Há espaço para mais 1 unidade deste item? (stack com folga OU slot livre)
+ *
+ * Serve para as ações que CONSOMEM algo antes de entregar — a abelha some ao
+ * ser clicada, por exemplo. Sem esta checagem prévia, a visita era gasta e o
+ * pólen se perdia quando a mochila estava cheia, e repetir não adiantava.
+ */
+export async function hasRoomFor(
+  userId: string,
+  itemType: StackableItemType,
+  rarity: Rarity | null = null,
+  biome: Biome | null = null,
+): Promise<boolean> {
+  if (await findStackableSlot(userId, itemType, rarity, biome)) return true;
+  return (await findFreeSlot(userId)) !== null;
+}
+
+/**
  * Adiciona 1 unidade de um item empilhável ao inventário. `rarity` só se aplica a
  * sementes (null = genérica); stacks são separados por (item_type, rarity).
  */

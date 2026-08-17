@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { InventoryItem, PlantDNA } from '@/types';
 import { authFetch } from '@/lib/authFetch';
+import { useBackpackFull } from '@/components/BackpackFull';
 
 async function fetchInventory(): Promise<InventoryItem[]> {
   const res = await authFetch('/api/inventory');
@@ -19,7 +20,15 @@ export function useInventory(userId: string | undefined) {
 
 export function useWrapPlant(userId: string) {
   const qc = useQueryClient();
-  return useMutation({
+  const askBackpack = useBackpackFull();
+  // Capturado numa const para o onError poder refazer a própria mutation.
+  const wrap = useMutation({
+    // A rota confere o slot ANTES de consumir o kit: nada foi gasto, então
+    // repetir depois de abrir espaço embrulha normalmente.
+    onError: (err: unknown, vars: { plantId: string }) => {
+      if ((err as { code?: string }).code !== 'INVENTORY_FULL') return;
+      askBackpack({ incoming: [{ item_type: 'wrapped_plant' }], onResolved: () => { wrap.mutate(vars); } });
+    },
     mutationFn: async ({ plantId }: { plantId: string }) => {
       const res = await authFetch('/api/inventory/use-kit', {
         method: 'POST',
@@ -35,6 +44,7 @@ export function useWrapPlant(userId: string) {
       qc.invalidateQueries({ queryKey: ['garden', 'pots', userId] });
     },
   });
+  return wrap;
 }
 
 export function useOpenGift(userId: string) {

@@ -6,7 +6,7 @@ import {
   stackMaxFor,
   THIRST,
 } from '@/config/economy';
-import { addStackableItem, findFreeSlot } from '@/services/inventoryService';
+import { addStackableItem, findFreeSlot, hasRoomFor } from '@/services/inventoryService';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
@@ -108,6 +108,12 @@ export type ClaimBeeResult =
 export async function claimBee(userId: string): Promise<ClaimBeeResult> {
   const row = await syncBee(userId, await fetchRow(userId));
   if (!statusOf(row).active) return { ok: false, code: 'NO_BEE' };
+
+  // Confere espaço ANTES do CAS. O CAS consome a visita; se o pólen não coubesse
+  // depois dele, a abelha sumia e o pólen evaporava — e repetir dava NO_BEE.
+  // Recusando aqui, a abelha continua pousada e o jogador pode liberar espaço
+  // e clicar de novo.
+  if (!(await hasRoomFor(userId, 'polen'))) return { ok: false, code: 'INVENTORY_FULL' };
 
   // CAS: só quem conseguir apagar ESTE spawn concede o pólen (barra clique duplo).
   const { data: taken } = await supabaseAdmin

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { authFetch } from '@/lib/authFetch';
+import { useBackpackFull } from '@/components/BackpackFull';
 
 // ── helpers de fetch ──────────────────────────────────────────────────────
 
@@ -90,19 +91,36 @@ export function usePlantMutation(userId: string) {
 /** Recicla 3 plantas da mesma raridade em 1 semente do tier acima. */
 export function useRecyclePlants(userId: string) {
   const qc = useQueryClient();
-  return useMutation({
+  const askBackpack = useBackpackFull();
+  // Capturado numa const para o onError poder refazer a própria mutation.
+  const recycle = useMutation({
     mutationFn: (plantIds: string[]) => recyclePlantsReq(plantIds),
+    // A reciclagem roda numa RPC atômica: falhou, nada foi consumido.
+    onError: (err: unknown, plantIds: string[]) => {
+      if ((err as { code?: string }).code !== 'INVENTORY_FULL') return;
+      askBackpack({ incoming: [{ item_type: 'seed' }], onResolved: () => { recycle.mutate(plantIds); } });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['garden', 'pots', userId] });
       qc.invalidateQueries({ queryKey: ['inventory', userId] });
     },
   });
+  return recycle;
 }
 
 export function useWaterMutation(userId: string) {
   const qc = useQueryClient();
-  return useMutation({
+  const askBackpack = useBackpackFull();
+  // Capturado numa const para o onError poder refazer a própria mutation.
+  const water = useMutation({
     mutationFn: ({ plantId }: { plantId: string }) => waterPlant(plantId),
+    // Só a COLHEITA da adulta (semente-bioma) esbarra em mochila cheia. A rega
+    // devolve a água em qualquer falha (refundWater no growthService), então
+    // repetir não cobra duas vezes.
+    onError: (err: unknown, vars: { plantId: string }) => {
+      if ((err as { code?: string }).code !== 'INVENTORY_FULL') return;
+      askBackpack({ incoming: [{ item_type: 'seed' }], onResolved: () => { water.mutate(vars); } });
+    },
     onSuccess: (_data, { plantId }) => {
       qc.invalidateQueries({ queryKey: ['plant', plantId] });
       qc.invalidateQueries({ queryKey: ['plant', plantId, 'version'] });
@@ -114,6 +132,7 @@ export function useWaterMutation(userId: string) {
       qc.invalidateQueries({ queryKey: ['inventory', userId] });
     },
   });
+  return water;
 }
 
 export function useRemovePotMutation(userId: string) {

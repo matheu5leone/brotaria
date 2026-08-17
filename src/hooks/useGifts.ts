@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useBackpackFull } from '@/components/BackpackFull';
 import { PlantDNA } from '@/types';
 import { authFetch } from '@/lib/authFetch';
 import { supabase } from '@/lib/supabase';
@@ -99,8 +100,10 @@ export function useSendGift(userId: string) {
 }
 
 export function useAcceptGift(userId: string) {
+  const askBackpack = useBackpackFull();
   const qc = useQueryClient();
-  return useMutation({
+  // Capturado numa const para o onError poder refazer a própria mutation.
+  const accept = useMutation({
     mutationFn: async ({ giftId }: { giftId: string }) => {
       const res = await authFetch('/api/gifts/accept', {
         method: 'POST',
@@ -108,14 +111,21 @@ export function useAcceptGift(userId: string) {
         body: JSON.stringify({ giftId }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Erro ao aceitar presente');
+      if (!res.ok) throw Object.assign(new Error(data.error ?? 'Erro ao aceitar presente'), { code: data.code });
       return data as { plant: { dna: PlantDNA; current_stage: unknown }; message: string | null };
+    },
+    // A rota confere o slot ANTES de mover o presente: nada foi consumido,
+    // então repetir depois de abrir espaço entrega normalmente.
+    onError: (err: unknown, vars: { giftId: string }) => {
+      if ((err as { code?: string }).code !== 'INVENTORY_FULL') return;
+      askBackpack({ incoming: [{ item_type: 'wrapped_plant' }], onResolved: () => { accept.mutate(vars); } });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['gifts', 'pending', userId] });
       qc.invalidateQueries({ queryKey: ['inventory', userId] });
     },
   });
+  return accept;
 }
 
 export function useDeclineGift(userId: string) {

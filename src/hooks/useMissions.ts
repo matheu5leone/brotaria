@@ -1,6 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useBackpackFull } from '@/components/BackpackFull';
 import { useAuth } from '@/hooks/useAuth';
 import { authFetch } from '@/lib/authFetch';
 
@@ -38,9 +39,16 @@ export function useHasClaimableMission(): boolean {
 }
 
 export function useClaimMission() {
+  const askBackpack = useBackpackFull();
   const { user } = useAuth();
   const qc = useQueryClient();
-  return useMutation({
+  // Capturado numa const para o onError poder refazer a própria mutation.
+  const claim = useMutation({
+    // A rota REVERTE a claim quando a entrega falha, então refazer é seguro.
+    onError: (err: unknown, key: string) => {
+      if ((err as { code?: string }).code !== 'INVENTORY_FULL') return;
+      askBackpack({ incoming: [{ item_type: 'seed' }], onResolved: () => { claim.mutate(key); } });
+    },
     mutationFn: async (key: string) => {
       const res = await authFetch('/api/missions/claim', {
         method: 'POST',
@@ -58,4 +66,5 @@ export function useClaimMission() {
       qc.invalidateQueries({ queryKey: ['avatars', user?.id] }); // prêmio de avatar aparece no picker
     },
   });
+  return claim;
 }

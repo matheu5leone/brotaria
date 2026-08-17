@@ -8,6 +8,7 @@ import { useBeeStatus, useClaimBee, useAckPolenTutorial } from '@/hooks/useBee';
 import { useWallet } from '@/hooks/useWallet';
 import { playSfx } from '@/lib/sfx';
 import { PolenTutorial } from '@/components/PolenTutorial';
+import { useBackpackFull } from '@/components/BackpackFull';
 
 /**
  * A abelha do jardim. Aparece quando o servidor diz que há uma (cooldown de 1–3h
@@ -29,6 +30,7 @@ export function BeeScene({ pots }: { pots: Pot[] }) {
   const claim = useClaimBee();
   const { polenTutorialSeen } = useWallet();
   const ackTutorial = useAckPolenTutorial();
+  const askBackpack = useBackpackFull();
   const [showTutorial, setShowTutorial] = useState(false);
   // Garante que o tutorial só dispare uma vez por montagem, mesmo antes de o ack
   // persistir (evita reabrir se o jogador clicar noutra abelha na mesma sessão).
@@ -133,13 +135,22 @@ export function BeeScene({ pots }: { pots: Pot[] }) {
 
     claim.mutate(undefined, {
       // Falha rara (mochila cheia / corrida): desfaz o visual — traz a abelha de volta.
-      onError: () => {
+      onError: (err: unknown) => {
         setGone(false);
         setPhase('landed');
         setSpot(pickSpot());
+        // Mochila cheia: a abelha NÃO foi consumida (o service checa espaço
+        // antes do CAS), então basta abrir espaço e clicar de novo — o
+        // onResolved refaz a coleta pelo caminho normal.
+        if ((err as { code?: string }).code === 'INVENTORY_FULL') {
+          askBackpack({
+            incoming: [{ item_type: 'polen' }],
+            onResolved: () => { claim.mutate(); },
+          });
+        }
       },
     });
-  }, [phase, claim, pickSpot, polenTutorialSeen]);
+  }, [phase, claim, pickSpot, polenTutorialSeen, askBackpack]);
 
   const closeTutorial = useCallback(() => {
     setShowTutorial(false);

@@ -12,11 +12,13 @@ import { STORE_PRODUCTS } from '@/config/economy';
 import { Sprout, Loader2, Plus } from 'lucide-react';
 import { CoinIcon } from '@/components/CoinIcon';
 import { authFetch } from '@/lib/authFetch';
+import { useBackpackFull } from '@/components/BackpackFull';
 
 export default function LojaPage() {
   const { user, isLoading } = useAuth();
   const { coins, herbo, refresh } = useWallet();
   const router = useRouter();
+  const askBackpack = useBackpackFull();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [buyingId, setBuyingId] = useState<string | null>(null);
@@ -115,6 +117,13 @@ export default function LojaPage() {
         setCoinPulse((n) => n + 1);
       } else if (data.code === 'INSUFFICIENT_COINS') {
         setModalOpen(true);
+      } else if (data.code === 'INVENTORY_FULL') {
+        // A compra foi revertida (as moedas voltaram), então é seguro repetir
+        // assim que o jogador abrir espaço.
+        askBackpack({
+          incoming: [{ item_type: productId }],
+          onResolved: () => buyProduct(productId, costCoins),
+        });
       } else {
         alert(data.error || 'Falha na compra');
       }
