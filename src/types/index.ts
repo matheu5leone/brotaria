@@ -67,11 +67,33 @@ export type TraitParamSpec =
   | { key: string; type: 'color' }; // sorteia um hex
 
 /** Definição de um perk no catálogo: dados + como descrever. */
+/** Contexto extra do render — hoje só o bioma, que `marca_do_bioma` precisa. */
+export interface TraitRenderCtx {
+  biome: string;
+}
+
 export interface TraitDef {
   name: string;
   params: TraitParamSpec[];
+  /**
+   * Raridade MÍNIMA para o perk entrar no pool de sorteio.
+   * Ausente = disponível para qualquer planta (comportamento de sempre).
+   */
+  minRarity?: Rarity;
+  /**
+   * Estágio interno mínimo (order_index) para o perk APARECER na arte.
+   * O perk continua no DNA desde o plantio; só fica calado antes disso.
+   * Ex.: 8 = a partir de "Jovem".
+   */
+  minStageOrder?: number;
+  /**
+   * Quando presente, o perk NÃO entra no pool: é sorteado à parte com esta
+   * chance (0..1), depois de passar pela trava de raridade. Serve para o que
+   * deve ser raro mesmo dentro do topo.
+   */
+  independentChance?: number;
   /** Renderiza o perk em prosa, considerando a fração de crescimento (0..1). */
-  render: (params: Record<string, any>, growthFraction: number) => string;
+  render: (params: Record<string, any>, growthFraction: number, ctx?: TraitRenderCtx) => string;
 }
 
 /** Blueprint de escala por estágio. */

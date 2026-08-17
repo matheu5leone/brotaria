@@ -14,6 +14,9 @@ import {
   YOUNG_FLOWER_CHANCE,
   TREE_POTENTIAL_CHANCE,
   TRAITS,
+  PERKS_BY_RARITY,
+  poolForRarity,
+  independentForRarity,
 } from '../config/genome';
 
 const BIOMES: Biome[] = [
@@ -115,21 +118,29 @@ function randomForm(): DNAForm {
 }
 
 /**
- * Perks de nascença: 1 garantido (aleatório); 33% de um 2º; se o 2º veio,
- * 11% de um 3º. Todos distintos (sem repetição).
+ * Perks de nascença, agora dependentes da RARIDADE.
+ *
+ * O pool só inclui perks cuja trava `minRarity` a planta alcança, e a
+ * QUANTIDADE vem de PERKS_BY_RARITY — planta rara sai com mais perks e com
+ * acesso aos perks travados.
+ *
+ * Perks de sorteio próprio (`independentChance`) ficam FORA do pool e são
+ * rolados à parte: é o que mantém `marca_do_bioma` rara mesmo numa lendária,
+ * em vez de virar quase certa por ser um entre poucos do topo.
  */
-function rollInitialTraits(): TraitInstance[] {
-  const pool = [...TRAITS];
+function rollInitialTraits(rarity: Rarity): TraitInstance[] {
+  const pool = poolForRarity(rarity);
   const chosen: TraitDef[] = [];
   const take = () => chosen.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
 
-  take(); // 1º garantido
-  if (Math.random() < SECOND_PERK_CHANCE && pool.length) {
-    take(); // 2º
-    if (Math.random() < THIRD_PERK_CHANCE && pool.length) {
-      take(); // 3º (só se o 2º saiu)
-    }
+  const { base, extraChance } = PERKS_BY_RARITY[rarity];
+  for (let i = 0; i < base && pool.length; i++) take();
+  if (Math.random() < extraChance && pool.length) take();
+
+  for (const def of independentForRarity(rarity)) {
+    if (Math.random() < (def.independentChance ?? 0)) chosen.push(def);
   }
+
   return chosen.map(instantiateTrait);
 }
 
@@ -148,7 +159,7 @@ export function generateRandomDNA(minRarity?: Rarity, biome?: Biome): PlantDNA {
     personality: pick(PERSONALITIES),
     color: randomColor(),
     form: randomForm(),
-    traits: rollInitialTraits(),
+    traits: rollInitialTraits(rarity),
   };
 }
 
@@ -185,9 +196,13 @@ export function mutateDNA(dna: PlantDNA): PlantDNA {
   const rarity = calculateRarity();
 
   // Em mutação favorável, adiciona um perk novo (nunca remove/duplica).
+  //
+  // O dado acima só decide SE aparece perk novo. QUAL perk é limitado pela
+  // raridade da PRÓPRIA planta — senão uma comum ganharia perk lendário pela
+  // porta dos fundos, driblando a trava do plantio.
   if (rarity !== 'comum') {
     const owned = new Set(newDNA.traits.map((t) => t.name));
-    const available = TRAITS.filter((t) => !owned.has(t.name));
+    const available = poolForRarity(dna.rarity).filter((t) => !owned.has(t.name));
     if (available.length > 0) {
       newDNA.traits.push(instantiateTrait(pick(available)));
     }

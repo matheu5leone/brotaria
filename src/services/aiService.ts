@@ -8,6 +8,7 @@ import path from 'path';
 import sharp from 'sharp';
 import { encodeWebp } from '@/lib/imageProcessing';
 import { archetypeOf } from '@/config/genome/archetypes';
+import { lifecycleFromCode } from '@/config/lifecycle';
 
 /**
  * CONFIGURAÇÃO DE MODELOS
