@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
 import { WalletProvider } from "@/hooks/useWallet";
 import { ItemGainProvider } from "@/components/ItemGain";
+import { BackpackFullProvider } from "@/components/BackpackFull";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { CHUNK_GUARD_INLINE } from "@/lib/chunkReload";
 import { getSiteUrl } from "@/lib/siteUrl";
@@ -114,7 +115,9 @@ export default function RootLayout({
           <AuthProvider>
             <WalletProvider>
               <ItemGainProvider>
+                <BackpackFullProvider>
               {children}
+                </BackpackFullProvider>
               </ItemGainProvider>
             </WalletProvider>
           </AuthProvider>

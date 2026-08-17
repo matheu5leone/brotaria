@@ -88,6 +88,7 @@ import { usePots, useWateringStatus } from '@/hooks/useGardenData';
 import { useRouter } from 'next/navigation';
 import { useShovelStatus, useRushDig, useConcludeDig } from '@/hooks/useShovel';
 import { useItemGain } from '@/components/ItemGain';
+import { useBackpackFull } from '@/components/BackpackFull';
 import { digRushCostFor } from '@/config/economy';
 import { DigMinigame } from '@/components/DigMinigame';
 import { DigBoostModal } from '@/components/DigBoostModal';
@@ -197,6 +198,7 @@ export default function Garden() {
   const qc = useQueryClient();
   const router = useRouter();
   const gainItem = useItemGain();
+  const askBackpack = useBackpackFull();
 
   // ── Queries ─────────────────────────────────────────────────────────────
   const { data: pots = [], isPending: potsLoading, error: potsError } = usePots(user?.id);
@@ -996,11 +998,30 @@ export default function Garden() {
       if (concludeMutation.isPending) return;
       const origem = { x: e.clientX, y: e.clientY };
       try {
-        const { loot } = await concludeMutation.mutateAsync(pot.id);
+        const { loot, overflow } = await concludeMutation.mutateAsync(pot.id);
         loot?.forEach((item, i) => {
           // Escalona: dois itens saindo no mesmo quadro viram um borrão só.
           setTimeout(() => gainItem({ item, from: origem }), i * 260);
         });
+        // Não coube na mochila: o jogador decide o que fica. Como a obra já foi
+        // concluída, não dá para repetir o conclude — o material é entregue
+        // direto pelo /api/inventory/grant-overflow assim que abrir espaço.
+        if (overflow?.length) {
+          askBackpack({
+            incoming: overflow.map((item_type) => ({ item_type })),
+            onResolved: async () => {
+              const res = await authFetch('/api/inventory/grant-overflow', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ potId: pot.id }),
+              });
+              const d = await res.json();
+              d.granted?.forEach((item: string, i: number) =>
+                setTimeout(() => gainItem({ item, from: origem }), i * 260));
+              qc.invalidateQueries({ queryKey: ['inventory', user?.id] });
+            },
+          });
+        }
       } catch (err: unknown) {
         setShovelError((err as { message?: string }).message ?? 'Não deu para concluir a obra.');
       }

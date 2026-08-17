@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error, code: result.code }, { status });
     }
 
-    return NextResponse.json({ success: true, loot: result.loot });
+    return NextResponse.json({ success: true, loot: result.loot, overflow: result.overflow });
   } catch (error: unknown) {
     console.error('[Pot Conclude API] Error:', error);
     return NextResponse.json({ error: 'Falha ao concluir a obra.' }, { status: 500 });

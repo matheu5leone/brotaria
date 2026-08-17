@@ -68,7 +68,7 @@ export function useConcludeDig(userId: string | undefined) {
       });
       const data = await res.json();
       if (!res.ok) throw Object.assign(new Error(data.error ?? 'Erro'), { code: data.code });
-      return data as { loot: string[] };
+      return data as { loot: string[]; overflow: string[] };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['garden', 'pots', userId] });

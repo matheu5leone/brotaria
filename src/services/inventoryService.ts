@@ -282,3 +282,34 @@ export async function plantSeed(
 
   return plant;
 }
+
+// ── Mochila cheia ───────────────────────────────────────────────────────────
+
+/** Item que não coube: o que o jogador VERIA chegando na tela de mochila cheia. */
+export type OverflowItem = {
+  item_type: string;
+  rarity?: Rarity | null;
+  biome?: Biome | null;
+  quantity?: number;
+};
+
+/**
+ * Descarta itens da mochila para abrir espaço.
+ *
+ * Este é o ÚNICO poder que a tela de mochila cheia tem sobre o servidor: ela
+ * remove, nunca adiciona. Deixar o cliente pedir "adicione tal item" seria
+ * entregar concessão de item a quem chamasse a rota. Depois de liberar espaço,
+ * quem re-executa a ação original (concluir obra, comprar, resgatar) é o
+ * cliente — e aí o caminho normal, já autenticado e validado, faz a entrega.
+ */
+export async function discardItems(userId: string, itemIds: string[]): Promise<number> {
+  if (!itemIds.length) return 0;
+  const { data, error } = await supabaseAdmin
+    .from('inventory_items')
+    .delete()
+    .eq('user_id', userId)          // trava de dono: ninguém apaga slot alheio
+    .in('id', itemIds)
+    .select('id');
+  if (error) throw error;
+  return (data ?? []).length;
+}

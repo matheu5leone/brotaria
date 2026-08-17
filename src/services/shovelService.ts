@@ -190,7 +190,7 @@ export async function digPot(
 // ── Concluir a obra ─────────────────────────────────────────────────────────
 
 export type ConcludeResult =
-  | { ok: true; loot: DigLootType[] }
+  | { ok: true; loot: DigLootType[]; overflow: DigLootType[] }
   | { ok: false; code: 'NOT_FOUND' | 'STILL_DIGGING' | 'ALREADY_CLAIMED' };
 
 /**
@@ -229,6 +229,8 @@ export async function concludeDig(userId: string, potId: string): Promise<Conclu
   // accuracy null = cavada de cortesia do novato: sem sorteio.
   const accuracy = pot.dig_accuracy;
   const loot: DigLootType[] = [];
+  const entregues: DigLootType[] = [];
+  const overflow: DigLootType[] = [];
   if (accuracy != null) {
     for (const type of Object.keys(DIG_LOOT) as DigLootType[]) {
       if (Math.random() < digLootChance(type, accuracy)) loot.push(type);
@@ -236,15 +238,24 @@ export async function concludeDig(userId: string, potId: string): Promise<Conclu
     for (const type of loot) {
       try {
         await addStackableItem(userId, type);
+        entregues.push(type);
       } catch (err) {
-        // Mochila cheia não pode desfazer a conclusão — o canteiro já está
-        // liberado. O material se perde e o jogador segue o jogo.
-        console.warn('[Shovel] Loot descartado (mochila cheia?):', type, err);
+        // Mochila cheia não desfaz a conclusão (o canteiro já está liberado):
+        // o item volta na resposta como `overflow`, e o cliente abre a tela de
+        // mochila cheia para o jogador decidir o que fica.
+        if ((err as { code?: string }).code === 'INVENTORY_FULL') overflow.push(type);
+        else console.warn('[Shovel] Loot perdido:', type, err);
       }
     }
   }
 
-  return { ok: true, loot };
+  // O que não coube fica ANOTADO NO CANTEIRO. É esta anotação — não o pedido do
+  // cliente — que autoriza a entrega depois, em grantPotOverflow.
+  if (overflow.length) {
+    await supabaseAdmin.from('pots').update({ dig_overflow: overflow }).eq('id', potId);
+  }
+
+  return { ok: true, loot: entregues, overflow };
 }
 
 // ── Comprar pá ──────────────────────────────────────────────────────────────
@@ -333,4 +344,41 @@ export async function rushDig(userId: string, potId: string): Promise<RushResult
   }
 
   return { ok: true, potId, coins: newCoins as number };
+}
+
+/**
+ * Entrega o material que ficou devendo neste canteiro, se agora couber.
+ *
+ * A lista vem da coluna `dig_overflow`, gravada pelo servidor na conclusão —
+ * o cliente só diz QUAL canteiro, nunca qual item. Cada item entregue sai da
+ * lista, então repetir a chamada não duplica nada.
+ */
+export async function grantPotOverflow(userId: string, potId: string): Promise<DigLootType[]> {
+  const { data: pot } = await supabaseAdmin
+    .from('pots')
+    .select('id, dig_overflow')
+    .eq('id', potId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  const pendentes = (pot?.dig_overflow ?? []) as DigLootType[];
+  if (!pendentes.length) return [];
+
+  const entregues: DigLootType[] = [];
+  const restantes: DigLootType[] = [];
+  for (const type of pendentes) {
+    try {
+      await addStackableItem(userId, type);
+      entregues.push(type);
+    } catch {
+      restantes.push(type); // ainda não coube
+    }
+  }
+
+  await supabaseAdmin
+    .from('pots')
+    .update({ dig_overflow: restantes.length ? restantes : null })
+    .eq('id', potId);
+
+  return entregues;
 }
