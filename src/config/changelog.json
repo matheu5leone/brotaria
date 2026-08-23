@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.9.2",
+    "date": "2026-08-23",
+    "title": "Umas arestas aparadas",
+    "image": "/imgs/backpack.webp",
+    "intro": "Três ajustes pequenos, do tipo que ninguém pede mas todo mundo sente.",
+    "notes": [
+      { "type": "melhoria", "text": "Ao arrastar uma planta da mochila, agora é a própria planta que aparece na sua mão, balançando enquanto você procura o canteiro. Antes vinha uma semente genérica, sem nada a ver com o que você estava carregando." },
+      { "type": "melhoria", "text": "A barra de rolagem ganhou madeira e ouro, no lugar da cinza do navegador. No celular nada muda: continua a barrinha flutuante que some sozinha e não come espaço da tela." },
+      { "type": "melhoria", "text": "Esta nota aqui ficou mais fácil de ler — as etiquetas subiram para cima do texto, que agora alinha todo na mesma margem em vez de cada linha começar num lugar." }
+    ]
+  },
+  {
     "version": "0.9.1",
     "date": "2026-08-23",
     "title": "Presentes arrumados",
