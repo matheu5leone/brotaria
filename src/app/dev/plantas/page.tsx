@@ -5,11 +5,14 @@ import { useQuery } from '@tanstack/react-query';
 import {
   X, Search, Leaf, Droplets, Star, Zap, Flame, Sprout, Images, Loader2, Copy, Check,
 } from 'lucide-react';
+import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { PlantImage } from '@/components/PlantImage';
 import { RarityEffect } from '@/components/RarityEffect';
 import { HerboIcon } from '@/components/HerboIcon';
 import { useAuth } from '@/hooks/useAuth';
+import { useWallet } from '@/hooks/useWallet';
+import { useBeeDevSpawn, useBeeStatus } from '@/hooks/useBee';
 import { authFetch } from '@/lib/authFetch';
 import { isDevUser } from '@/lib/devUser';
 import { BIOME_LABELS } from '@/config/biomes';
@@ -63,6 +66,59 @@ const SORT_OPTIONS = [
 type HydrationKey = (typeof HYDRATION_OPTIONS)[number]['key'];
 type ArtKey = (typeof ART_OPTIONS)[number]['key'];
 type SortKey = (typeof SORT_OPTIONS)[number]['key'];
+
+/**
+ * Ferramentas de dev — atalhos que antes flutuavam por cima da tela de jogo.
+ * Ficam aqui para não competirem com o jardim nem aparecerem em print.
+ */
+function FerramentasDev() {
+  const { nickname } = useWallet();
+  const beeSpawn = useBeeDevSpawn();
+  const { data: beeStatus } = useBeeStatus();
+  const naTela = !!beeStatus?.active;
+
+  return (
+    <div
+      className="flex flex-wrap items-center gap-2 mb-5 p-3 rounded-2xl"
+      style={{ background: 'rgba(185,28,28,0.08)', border: '1px dashed rgba(185,28,28,0.45)' }}
+    >
+      <span
+        className="text-[10px] font-black uppercase tracking-widest mr-1"
+        style={{ fontFamily: 'var(--font-display)', color: '#e08a8a' }}
+      >
+        Ferramentas
+      </span>
+
+      <button
+        onClick={() => beeSpawn.mutate()}
+        disabled={beeSpawn.isPending || naTela}
+        className="px-3 py-2 rounded-lg text-xs font-black transition-transform active:scale-95 disabled:opacity-50"
+        style={{ background: '#b91c1c', color: '#fff', border: '1.5px solid #7f1d1d' }}
+        title="Força a abelha a aparecer agora (ignora o cooldown de 1–3h)"
+      >
+        {naTela ? '🐝 abelha à espera' : beeSpawn.isPending ? '...' : '🐝 Forçar abelha'}
+      </button>
+
+      {/* A abelha nasce no JARDIM, não aqui — sem este atalho o dev força e fica
+          olhando para uma página onde nada acontece. */}
+      {naTela && nickname && (
+        <Link
+          href={`/jardim/${nickname}`}
+          className="px-3 py-2 rounded-lg text-xs font-black transition-transform active:scale-95"
+          style={{ background: 'rgba(74,222,128,0.14)', color: '#86efac', border: '1px solid rgba(74,222,128,0.4)' }}
+        >
+          Ir ao jardim ver →
+        </Link>
+      )}
+
+      {beeSpawn.isError && (
+        <span className="text-[11px]" style={{ fontFamily: 'var(--font-body)', color: '#e08a8a' }}>
+          {(beeSpawn.error as Error).message}
+        </span>
+      )}
+    </div>
+  );
+}
 
 /** Chip de filtro — ativo = madeira preenchida. */
 function Chip({
@@ -354,7 +410,7 @@ export default function DevPlantasPage() {
   const { user, isLoading: authLoading } = useAuth();
   const allowed = isDevUser(user?.id);
 
-  const { data, isPending, error } = useQuery({
+  const { data, isPending, error, dataUpdatedAt } = useQuery({
     queryKey: ['dev', 'plants'],
     queryFn: async () => {
       const res = await authFetch('/api/dev/plants');
@@ -386,7 +442,10 @@ export default function DevPlantasPage() {
   }, [plants]);
 
   const filtered = useMemo(() => {
-    const now = Date.now();
+    // Referência de "agora" = quando os dados chegaram, não Date.now(): dentro
+    // do useMemo o relógio tornaria o resultado instável a cada re-render (e a
+    // rega vencida mudaria de resposta sem os dados terem mudado).
+    const now = dataUpdatedAt;
     const q = search.trim().toLowerCase();
 
     const out = plants.filter((p) => {
@@ -420,7 +479,7 @@ export default function DevPlantasPage() {
       }
     });
     return out;
-  }, [plants, rarity, lifecycle, hydration, art, biome, archetype, model, search, sort]);
+  }, [plants, dataUpdatedAt, rarity, lifecycle, hydration, art, biome, archetype, model, search, sort]);
 
   const artesVisiveis = useMemo(
     () => filtered.reduce((n, p) => n + p.versions.filter((v) => v.imageUrl).length, 0),
@@ -461,6 +520,8 @@ export default function DevPlantasPage() {
             </p>
           </div>
         </div>
+
+        <FerramentasDev />
 
         {/* Filtros */}
         <div className="flex flex-col gap-2 mb-4">

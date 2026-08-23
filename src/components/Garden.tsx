@@ -129,8 +129,7 @@ import { usePendingGifts } from '@/hooks/useGifts';
 import { useGardenSocial } from '@/hooks/useNeighbor';
 import { BeeScene } from '@/components/BeeScene';
 import { ElixirRoulette } from '@/components/ElixirRoulette';
-import { useUseElixir, useBeeDevSpawn, useBeeStatus } from '@/hooks/useBee';
-import { isDevUser } from '@/lib/devUser';
+import { useUseElixir } from '@/hooks/useBee';
 import { GiftReceiveModal } from '@/components/GiftReceiveModal';
 import type { PendingGift } from '@/hooks/useGifts';
 
@@ -204,8 +203,6 @@ export default function Garden() {
   const { data: pots = [], isPending: potsLoading, error: potsError } = usePots(user?.id);
   const { data: shovelStatus } = useShovelStatus(user?.id);
   // Atalhos de dev (só a conta autorizada; o servidor também valida).
-  const beeDevSpawn = useBeeDevSpawn();
-  const { data: beeStatus } = useBeeStatus();
 
   // Elixir Floral: arraste até a planta alvo → confirmação → roleta do novo intervalo de sede.
   const useElixirMutation = useUseElixir();
@@ -1626,18 +1623,8 @@ export default function Garden() {
         />
       )}
 
-      {/* TEMPORÁRIO (dev) — força a abelha a aparecer, só p/ a conta de dev. REMOVER. */}
-      {isDevUser(user?.id) && (
-        <button
-          onClick={() => beeDevSpawn.mutate()}
-          disabled={beeDevSpawn.isPending || !!beeStatus?.active}
-          className="fixed bottom-24 left-3 z-[9998] px-3 py-2 rounded-lg text-xs font-black transition-transform active:scale-95 disabled:opacity-50"
-          style={{ background: '#b91c1c', color: '#fff', border: '1.5px solid #7f1d1d', boxShadow: '0 4px 12px rgba(0,0,0,0.4)' }}
-          title="Força a abelha a aparecer agora (ignora o cooldown de 1–3h)"
-        >
-          {beeStatus?.active ? '🐝 abelha na tela' : beeDevSpawn.isPending ? '...' : '🐝 Forçar abelha (dev)'}
-        </button>
-      )}
+      {/* O botão de forçar a abelha mora agora em /dev/plantas, na barra de
+          ferramentas de dev — fora da tela de jogo. */}
 
       {/* Elixir Floral — confirmação antes de consumir (soltou arrastando sobre a planta) */}
       {elixirConfirmTarget && (() => {
