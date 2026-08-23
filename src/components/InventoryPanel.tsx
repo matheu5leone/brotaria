@@ -87,7 +87,7 @@ function WrappedPlantSlot({ item, onOpenActions }: { item: InventoryItem; onOpen
 
 function PlantSlot({ item, onPlantDragStart }: {
   item: InventoryItem;
-  onPlantDragStart?: (e: React.PointerEvent, itemId: string) => void;
+  onPlantDragStart?: (e: React.PointerEvent, itemId: string, imageUrl: string | null) => void;
 }) {
   const { data: version } = usePlantVersion(item.plant_id);
   const { data: plant } = usePlant(item.plant_id);
@@ -97,7 +97,9 @@ function PlantSlot({ item, onPlantDragStart }: {
     <div
       className="relative flex flex-col items-center justify-center w-full h-full rounded-xl overflow-hidden cursor-grab active:cursor-grabbing"
       style={{ touchAction: 'none', background: 'rgba(92,58,30,0.08)', border: '1px solid rgba(92,58,30,0.22)' }}
-      onPointerDown={(e) => { e.stopPropagation(); onPlantDragStart?.(e, item.id); }}
+      // A imagem vai junto: quem arrasta precisa ver a PRÓPRIA planta na mão,
+      // não a semente genérica. Só o slot conhece a versão atual dela.
+      onPointerDown={(e) => { e.stopPropagation(); onPlantDragStart?.(e, item.id, version?.image_url ?? null); }}
       title="Arraste até um canteiro vazio para plantar"
     >
       <RarityEffect rarity={rarity} alwaysVisible>
@@ -177,7 +179,7 @@ function SlotContent({
   /** Inicia o arraste do Elixir Floral a partir do slot (fecha a mochila). */
   onElixirDragStart?: (e: React.PointerEvent) => void;
   /** Arrastar uma planta da mochila até um canteiro vazio. */
-  onPlantDragStart?: (e: React.PointerEvent, itemId: string) => void;
+  onPlantDragStart?: (e: React.PointerEvent, itemId: string, imageUrl: string | null) => void;
 }) {
   if (animPhase !== 'idle') return <AnimatingSlot phase={animPhase} rarity={animRarity} />;
 
@@ -341,7 +343,7 @@ export function InventoryPanel({
   /** Inicia o arraste do Elixir Floral a partir do slot (fecha a mochila). */
   onElixirDragStart?: (e: React.PointerEvent) => void;
   /** Arrastar uma planta da mochila até um canteiro vazio. */
-  onPlantDragStart?: (e: React.PointerEvent, itemId: string) => void;
+  onPlantDragStart?: (e: React.PointerEvent, itemId: string, imageUrl: string | null) => void;
 }) {
   const craftElixir = useCraftElixir();
   const [animatingSlot, setAnimatingSlot] = useState<number | null>(null);

@@ -262,6 +262,8 @@ export default function Garden() {
   const [seedDragPos, setSeedDragPos]               = useState<{ x: number; y: number } | null>(null);
   const [seedTargetPotId, setSeedTargetPotId]       = useState<string | null>(null);
   const [seedDragImg, setSeedDragImg]               = useState<string>('/imgs/seed.webp');
+  /** Arrastando uma PLANTA (não semente): sprite maior + balanço do .brota-carry. */
+  const [carryingPlant, setCarryingPlant]           = useState(false);
   // Drag-and-drop do Elixir Floral: arrasta até uma planta (estilo regador) → confirmação
   const [elixirDrag, setElixirDrag]                 = useState(false);
   const [elixirDragPos, setElixirDragPos]           = useState<{ x: number; y: number } | null>(null);
@@ -750,6 +752,7 @@ export default function Garden() {
     setSeedDragPos({ x: e.clientX, y: e.clientY });
     setSeedTargetPotId(null);
     setSeedDragImg(seedImage(seed?.biome as Biome | null | undefined));
+    setCarryingPlant(false);
     setShovelActive(false);
 
     const isPlantable = (pot: Pot | null): pot is Pot =>
@@ -789,7 +792,7 @@ export default function Garden() {
    * que a planta já existe — vai para /api/plants/place, não para o plantio
    * por semente.
    */
-  const handlePlantDragStart = useCallback((e: React.PointerEvent, itemId: string) => {
+  const handlePlantDragStart = useCallback((e: React.PointerEvent, itemId: string, imageUrl: string | null) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -803,7 +806,10 @@ export default function Garden() {
     setSeedDrag(true);                 // reusa o realce verde de "canteiro alvo"
     setSeedDragPos({ x: e.clientX, y: e.clientY });
     setSeedTargetPotId(null);
-    setSeedDragImg('/imgs/seed.webp');
+    // A própria planta na mão. Sem imagem (presente ainda sem arte gerada),
+    // a semente volta a ser o fallback — melhor que um vazio.
+    setSeedDragImg(imageUrl ?? '/imgs/seed.webp');
+    setCarryingPlant(!!imageUrl);
     setShovelActive(false);
 
     const isPlantable = (pot: Pot | null): pot is Pot =>
@@ -818,6 +824,7 @@ export default function Garden() {
       setSeedDrag(false);
       setSeedDragPos(null);
       setSeedTargetPotId(null);
+      setCarryingPlant(false);
       captureEl.removeEventListener('pointermove', onMove);
       captureEl.removeEventListener('pointerup', onUp);
       captureEl.removeEventListener('pointercancel', onUp);
@@ -1556,15 +1563,35 @@ export default function Garden() {
         </div>
       )}
 
-      {/* ── Semente sendo arrastada (fixed) ──────────────────────────────── */}
-      {seedDrag && seedDragPos && (
-        <div
-          className="fixed pointer-events-none z-[9999] select-none"
-          style={{ left: seedDragPos.x - 22, top: seedDragPos.y - 26, width: 44, height: 44, filter: 'drop-shadow(0 2px 6px rgba(74,222,128,0.7))' }}
-        >
-          <Image src={seedDragImg} alt="semente" width={44} height={44} className="object-contain" draggable={false} />
-        </div>
-      )}
+      {/* ── Semente / planta sendo arrastada (fixed) ─────────────────────── */}
+      {seedDrag && seedDragPos && (() => {
+        // Planta ocupa mais espaço na mão que uma semente — a 44px a arte não
+        // se lê. O `.brota-carry` (balanço + escala + sombra) vive no wrapper,
+        // e o `.plant-outline` na imagem: são dois `filter`, e num elemento só
+        // o de baixo apagaria o de cima.
+        const lado = carryingPlant ? 72 : 44;
+        return (
+          <div
+            className={`fixed pointer-events-none z-[9999] select-none ${carryingPlant ? 'brota-carry' : ''}`}
+            style={{
+              left: seedDragPos.x - lado / 2,
+              top: seedDragPos.y - lado / 2 - 4,
+              width: lado,
+              height: lado,
+              filter: carryingPlant ? undefined : 'drop-shadow(0 2px 6px rgba(74,222,128,0.7))',
+            }}
+          >
+            <Image
+              src={seedDragImg}
+              alt={carryingPlant ? 'planta' : 'semente'}
+              width={lado}
+              height={lado}
+              className={`object-contain ${carryingPlant ? 'plant-outline' : ''}`}
+              draggable={false}
+            />
+          </div>
+        );
+      })()}
 
       {/* ── Elixir Floral sendo arrastado (fixed) ────────────────────────── */}
       {elixirDrag && elixirDragPos && (
