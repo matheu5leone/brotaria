@@ -27,12 +27,20 @@ function formatDate(iso: string): string {
   return d && m && y ? `${d}/${m}/${y}` : iso;
 }
 
+/**
+ * Chip em cima, texto embaixo — e não lado a lado.
+ *
+ * Com o chip à esquerda, cada rótulo ("Novo", "Correção"…) tem uma largura
+ * diferente e empurrava a primeira linha de cada item para um recuo diferente:
+ * quatro itens, quatro margens. Empilhado, todo texto começa na mesma coluna e
+ * ainda sobra largura — que no celular é o que falta.
+ */
 function NoteRow({ note }: { note: { type: ChangelogNoteType; text: string } }) {
   const s = NOTE_STYLE[note.type] ?? NOTE_STYLE.melhoria;
   return (
-    <li className="flex gap-2.5 items-start">
+    <li className="flex flex-col items-start gap-1">
       <span
-        className="flex-shrink-0 mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider"
+        className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider"
         style={{ fontFamily: 'var(--font-display)', color: s.color, background: s.bg, border: `1px solid ${s.border}` }}
       >
         {s.label}
@@ -79,7 +87,10 @@ function Release({ entry, compact = false }: { entry: ChangelogEntry; compact?: 
         {entry.intro}
       </p>
 
-      <ul className="flex flex-col gap-2.5 text-left">
+      {/* gap generoso de propósito: o espaço ENTRE itens (16px) precisa vencer
+          o espaço entre o chip e o próprio texto (4px), senão os blocos se
+          misturam e não dá para ver onde uma mudança termina e a outra começa */}
+      <ul className="flex flex-col gap-4 text-left">
         {entry.notes.map((note, i) => (
           <NoteRow key={i} note={note} />
         ))}
