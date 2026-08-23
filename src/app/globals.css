@@ -71,6 +71,77 @@ html, body {
   --font-caption:        var(--font-fell), 'Georgia', serif;
 }
 
+/* ---------- Barra de rolagem — trilho de latão do grimório ---------------
+ *
+ * O polegar é um MINIATURA da borda dourada da sidebar (§4.3 do design.md):
+ * gradiente de carvalho claro→escuro com um fio de ouro na borda. Por ter
+ * contraste próprio, ele se lê tanto sobre o pergaminho (modais, sidebar)
+ * quanto sobre o verde escuro do jardim — sem precisar de uma variante por
+ * superfície.
+ *
+ * MOBILE FIRST, e aqui isso significa o contrário de "estilizar em tudo":
+ * no toque o sistema já desenha uma barra flutuante que some sozinha e NÃO
+ * ocupa largura. Definir `::-webkit-scrollbar { width }` ali trocaria essa
+ * barra por uma fixa, comendo ~10px dos 390px da tela em toda lista. Então o
+ * celular fica com a nativa, e a decoração entra só onde existe mouse
+ * (`pointer: fine`) — que é onde a barra é permanente e realmente aparece.
+ * ------------------------------------------------------------------------ */
+
+/* Firefox e afins: a API padrão só aceita DUAS cores chapadas — sem gradiente,
+ * sem borda. É o mais perto que dá de chegar do trilho de latão.
+ *
+ * O @supports não é decoração: no Chrome, declarar `scrollbar-color` (que é
+ * HERDADA) faz o motor ignorar o `::-webkit-scrollbar` do elemento inteiro. Sem
+ * esta guarda, esta regra sozinha apagava o polegar de madeira lá embaixo e
+ * devolvia a barra cinza do sistema. Quem entende `::-webkit-scrollbar` pula
+ * este bloco e fica com a versão bonita. */
+@supports not selector(::-webkit-scrollbar) {
+  :root {
+    scrollbar-color: var(--color-wood-mid) rgba(92, 58, 30, 0.1);
+    scrollbar-width: thin;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgba(92, 58, 30, 0.1);
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: linear-gradient(
+      180deg,
+      var(--color-wood-light) 0%,
+      var(--color-wood-mid) 45%,
+      var(--color-wood-dark) 100%
+    );
+    border: 1px solid rgba(201, 162, 39, 0.45);
+    /* Lista longa (o acervo tem ~100 itens) não pode virar um risco de 4px. */
+    min-height: 36px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    /* Mesmo realce do botão hexagonal de madeira (§4.2 do design.md). */
+    filter: brightness(1.12);
+    border-color: var(--color-gold);
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    filter: brightness(0.94);
+  }
+
+  /* Encontro das duas barras: sem o quadradinho branco padrão. */
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
+
 /* ---------- Raridade — keyframes ---------- */
 
 @keyframes particle-float {
