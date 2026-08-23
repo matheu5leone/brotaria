@@ -63,14 +63,11 @@ export async function POST(request: Request) {
       throw giftError;
     }
 
-    // 5. Conta o presente enviado (missão "presentear alguém").
-    const { data: prof } = await supabaseAdmin
-      .from('profiles').select('total_gifts_sent').eq('id', userId).single();
-    await supabaseAdmin
-      .from('profiles')
-      .update({ total_gifts_sent: (prof?.total_gifts_sent ?? 0) + 1 })
-      .eq('id', userId);
-
+    // A missão "presentear alguém" NÃO conta aqui. Enviar não é presentear:
+    // o destinatário pode recusar (e a planta volta pro remetente), ou nunca
+    // abrir. Contava no envio, e dava para ganhar a semente da missão sem que
+    // presente nenhum trocasse de mãos. O crédito acontece quando o outro lado
+    // ABRE o presente — ver /api/inventory/open-gift.
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
     console.error('[Gift Send]', err);

@@ -1,5 +1,18 @@
 [
   {
+    "version": "0.9.1",
+    "date": "2026-08-23",
+    "title": "Presentes arrumados",
+    "image": "/imgs/backpack.webp",
+    "intro": "As opções do presente saíram de dentro do quadradinho da mochila, e a planta que você ganha finalmente pode ser plantada.",
+    "notes": [
+      { "type": "melhoria", "text": "Tocar num presente na mochila agora abre uma tela de verdade, com botões grandes — antes eram três botõezinhos espremidos dentro do slot, impossíveis de acertar no celular." },
+      { "type": "correcao", "text": "A planta que vem de presente mostrava o ícone de arrastar mas não arrastava. Agora ela se planta igual a uma semente: arraste até um canteiro vazio." },
+      { "type": "correcao", "text": "A missão de presentear só conclui quando a outra pessoa abre o presente. Antes contava no envio — dava para ganhar a recompensa mesmo se o presente fosse recusado e voltasse pra você." },
+      { "type": "melhoria", "text": "A etiqueta do presente ganhou espaço para escrever, em vez do campo minúsculo por cima do embrulho." }
+    ]
+  },
+  {
     "version": "0.9.0",
     "date": "2026-08-17",
     "title": "O DNA ganhou personalidade",

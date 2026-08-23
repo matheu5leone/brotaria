@@ -2,10 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { Gift, X, Info, PackageOpen, SendHorizonal, Move } from 'lucide-react';
+import { Gift, X, Move, Tag } from 'lucide-react';
 import { useInventory, useOpenGift, usePatchLabel } from '@/hooks/useInventory';
-import { useUnwrap } from '@/hooks/useGifts';
 import { GiftSendModal } from '@/components/GiftSendModal';
+import { GiftActionsModal } from '@/components/GiftActionsModal';
 import { usePlantVersion, usePlant } from '@/hooks/usePlantData';
 import { RarityEffect } from '@/components/RarityEffect';
 import { InventoryItem, Rarity, Biome, PlantDNA } from '@/types';
@@ -61,124 +61,25 @@ function DragHintBadge() {
 
 // ── Slot: Planta embrulhada ───────────────────────────────────────────────────
 
-function WrappedPlantSlot({
-  item,
-  userId,
-  onOpen,
-  onLabelSave,
-}: {
-  item: InventoryItem;
-  userId: string;
-  onOpen: () => void;
-  onLabelSave: (label: string) => void;
-}) {
-  const [editingLabel, setEditingLabel] = useState(false);
-  const [labelValue, setLabelValue] = useState(item.label ?? '');
-  const [showActions, setShowActions] = useState(false);
-  const [giftModalOpen, setGiftModalOpen] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const escapeRef = useRef(false);
-  const unwrapMutation = useUnwrap(userId);
-
-  useEffect(() => {
-    setLabelValue(item.label ?? '');
-  }, [item.label]);
-
-  const handleLabelClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingLabel(true);
-    setTimeout(() => inputRef.current?.focus(), 0);
-  };
-
-  const handleLabelSave = () => {
-    setEditingLabel(false);
-    onLabelSave(labelValue);
-  };
-
-  if (giftModalOpen) {
-    return <GiftSendModal userId={userId} itemId={item.id} onClose={() => setGiftModalOpen(false)} />;
-  }
-
+/**
+ * O slot é só a caixinha: tocar abre o `GiftActionsModal` (fora da mochila).
+ * As ações e a etiqueta viviam aqui dentro, espremidas em 57px — ver o modal.
+ */
+function WrappedPlantSlot({ item, onOpenActions }: { item: InventoryItem; onOpenActions: () => void }) {
   return (
-    <div
-      className="relative flex flex-col items-center justify-center gap-0.5 w-full h-full bg-rose-200/50 border border-rose-400/50 rounded-xl transition-colors group"
-      onClick={() => setShowActions(v => !v)}
+    <button
+      onClick={onOpenActions}
+      className="relative flex flex-col items-center justify-center gap-0.5 w-full h-full bg-rose-200/50 border border-rose-400/50 rounded-xl transition-transform active:scale-95"
+      title={item.label ? `Presente: ${item.label}` : 'Planta embrulhada — toque para ver as opções'}
     >
-      <span className="text-2xl select-none">🎁</span>
-      <span className="text-rose-700 text-[8px] font-bold">{showActions ? 'Fechar' : 'Opções'}</span>
+      <span className="text-2xl select-none pointer-events-none">🎁</span>
+      <span className="text-rose-700 text-[8px] font-bold pointer-events-none">Opções</span>
 
-      {/* Action overlay */}
-      {showActions && (
-        <div
-          className="absolute inset-0 rounded-xl flex flex-col gap-1 p-1.5 z-10"
-          style={{ background: 'rgba(10,5,5,0.92)' }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={() => { setShowActions(false); onOpen(); }}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-bold transition-all hover:bg-rose-900/60 active:scale-95"
-            style={{ color: '#fca5a5' }}
-          >
-            <Gift className="w-3 h-3" /> Abrir
-          </button>
-          <button
-            onClick={() => { setShowActions(false); unwrapMutation.mutate({ itemId: item.id }); }}
-            disabled={unwrapMutation.isPending}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-bold transition-all hover:bg-amber-900/60 active:scale-95 disabled:opacity-40"
-            style={{ color: '#fde68a' }}
-          >
-            <PackageOpen className="w-3 h-3" /> Desfazer
-          </button>
-          <button
-            onClick={() => { setShowActions(false); setGiftModalOpen(true); }}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-bold transition-all hover:bg-green-900/60 active:scale-95"
-            style={{ color: '#86efac' }}
-          >
-            <SendHorizonal className="w-3 h-3" /> Presentear
-          </button>
-        </div>
+      {/* Marca de etiqueta preenchida — o texto em si vive no modal */}
+      {item.label && (
+        <Tag className="absolute top-0.5 right-0.5 w-3 h-3 text-rose-600/80 pointer-events-none" />
       )}
-
-      {/* Ícone de info com label */}
-      <button
-        className="absolute top-0.5 right-0.5 text-rose-600/70 hover:text-rose-700 transition-colors"
-        onClick={handleLabelClick}
-        title={item.label || 'Sem etiqueta — clique para editar'}
-      >
-        <Info className="w-3 h-3" />
-      </button>
-
-      {/* Editor de label inline */}
-      {editingLabel && (
-        <div
-          className="absolute inset-0 rounded-xl flex flex-col items-center justify-center p-1 gap-1 z-10"
-          style={{ background: 'var(--color-parch-light)', border: '1px solid var(--color-wood-light)' }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <input
-            ref={inputRef}
-            className="w-full text-[9px] rounded px-1 py-0.5 outline-none text-center"
-            style={{ background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(139,99,70,0.35)', color: 'var(--color-text-dark)' }}
-            value={labelValue}
-            maxLength={100}
-            onChange={(e) => setLabelValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') { escapeRef.current = false; handleLabelSave(); }
-              if (e.key === 'Escape') {
-                escapeRef.current = true;
-                setLabelValue(item.label ?? '');
-                setEditingLabel(false);
-              }
-            }}
-            onBlur={() => {
-              if (!escapeRef.current) handleLabelSave();
-              escapeRef.current = false;
-            }}
-            placeholder="Etiqueta..."
-          />
-        </div>
-      )}
-    </div>
+    </button>
   );
 }
 
@@ -258,22 +159,19 @@ function AnimatingSlot({ phase, rarity }: { phase: OpenPhase; rarity: Rarity }) 
 
 function SlotContent({
   item,
-  userId,
   animPhase,
   animRarity,
-  onOpenGift,
-  onLabelSave,
+  onOpenActions,
   onSeedDragStart,
   onCraftElixir,
   onElixirDragStart,
   onPlantDragStart,
 }: {
   item: InventoryItem | undefined;
-  userId: string;
   animPhase: OpenPhase;
   animRarity: Rarity;
-  onOpenGift: () => void;
-  onLabelSave: (label: string) => void;
+  /** Abre o modal de ações da planta embrulhada (fora do slot). */
+  onOpenActions: () => void;
   onSeedDragStart?: (e: React.PointerEvent, seed?: SeedDragMeta) => void;
   onCraftElixir?: () => void;
   /** Inicia o arraste do Elixir Floral a partir do slot (fecha a mochila). */
@@ -415,7 +313,7 @@ function SlotContent({
     );
   }
   if (item.item_type === 'wrapped_plant') {
-    return <WrappedPlantSlot item={item} userId={userId} onOpen={onOpenGift} onLabelSave={onLabelSave} />;
+    return <WrappedPlantSlot item={item} onOpenActions={onOpenActions} />;
   }
   if (item.item_type === 'plant') {
     return <PlantSlot item={item} onPlantDragStart={onPlantDragStart} />;
@@ -449,6 +347,10 @@ export function InventoryPanel({
   const [animatingSlot, setAnimatingSlot] = useState<number | null>(null);
   const [animPhase, setAnimPhase] = useState<OpenPhase>('idle');
   const [animRarity, setAnimRarity] = useState<Rarity>('comum');
+  /** Planta embrulhada com o modal de ações aberto. */
+  const [actionsItem, setActionsItem] = useState<InventoryItem | null>(null);
+  /** Planta embrulhada indo para o fluxo de escolher destinatário. */
+  const [sendItem, setSendItem] = useState<InventoryItem | null>(null);
 
   const { data: items = [] } = useInventory(userId);
   const openGiftMutation = useOpenGift(userId ?? '');
@@ -463,9 +365,10 @@ export function InventoryPanel({
       ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
       : false;
 
+  // O `confirm()` nativo saiu: quem chega aqui já tocou em "Abrir presente" no
+  // GiftActionsModal, e um diálogo do navegador em cima disso era só mais um
+  // toque — ainda por cima com a pior aparência possível no celular.
   const handleOpenGift = async (item: InventoryItem) => {
-    if (!confirm('Abrir o presente? A surpresa será revelada!')) return;
-
     // Chama API imediatamente (DB update rápido)
     let rarity: Rarity = 'comum';
     try {
@@ -555,14 +458,13 @@ export function InventoryPanel({
             <div key={i} className="aspect-square">
               <SlotContent
                 item={item}
-                userId={userId ?? ''}
                 animPhase={animatingSlot === i ? animPhase : 'idle'}
                 animRarity={animRarity}
-                onOpenGift={() => item && handleOpenGift(item)}
-                onLabelSave={(label) => item && handleLabelSave(item, label)}
+                onOpenActions={() => item && setActionsItem(item)}
                 onSeedDragStart={onSeedDragStart}
                 onCraftElixir={() => craftElixir.mutate()}
                 onElixirDragStart={onElixirDragStart}
+                onPlantDragStart={onPlantDragStart}
               />
             </div>
           ))}
@@ -591,6 +493,26 @@ export function InventoryPanel({
           </p>
         )}
       </div>
+
+      {/* Modais da planta embrulhada — vivem AQUI, não dentro do slot de 57px */}
+      {actionsItem && (
+        <GiftActionsModal
+          item={actionsItem}
+          userId={userId ?? ''}
+          onOpenGift={() => handleOpenGift(actionsItem)}
+          onSendGift={() => setSendItem(actionsItem)}
+          onLabelSave={(label) => handleLabelSave(actionsItem, label)}
+          onClose={() => setActionsItem(null)}
+        />
+      )}
+
+      {sendItem && (
+        <GiftSendModal
+          userId={userId ?? ''}
+          itemId={sendItem.id}
+          onClose={() => setSendItem(null)}
+        />
+      )}
     </div>
   );
 }
