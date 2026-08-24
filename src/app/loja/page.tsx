@@ -250,6 +250,8 @@ export default function LojaPage() {
                         <Image src="/imgs/shovel.webp" alt="pá" width={48} height={48} className="object-contain w-12 h-12" />
                       ) : product.id === 'wrapping_kit' ? (
                         <span className="text-5xl leading-none">🎁</span>
+                      ) : product.id === 'backpack_slot' ? (
+                        <Image src="/imgs/backpack-open.webp" alt="mochila" width={48} height={48} className="object-contain w-12 h-12" />
                       ) : (
                         <Sprout className="w-12 h-12" style={{ color: '#2a5a1e' }} />
                       )}

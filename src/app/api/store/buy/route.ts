@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseServer';
-import { getStoreProduct } from '@/config/economy';
+import { getStoreProduct, INVENTORY_SLOTS_PER_PURCHASE, INVENTORY_MAX_SLOTS } from '@/config/economy';
 import { processGrowth } from '@/services/growthService';
 import { addStackableItem } from '@/services/inventoryService';
 import { getAuthUser } from '@/lib/getAuthUser';
@@ -75,6 +75,35 @@ export async function POST(request: Request) {
         }
         throw deliveryError;
       }
+    }
+
+    // Expansão de mochila: não entrega item, sobe a capacidade do perfil. O teto
+    // é conferido DENTRO do RPC (UPDATE condicional), então duas compras ao
+    // mesmo tempo não passam do limite — a segunda estoura e é reembolsada.
+    if (product.id === 'backpack_slot') {
+      const { data: novosSlots, error: grantError } = await supabaseAdmin.rpc('grant_inventory_slots', {
+        p_user_id: userId,
+        p_amount: INVENTORY_SLOTS_PER_PURCHASE,
+        p_max: INVENTORY_MAX_SLOTS,
+      });
+
+      if (grantError) {
+        await supabaseAdmin.rpc('add_coins', { p_user_id: userId, p_amount: product.cost_coins });
+        if ((grantError.message || '').includes('MAX_SLOTS_REACHED')) {
+          return NextResponse.json(
+            { error: `Sua mochila já está no tamanho máximo (${INVENTORY_MAX_SLOTS} espaços).`, code: 'MAX_SLOTS_REACHED' },
+            { status: 400 },
+          );
+        }
+        throw grantError;
+      }
+
+      await supabaseAdmin.from('transactions').insert({
+        user_id: userId, item_type: product.id, amount: 0, status: 'completed',
+      });
+      return NextResponse.json({
+        success: true, coins: newBalance, product: product.id, inventorySlots: novosSlots,
+      });
     }
 
     // Log da "transação" interna (gasto de moedas, sem valor em reais).

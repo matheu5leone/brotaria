@@ -76,7 +76,24 @@ export const PRICES = {
   /** Repor a pá quebrada — aceita as duas moedas (o jogador escolhe). */
   SHOVEL_COINS: 10,
   SHOVEL_HERBO: 300,
+  /** Expansão permanente da mochila (+5 slots). */
+  BACKPACK_SLOT: 50,
 } as const;
+
+/**
+ * CAPACIDADE DA MOCHILA
+ *
+ * Era a constante 10 repetida no cliente e no findFreeSlot. Agora vive em
+ * `profiles.inventory_slots`, e estes três números são o contrato:
+ * o servidor confere o teto no RPC grant_inventory_slots, não o cliente.
+ *
+ * Teto em 30 = 4 compras. Sem teto, a mochila cheia (e a tela que o jogador
+ * usa para escolher o que fica) deixaria de existir para quem paga — e essa
+ * escolha é mecânica de jogo, não obstáculo a ser removido com moeda.
+ */
+export const INVENTORY_BASE_SLOTS = 10;
+export const INVENTORY_SLOTS_PER_PURCHASE = 5;
+export const INVENTORY_MAX_SLOTS = 30;
 
 const SEED_PRODUCT: StoreProduct = {
   id:          'seed',
@@ -114,10 +131,18 @@ const SHOVEL_PRODUCT: StoreProduct = {
   cost_herbo:  PRICES.SHOVEL_HERBO,
 };
 
+const BACKPACK_SLOT_PRODUCT: StoreProduct = {
+  id:          'backpack_slot',
+  name:        '🎒 Expansão de Mochila',
+  description: `Mais ${INVENTORY_SLOTS_PER_PURCHASE} espaços na mochila, para sempre. Dá para comprar até chegar a ${INVENTORY_MAX_SLOTS} no total.`,
+  cost_coins:  PRICES.BACKPACK_SLOT,
+};
+
 export const STORE_PRODUCTS: StoreProduct[] = [
   SEED_PRODUCT,
   SHOVEL_PRODUCT,
   WRAPPING_KIT_PRODUCT,
+  BACKPACK_SLOT_PRODUCT,
   ...(process.env.NODE_ENV !== 'production' ? [SKIP_TIME_PRODUCT] : []),
 ];
 

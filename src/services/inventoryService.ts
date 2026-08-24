@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import { generateRandomDNA } from './dnaService';
-import { GAME, rollSede, stackMaxFor } from '@/config/economy';
+import { GAME, rollSede, stackMaxFor, INVENTORY_BASE_SLOTS, INVENTORY_MAX_SLOTS } from '@/config/economy';
 import { recordPendingReferral } from './referralService';
 import { grantDefaultAvatar } from './avatarService';
 import type { Rarity, Biome } from '@/types';
@@ -41,13 +41,28 @@ async function findStackableSlot(
 }
 
 /** Retorna o próximo índice de slot vazio (0-9), ou null se inventário cheio. */
-export async function findFreeSlot(userId: string): Promise<number | null> {
+/**
+ * Capacidade da mochila deste jogador. Lida SEMPRE do banco: é o que impede
+ * que alguém peça mais slots do que comprou (o cliente só desenha a grade).
+ * Perfil sem a coluna migrada cai na base — nunca em "ilimitado".
+ */
+export async function getInventoryCapacity(userId: string): Promise<number> {
   const { data } = await supabaseAdmin
-    .from('inventory_items')
-    .select('slot_index')
-    .eq('user_id', userId);
+    .from('profiles')
+    .select('inventory_slots')
+    .eq('id', userId)
+    .maybeSingle();
+  const n = Number(data?.inventory_slots);
+  return Number.isFinite(n) && n > 0 ? Math.min(n, INVENTORY_MAX_SLOTS) : INVENTORY_BASE_SLOTS;
+}
+
+export async function findFreeSlot(userId: string): Promise<number | null> {
+  const [{ data }, capacidade] = await Promise.all([
+    supabaseAdmin.from('inventory_items').select('slot_index').eq('user_id', userId),
+    getInventoryCapacity(userId),
+  ]);
   const used = new Set((data ?? []).map((r) => r.slot_index as number));
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < capacidade; i++) {
     if (!used.has(i)) return i;
   }
   return null;

@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.10.0",
+    "date": "2026-08-23",
+    "title": "A mochila pode crescer",
+    "image": "/imgs/backpack-open.webp",
+    "intro": "Chegou na loja a expansão de mochila: mais espaço, para sempre.",
+    "notes": [
+      { "type": "novo", "text": "Expansão de Mochila na loja, por 50 moedas: dá 5 espaços a mais, permanentes. Dá para comprar mais de uma vez, até a mochila chegar a 30 espaços." },
+      { "type": "melhoria", "text": "A mochila agora desenha exatamente os espaços que você tem — quem nunca comprou continua com os 10 de sempre." }
+    ]
+  },
+  {
     "version": "0.9.2",
     "date": "2026-08-23",
     "title": "Umas arestas aparadas",

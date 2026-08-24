@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { CURRENT_VERSION } from '@/config/changelog';
+import { INVENTORY_BASE_SLOTS } from '@/config/economy';
 
 interface WalletContextType {
   coins: number;
@@ -15,6 +16,8 @@ interface WalletContextType {
   polenTutorialSeen: boolean;
   /** Última versão do jogo cuja nota de atualização o jogador já leu. */
   lastChangelogVersion: string | null;
+  /** Capacidade da mochila (base + expansões compradas). */
+  inventorySlots: number;
   nickname: string | null;
   referralCode: string | null;
   avatarUrl: string | null;
@@ -24,7 +27,7 @@ interface WalletContextType {
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
-type WalletData = { coins: number; herbo: number; seedCount: number; welcomeAck: boolean; tutorialSeen: boolean; polenTutorialSeen: boolean; lastChangelogVersion: string | null; nickname: string | null; referralCode: string | null; avatarUrl: string | null };
+type WalletData = { coins: number; herbo: number; seedCount: number; welcomeAck: boolean; tutorialSeen: boolean; polenTutorialSeen: boolean; lastChangelogVersion: string | null; inventorySlots: number; nickname: string | null; referralCode: string | null; avatarUrl: string | null };
 
 const PROFILE_COLS = 'coins, herbo, welcome_ack, tutorial_seen, polen_tutorial_seen, nickname, referral_code, avatar_url';
 
@@ -36,26 +39,31 @@ type ProfileRow = {
   tutorial_seen?: boolean;
   polen_tutorial_seen?: boolean;
   last_changelog_version?: string | null;
+  inventory_slots?: number;
   nickname?: string | null;
   referral_code?: string | null;
   avatar_url?: string | null;
 } | null;
 
+/** Colunas recentes: se a migração ainda não rodou, o perfil vem sem elas. */
+const PROFILE_COLS_NOVAS = 'last_changelog_version, inventory_slots';
+
 /**
- * Lê o perfil pedindo também `last_changelog_version`. Se a coluna ainda não foi
+ * Lê o perfil pedindo também as colunas recentes. Se alguma ainda não foi
  * migrada (as migrations deste projeto são aplicadas à mão), o PostgREST devolve
- * 42703 — aí relê sem ela, em vez de derrubar a carteira inteira (moedas, herbo,
- * sementes) por causa da nota de atualização. Some sozinho quando a migração roda.
+ * 42703 — aí relê sem elas, em vez de derrubar a carteira inteira (moedas,
+ * herbo, sementes) por causa de um extra. Some sozinho quando a migração roda,
+ * e cada campo tem o seu default no `loadWallet`.
  */
 async function loadProfile(userId: string) {
   const full = await supabase
     .from('profiles')
-    .select(`${PROFILE_COLS}, last_changelog_version`)
+    .select(`${PROFILE_COLS}, ${PROFILE_COLS_NOVAS}`)
     .eq('id', userId)
     .single();
   if (!full.error || full.error.code !== '42703') return full;
 
-  console.warn('[Wallet] Coluna last_changelog_version ausente — aplique a migração.');
+  console.warn(`[Wallet] Alguma coluna de "${PROFILE_COLS_NOVAS}" está ausente — aplique a migração.`);
   return supabase.from('profiles').select(PROFILE_COLS).eq('id', userId).single();
 }
 
@@ -82,6 +90,7 @@ async function loadWallet(userId: string): Promise<WalletData> {
     polenTutorialSeen: profile?.polen_tutorial_seen ?? true,
     // null = nunca leu nenhuma nota. Diferente de "carregando" (tratado no provider).
     lastChangelogVersion: profile?.last_changelog_version ?? null,
+    inventorySlots: Number(profile?.inventory_slots) || INVENTORY_BASE_SLOTS,
     nickname: profile?.nickname ?? null,
     referralCode: profile?.referral_code ?? null,
     avatarUrl: profile?.avatar_url ?? null,
@@ -123,6 +132,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       // Enquanto carrega, finge "já leu a versão atual" — mesmo espírito do `?? true`
       // acima: nunca piscar a nota. Já carregado, `null` passa como null de verdade.
       lastChangelogVersion: data ? data.lastChangelogVersion : CURRENT_VERSION,
+      inventorySlots: data?.inventorySlots ?? INVENTORY_BASE_SLOTS,
       nickname:   data?.nickname ?? null,
       referralCode: data?.referralCode ?? null,
       avatarUrl:  data?.avatarUrl ?? null,

@@ -12,6 +12,7 @@ import { InventoryItem, Rarity, Biome, PlantDNA } from '@/types';
 import { BIOME_LABELS, seedImage } from '@/config/biomes';
 import { GAME } from '@/config/economy';
 import { useCraftElixir } from '@/hooks/useBee';
+import { useWallet } from '@/hooks/useWallet';
 
 const ELIXIR_POLEN_COST = GAME.ELIXIR_POLEN_COST;
 
@@ -346,6 +347,7 @@ export function InventoryPanel({
   onPlantDragStart?: (e: React.PointerEvent, itemId: string, imageUrl: string | null) => void;
 }) {
   const craftElixir = useCraftElixir();
+  const { inventorySlots } = useWallet();
   const [animatingSlot, setAnimatingSlot] = useState<number | null>(null);
   const [animPhase, setAnimPhase] = useState<OpenPhase>('idle');
   const [animRarity, setAnimRarity] = useState<Rarity>('comum');
@@ -358,7 +360,9 @@ export function InventoryPanel({
   const openGiftMutation = useOpenGift(userId ?? '');
   const patchLabelMutation = usePatchLabel(userId ?? '');
 
-  const slots = Array.from({ length: 10 }, (_, i) => items.find((it) => it.slot_index === i));
+  // A grade acompanha a capacidade comprada. Quem manda é o servidor
+  // (findFreeSlot); aqui é só o desenho.
+  const slots = Array.from({ length: inventorySlots }, (_, i) => items.find((it) => it.slot_index === i));
   const hasKits = items.some((i) => i.item_type === 'wrapping_kit');
   const totalItems = items.length;
 
