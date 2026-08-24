@@ -143,7 +143,7 @@ export function GiftReceiveModal({
 
               {/* Presente animado */}
               <div style={{ animation: 'gift-shake 1.2s ease-in-out infinite' }}>
-                <Image src="/imgs/presente.webp" alt="presente" width={104} height={95} className="object-contain" draggable={false} />
+                <Image src="/imgs/presente.webp" alt="presente" width={104} height={104} className="object-contain" draggable={false} />
               </div>
 
               {gift.message && (
@@ -181,7 +181,7 @@ export function GiftReceiveModal({
           {phase === 'opening' && (
             <div className="flex flex-col items-center gap-4 py-8">
               <div style={{ animation: 'gift-explode 0.8s ease-out forwards' }}>
-                <Image src="/imgs/presente.webp" alt="presente" width={118} height={108} className="object-contain" draggable={false} />
+                <Image src="/imgs/presente.webp" alt="presente" width={118} height={118} className="object-contain" draggable={false} />
               </div>
               <p className="text-sm" style={{ color: 'rgba(232,213,160,0.6)', fontFamily: 'var(--font-caption)', fontStyle: 'italic' }}>
                 Abrindo presente...

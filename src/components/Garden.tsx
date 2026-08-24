@@ -1490,7 +1490,7 @@ export default function Garden() {
               }}
               onClick={(e) => { e.stopPropagation(); handlePotClick(pot)(e); }}
             >
-              <Image src="/imgs/presente.webp" alt="presente" width={34} height={31} className="object-contain" draggable={false} />
+              <Image src="/imgs/presente.webp" alt="presente" width={34} height={34} className="object-contain" draggable={false} />
             </div>
           );
         })}

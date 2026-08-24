@@ -73,7 +73,7 @@ function WrappedPlantSlot({ item, onOpenActions }: { item: InventoryItem; onOpen
       className="relative flex flex-col items-center justify-center gap-0.5 w-full h-full bg-rose-200/50 border border-rose-400/50 rounded-xl transition-transform active:scale-95"
       title={item.label ? `Presente: ${item.label}` : 'Planta embrulhada — toque para ver as opções'}
     >
-      <Image src="/imgs/presente.webp" alt="presente" width={34} height={31} className="object-contain pointer-events-none" draggable={false} />
+      <Image src="/imgs/presente.webp" alt="presente" width={36} height={36} className="object-contain pointer-events-none" draggable={false} />
       <span className="text-rose-700 text-[8px] font-bold pointer-events-none">Opções</span>
 
       {/* Marca de etiqueta preenchida — o texto em si vive no modal */}
@@ -133,7 +133,7 @@ function AnimatingSlot({ phase, rarity }: { phase: OpenPhase; rarity: Rarity }) 
         {phase === 'exploding' && (
           <div className="absolute inset-0 rounded-xl" style={{ animation: 'gift-flash 0.3s ease-in-out' }} />
         )}
-        <Image src="/imgs/presente.webp" alt="presente" width={34} height={31} className="object-contain" draggable={false} />
+        <Image src="/imgs/presente.webp" alt="presente" width={36} height={36} className="object-contain" draggable={false} />
       </div>
     );
   }
@@ -234,7 +234,7 @@ function SlotContent({
   if (item.item_type === 'wrapping_kit') {
     return (
       <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full bg-rose-200/50 border border-rose-400/50 rounded-xl">
-        <Image src="/imgs/kit-de-embrulho.webp" alt="kit de embrulho" width={38} height={25} className="object-contain" draggable={false} />
+        <Image src="/imgs/kit-de-embrulho.webp" alt="kit de embrulho" width={36} height={36} className="object-contain" draggable={false} />
         <span className="text-rose-700 text-[9px] font-bold">×{item.quantity}</span>
       </div>
     );

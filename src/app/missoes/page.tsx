@@ -26,7 +26,7 @@ function RewardLabel({ mission }: { mission: MissionView }) {
   }
   return (
     <>
-      <Image src="/imgs/kit-de-embrulho.webp" alt="" width={22} height={15} className="object-contain" /> Kit de embrulho
+      <Image src="/imgs/kit-de-embrulho.webp" alt="" width={18} height={18} className="object-contain" /> Kit de embrulho
     </>
   );
 }

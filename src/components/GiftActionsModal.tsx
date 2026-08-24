@@ -86,7 +86,7 @@ export function GiftActionsModal({
 
         <div className="overflow-y-auto">
           <div className="text-center py-3">
-            <Image src="/imgs/presente.webp" alt="presente" width={92} height={84} className="object-contain mx-auto select-none" draggable={false} />
+            <Image src="/imgs/presente.webp" alt="presente" width={92} height={92} className="object-contain mx-auto select-none" draggable={false} />
             <p
               className="text-[12px] mt-1"
               style={{ fontFamily: 'var(--font-caption)', fontStyle: 'italic', color: 'var(--color-text-muted)' }}
