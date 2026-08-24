@@ -24,7 +24,11 @@ function RewardLabel({ mission }: { mission: MissionView }) {
       </>
     );
   }
-  return <>🎁 Kit de embrulho</>;
+  return (
+    <>
+      <Image src="/imgs/kit-de-embrulho.webp" alt="" width={22} height={15} className="object-contain" /> Kit de embrulho
+    </>
+  );
 }
 
 function MissionCard({ mission }: { mission: MissionView }) {

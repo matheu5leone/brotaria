@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { X, Gift, PackageOpen, SendHorizonal, Loader2, Tag, Check } from 'lucide-react';
 import { useUnwrap } from '@/hooks/useGifts';
 import type { InventoryItem } from '@/types';
@@ -85,7 +86,7 @@ export function GiftActionsModal({
 
         <div className="overflow-y-auto">
           <div className="text-center py-3">
-            <span className="block select-none" style={{ fontSize: 56 }}>🎁</span>
+            <Image src="/imgs/presente.webp" alt="presente" width={92} height={84} className="object-contain mx-auto select-none" draggable={false} />
             <p
               className="text-[12px] mt-1"
               style={{ fontFamily: 'var(--font-caption)', fontStyle: 'italic', color: 'var(--color-text-muted)' }}

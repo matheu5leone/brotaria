@@ -7,7 +7,8 @@
     "intro": "Chegou na loja a expansão de mochila: mais espaço, para sempre.",
     "notes": [
       { "type": "novo", "text": "Expansão de Mochila na loja, por 50 moedas: dá 5 espaços a mais, permanentes. Dá para comprar mais de uma vez, até a mochila chegar a 30 espaços." },
-      { "type": "melhoria", "text": "A mochila agora desenha exatamente os espaços que você tem — quem nunca comprou continua com os 10 de sempre." }
+      { "type": "melhoria", "text": "A mochila agora desenha exatamente os espaços que você tem — quem nunca comprou continua com os 10 de sempre." },
+      { "type": "melhoria", "text": "Arte nova para o presente e para o kit de embrulho: os dois deixaram de ser emoji e agora têm ilustração própria, na mochila, na loja e nas missões." }
     ]
   },
   {

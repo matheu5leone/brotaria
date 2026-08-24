@@ -62,7 +62,7 @@ export function GiftSendModal({
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div style={{ fontSize: 56 }}>🎁</div>
+          <Image src="/imgs/presente.webp" alt="presente" width={92} height={84} className="object-contain" draggable={false} />
           <h2 className="text-xl font-black" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-light)' }}>
             Presente enviado!
           </h2>

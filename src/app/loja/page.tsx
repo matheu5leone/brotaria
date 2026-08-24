@@ -249,7 +249,7 @@ export default function LojaPage() {
                       ) : product.id === 'shovel' ? (
                         <Image src="/imgs/shovel.webp" alt="pá" width={48} height={48} className="object-contain w-12 h-12" />
                       ) : product.id === 'wrapping_kit' ? (
-                        <span className="text-5xl leading-none">🎁</span>
+                        <Image src="/imgs/kit-de-embrulho.webp" alt="kit de embrulho" width={64} height={43} className="object-contain w-16 h-auto" />
                       ) : product.id === 'backpack_slot' ? (
                         <Image src="/imgs/backpack-open.webp" alt="mochila" width={48} height={48} className="object-contain w-12 h-12" />
                       ) : (

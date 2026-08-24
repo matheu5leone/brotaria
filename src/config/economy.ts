@@ -104,7 +104,7 @@ const SEED_PRODUCT: StoreProduct = {
 
 const WRAPPING_KIT_PRODUCT: StoreProduct = {
   id:          'wrapping_kit',
-  name:        '🎁 Kit de Embrulho',
+  name:        'Kit de Embrulho',
   description: 'Embrulha uma planta como presente misterioso. Fica no inventário sem revelar o conteúdo.',
   cost_coins:  PRICES.WRAPPING_KIT,
 };
