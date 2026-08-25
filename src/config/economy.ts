@@ -408,6 +408,8 @@ export const STACK_MAX_BY_TYPE: Record<string, number> = {
   // empilham alto para não engolir a mochila enquanto não têm uso.
   minhoca:       20,
   terra_molhada: 20,
+  // Garrafa de água: empilha como consumível comum.
+  garrafa_agua:  10,
 };
 export const STACK_MAX_DEFAULT = 10;
 export const stackMaxFor = (itemType: string): number =>

@@ -9,7 +9,7 @@ import type { Rarity, Biome } from '@/types';
 
 /** Tipos empilháveis da mochila. O teto de cada um vem de `stackMaxFor`. */
 export type StackableItemType =
-  | 'seed' | 'wrapping_kit' | 'polen' | 'elixir'
+  | 'seed' | 'wrapping_kit' | 'polen' | 'elixir' | 'garrafa_agua'
   // Materiais que saem da terra ao cavar (inertes por enquanto).
   | 'minhoca' | 'terra_molhada';
 

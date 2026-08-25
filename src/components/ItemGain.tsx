@@ -29,6 +29,7 @@ export const ITEM_VISUAL: Record<string, { label: string; emoji?: string; src?: 
   elixir:        { label: 'elixir',        src: '/imgs/elixir.webp' },
   seed:          { label: 'semente',       src: '/imgs/seed.webp' },
   wrapping_kit:  { label: 'kit',           src: '/imgs/kit-de-embrulho.webp' },
+  garrafa_agua:  { label: 'garrafa',       src: '/imgs/craft/garrafa-de-agua.webp' },
 };
 
 export type GainRequest = {

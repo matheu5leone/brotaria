@@ -180,6 +180,8 @@ export type InventoryItemType =
   | 'polen'
   /** Forjado com pólen; não empilha (1 por slot). */
   | 'elixir'
+  /** Feita na Oficina com 3 terras molhadas. Ao usar, rende +1 de água. */
+  | 'garrafa_agua'
   /** Materiais que saem da terra ao concluir uma obra. Inertes por enquanto. */
   | 'minhoca'
   | 'terra_molhada';

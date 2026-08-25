@@ -82,3 +82,29 @@ export function usePatchLabel(userId: string) {
     },
   });
 }
+
+/**
+ * Bebe uma Garrafa de Água: +1 no saldo. Com a água no teto o servidor recusa
+ * (WATER_FULL) e a garrafa fica na mochila — de propósito, para ninguém gastar
+ * uma e ganhar zero.
+ */
+export function useUseGarrafa(userId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (vars: { itemId: string }) => {
+      const res = await authFetch('/api/inventory/use-garrafa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(vars),
+      });
+      const data = await res.json();
+      if (!res.ok) throw Object.assign(new Error(data.error ?? 'Erro'), { code: data.code });
+      return data as { success: true; balance: number };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['inventory', userId] });
+      qc.invalidateQueries({ queryKey: ['water'] });
+      qc.invalidateQueries({ queryKey: ['wallet', userId] });
+    },
+  });
+}

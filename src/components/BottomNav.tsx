@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import {
   LayoutDashboard, Store, Trophy, Target, Menu, Droplets, X,
-  UserPlus, LogOut, Check, Camera, Heart, ScrollText,
+  UserPlus, LogOut, Check, Camera, Heart, ScrollText, Hammer,
 } from 'lucide-react';
 import { ChangelogModal } from '@/components/ChangelogModal';
 import { CURRENT_VERSION, hasUnreadChangelog } from '@/config/changelog';
@@ -183,7 +183,7 @@ export function BottomNav() {
   const { data: myLikes } = useLikes(user?.id); // curtidas recebidas no próprio jardim
   const hasClaimableMission = useHasClaimableMission(); // badge de resgate (Missões fica no "Mais")
 
-  const secondaryActive = pathname === '/ranking' || pathname === '/missoes' || pathname === '/agua';
+  const secondaryActive = pathname === '/ranking' || pathname === '/missoes' || pathname === '/agua' || pathname === '/craft';
 
   return (
     <>
@@ -224,6 +224,9 @@ export function BottomNav() {
               </SheetItem>
               <SheetItem href="/missoes" label="Missões" active={pathname === '/missoes'} onClick={() => setMenuOpen(false)} dot={hasClaimableMission}>
                 <Target className="w-5 h-5" />
+              </SheetItem>
+              <SheetItem href="/craft" label="Oficina" active={pathname === '/craft'} onClick={() => setMenuOpen(false)}>
+                <Hammer className="w-5 h-5" />
               </SheetItem>
               <SheetButton
                 label="Nota de atualização"

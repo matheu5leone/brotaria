@@ -9,7 +9,7 @@ import { useWallet } from '@/hooks/useWallet';
 import {
   LogOut, LayoutDashboard, Store,
   ChevronLeft, ChevronRight, Trophy, Target,
-  MoreVertical, UserPlus, Check, Droplets, Camera, Heart, ScrollText,
+  MoreVertical, UserPlus, Check, Droplets, Camera, Heart, ScrollText, Hammer,
 } from 'lucide-react';
 import { ChangelogModal } from '@/components/ChangelogModal';
 import { CURRENT_VERSION, hasUnreadChangelog } from '@/config/changelog';
@@ -234,6 +234,11 @@ export default function Sidebar() {
           <NavLink href="/agua" title="Coleta de Água" className={navItemClass('/agua')}>
             <Droplets className="w-5 h-5 min-w-[20px]" />
             {!isSidebarCollapsed && <span style={{ fontFamily: 'var(--font-body)' }}>Coleta de Água</span>}
+          </NavLink>
+
+          <NavLink href="/craft" title="Oficina" className={navItemClass('/craft')}>
+            <Hammer className="w-5 h-5 min-w-[20px]" />
+            {!isSidebarCollapsed && <span style={{ fontFamily: 'var(--font-body)' }}>Oficina</span>}
           </NavLink>
 
           {/* Abre o modal em vez de navegar — por isso não usa NavLink. O

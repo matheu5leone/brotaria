@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Gift, X, Move, Tag } from 'lucide-react';
-import { useInventory, useOpenGift, usePatchLabel } from '@/hooks/useInventory';
+import { useInventory, useOpenGift, usePatchLabel, useUseGarrafa } from '@/hooks/useInventory';
 import { GiftSendModal } from '@/components/GiftSendModal';
 import { GiftActionsModal } from '@/components/GiftActionsModal';
 import { usePlantVersion, usePlant } from '@/hooks/usePlantData';
@@ -167,6 +167,7 @@ function SlotContent({
   onOpenActions,
   onSeedDragStart,
   onCraftElixir,
+  onUseGarrafa,
   onElixirDragStart,
   onPlantDragStart,
 }: {
@@ -177,6 +178,8 @@ function SlotContent({
   onOpenActions: () => void;
   onSeedDragStart?: (e: React.PointerEvent, seed?: SeedDragMeta) => void;
   onCraftElixir?: () => void;
+  /** Bebe uma garrafa de água (+1 no saldo). */
+  onUseGarrafa?: (itemId: string) => void;
   /** Inicia o arraste do Elixir Floral a partir do slot (fecha a mochila). */
   onElixirDragStart?: (e: React.PointerEvent) => void;
   /** Arrastar uma planta da mochila até um canteiro vazio. */
@@ -289,6 +292,29 @@ function SlotContent({
       </div>
     );
   }
+  if (item.item_type === 'garrafa_agua') {
+    return (
+      <button
+        onClick={() => onUseGarrafa?.(item.id)}
+        title="Garrafa de Água — toque para beber (+1 água)"
+        className="relative flex flex-col items-center justify-center gap-0.5 w-full h-full rounded-xl transition-transform active:scale-95"
+        style={{ background: 'rgba(96,165,250,0.16)', border: '1px solid rgba(37,99,235,0.45)' }}
+      >
+        <Image src="/imgs/craft/garrafa-de-agua.webp" alt="garrafa de água" width={34} height={34}
+               className="object-contain pointer-events-none" draggable={false} />
+        <span className="text-[8px] font-bold pointer-events-none leading-none" style={{ color: '#1a6ba0' }}>beber</span>
+        {item.quantity > 1 && (
+          <span
+            className="absolute bottom-0.5 right-1 text-[9px] font-black pointer-events-none"
+            style={{ color: '#f2e8d5', textShadow: '0 1px 2px rgba(0,0,0,0.9)' }}
+          >
+            {item.quantity}
+          </span>
+        )}
+      </button>
+    );
+  }
+
   // Materiais da terra — sem uso mecânico ainda, então só ocupam o slot com
   // emoji. Ganham arte própria quando a fertilidade sair do armário.
   if (item.item_type === 'minhoca' || item.item_type === 'terra_molhada') {
@@ -347,6 +373,7 @@ export function InventoryPanel({
   onPlantDragStart?: (e: React.PointerEvent, itemId: string, imageUrl: string | null) => void;
 }) {
   const craftElixir = useCraftElixir();
+  const useGarrafa = useUseGarrafa(userId ?? '');
   const { inventorySlots } = useWallet();
   const [animatingSlot, setAnimatingSlot] = useState<number | null>(null);
   const [animPhase, setAnimPhase] = useState<OpenPhase>('idle');
@@ -469,6 +496,7 @@ export function InventoryPanel({
                 onOpenActions={() => item && setActionsItem(item)}
                 onSeedDragStart={onSeedDragStart}
                 onCraftElixir={() => craftElixir.mutate()}
+                onUseGarrafa={(id) => useGarrafa.mutate({ itemId: id })}
                 onElixirDragStart={onElixirDragStart}
                 onPlantDragStart={onPlantDragStart}
               />
