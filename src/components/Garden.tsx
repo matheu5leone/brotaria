@@ -143,7 +143,18 @@ function visibleHerboTarget(): HTMLElement | null {
 
 /** Fundo estendido (140% = 1.4) — usado no clamp de pan */
 const GARDEN_BG_EXTENT = 1.4;
-const GARDEN_ZOOM_MIN = 1;
+/**
+ * Zoom mínimo = o jardim INTEIRO na tela.
+ *
+ * Derivado, não escolhido: o fundo mede 140% do container, então é em
+ * `1 / 1.4` que ele passa a ocupar exatos 100% do viewport. Antes o mínimo era
+ * 1, e nesse nível 40% do jardim ficava sempre fora — dava para varrer com pan,
+ * nunca para ver tudo de uma vez.
+ *
+ * Neste zoom o `clampPan` zera sozinho (`1.4 * z - 1 == 0`), então a vista fica
+ * centralizada e não há como arrastar para fora da arte.
+ */
+const GARDEN_ZOOM_MIN = 1 / GARDEN_BG_EXTENT;
 const GARDEN_ZOOM_MAX = 1.8;
 
 // Partículas decorativas — posições fixas para SSR-safe
