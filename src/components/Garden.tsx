@@ -94,6 +94,7 @@ import { DigMinigame } from '@/components/DigMinigame';
 import { DigBoostModal } from '@/components/DigBoostModal';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
 import { useWallet } from '@/hooks/useWallet';
+import { OficinaDestravadaModal } from '@/components/OficinaDestravadaModal';
 import { authFetch } from '@/lib/authFetch';
 import { TutorialCoach } from '@/components/TutorialCoach';
 import { TUTORIAL_STEPS } from '@/config/tutorialSteps';
@@ -244,6 +245,8 @@ export default function Garden() {
   const digMutation       = useDigMutation(user?.id ?? '');
   const rushMutation      = useRushDig(user?.id);
   const concludeMutation  = useConcludeDig(user?.id);
+  /** Popup único do desbloqueio da Oficina. */
+  const [oficinaDestravada, setOficinaDestravada] = useState(false);
   const plantMutation     = usePlantMutation(user?.id ?? '');
   const waterMutation     = useWaterMutation(user?.id ?? '');
   const deleteMutation    = useDeleteMutation(user?.id ?? '');
@@ -318,7 +321,7 @@ export default function Garden() {
   const [plantsGridOpen, setPlantsGridOpen]         = useState(false); // grid "Minhas Plantas"
 
   // ── Tutorial (coach marks do painel) ──────────────────────────────────────
-  const { welcomeAck, tutorialSeen } = useWallet();
+  const { welcomeAck, tutorialSeen, nickname, refresh: refreshWallet } = useWallet();
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const tutorialAutoRan = useRef(false);
 
@@ -1076,7 +1079,10 @@ export default function Garden() {
       if (concludeMutation.isPending) return;
       const origem = { x: e.clientX, y: e.clientY };
       try {
-        const { loot, overflow } = await concludeMutation.mutateAsync(pot.id);
+        const { loot, overflow, craftUnlocked } = await concludeMutation.mutateAsync(pot.id);
+        // Primeira obra concluída na vida da conta: a Oficina abre agora, e é a
+        // primeira vez que ele tem terra molhada — a sala não nasce vazia.
+        if (craftUnlocked) { setOficinaDestravada(true); refreshWallet(); }
         loot?.forEach((item, i) => {
           // Escalona: dois itens saindo no mesmo quadro viram um borrão só.
           setTimeout(() => gainItem({ item, from: origem }), i * 260);
@@ -1631,6 +1637,14 @@ export default function Garden() {
           onSeedDragStart={handleSeedDragStart}
           onPlantDragStart={handlePlantDragStart}
           onElixirDragStart={handleElixirDragStart}
+        />
+      )}
+
+      {/* Oficina liberada — popup único, na primeira obra concluída. */}
+      {oficinaDestravada && (
+        <OficinaDestravadaModal
+          nickname={nickname}
+          onClose={() => setOficinaDestravada(false)}
         />
       )}
 

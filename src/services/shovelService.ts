@@ -190,7 +190,7 @@ export async function digPot(
 // ── Concluir a obra ─────────────────────────────────────────────────────────
 
 export type ConcludeResult =
-  | { ok: true; loot: DigLootType[]; overflow: DigLootType[] }
+  | { ok: true; loot: DigLootType[]; overflow: DigLootType[]; craftUnlocked?: boolean }
   | { ok: false; code: 'NOT_FOUND' | 'STILL_DIGGING' | 'ALREADY_CLAIMED' };
 
 /**
@@ -255,7 +255,20 @@ export async function concludeDig(userId: string, potId: string): Promise<Conclu
     await supabaseAdmin.from('pots').update({ dig_overflow: overflow }).eq('id', potId);
   }
 
-  return { ok: true, loot: entregues, overflow };
+  // Primeira obra concluída destrava a Oficina. O gate é o próprio UPDATE
+  // condicional: só a chamada que consegue virar false→true recebe a linha de
+  // volta, então concluir a segunda obra não reabre o popup.
+  //
+  // Aqui é o lugar certo porque é também o primeiro momento em que o jogador
+  // pode ter terra molhada na mão — a Oficina abre com um ingrediente, não vazia.
+  const { data: destravou } = await supabaseAdmin
+    .from('profiles')
+    .update({ craft_unlocked: true })
+    .eq('id', userId)
+    .eq('craft_unlocked', false)
+    .select('id');
+
+  return { ok: true, loot: entregues, overflow, craftUnlocked: (destravou?.length ?? 0) > 0 };
 }
 
 // ── Comprar pá ──────────────────────────────────────────────────────────────

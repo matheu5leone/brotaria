@@ -32,7 +32,7 @@ function NotifDot() {
 
 export default function Sidebar() {
   const { user, signOut } = useAuth();
-  const { coins, herbo, nickname, referralCode, avatarUrl, lastChangelogVersion } = useWallet();
+  const { coins, herbo, nickname, referralCode, avatarUrl, lastChangelogVersion, craftUnlocked } = useWallet();
   const { data: myLikes } = useLikes(user?.id); // curtidas recebidas no próprio jardim
   const hasClaimableMission = useHasClaimableMission(); // badge de resgate no menu Missões
   const unreadChangelog = hasUnreadChangelog(lastChangelogVersion);
@@ -236,10 +236,13 @@ export default function Sidebar() {
             {!isSidebarCollapsed && <span style={{ fontFamily: 'var(--font-body)' }}>Coleta de Água</span>}
           </NavLink>
 
-          <NavLink href="/craft" title="Oficina" className={navItemClass('/craft')}>
-            <Hammer className="w-5 h-5 min-w-[20px]" />
-            {!isSidebarCollapsed && <span style={{ fontFamily: 'var(--font-body)' }}>Oficina</span>}
-          </NavLink>
+          {/* Oficina aparece só depois da primeira obra concluída. */}
+          {craftUnlocked && (
+            <NavLink href="/craft" title="Oficina" className={navItemClass('/craft')}>
+              <Hammer className="w-5 h-5 min-w-[20px]" />
+              {!isSidebarCollapsed && <span style={{ fontFamily: 'var(--font-body)' }}>Oficina</span>}
+            </NavLink>
+          )}
 
           {/* Abre o modal em vez de navegar — por isso não usa NavLink. O
               navItemClass recebe uma rota que nunca casa (sempre estado inativo). */}

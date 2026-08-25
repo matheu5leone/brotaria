@@ -18,6 +18,10 @@ interface WalletContextType {
   lastChangelogVersion: string | null;
   /** Capacidade da mochila (base + expansões compradas). */
   inventorySlots: number;
+  /** Oficina liberada (primeira obra concluída). */
+  craftUnlocked: boolean;
+  /** Coach mark da primeira visita à Oficina já foi visto. */
+  craftTutorialSeen: boolean;
   nickname: string | null;
   referralCode: string | null;
   avatarUrl: string | null;
@@ -27,7 +31,7 @@ interface WalletContextType {
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
-type WalletData = { coins: number; herbo: number; seedCount: number; welcomeAck: boolean; tutorialSeen: boolean; polenTutorialSeen: boolean; lastChangelogVersion: string | null; inventorySlots: number; nickname: string | null; referralCode: string | null; avatarUrl: string | null };
+type WalletData = { coins: number; herbo: number; seedCount: number; welcomeAck: boolean; tutorialSeen: boolean; polenTutorialSeen: boolean; lastChangelogVersion: string | null; inventorySlots: number; craftUnlocked: boolean; craftTutorialSeen: boolean; nickname: string | null; referralCode: string | null; avatarUrl: string | null };
 
 const PROFILE_COLS = 'coins, herbo, welcome_ack, tutorial_seen, polen_tutorial_seen, nickname, referral_code, avatar_url';
 
@@ -40,13 +44,15 @@ type ProfileRow = {
   polen_tutorial_seen?: boolean;
   last_changelog_version?: string | null;
   inventory_slots?: number;
+  craft_unlocked?: boolean;
+  craft_tutorial_seen?: boolean;
   nickname?: string | null;
   referral_code?: string | null;
   avatar_url?: string | null;
 } | null;
 
 /** Colunas recentes: se a migração ainda não rodou, o perfil vem sem elas. */
-const PROFILE_COLS_NOVAS = 'last_changelog_version, inventory_slots';
+const PROFILE_COLS_NOVAS = 'last_changelog_version, inventory_slots, craft_unlocked, craft_tutorial_seen';
 
 /**
  * Lê o perfil pedindo também as colunas recentes. Se alguma ainda não foi
@@ -91,6 +97,10 @@ async function loadWallet(userId: string): Promise<WalletData> {
     // null = nunca leu nenhuma nota. Diferente de "carregando" (tratado no provider).
     lastChangelogVersion: profile?.last_changelog_version ?? null,
     inventorySlots: Number(profile?.inventory_slots) || INVENTORY_BASE_SLOTS,
+    // Default defensivo `true` (igual às outras flags): enquanto carrega, nunca
+    // piscar o popup nem o coach mark de quem já passou por eles.
+    craftUnlocked: profile?.craft_unlocked ?? false,
+    craftTutorialSeen: profile?.craft_tutorial_seen ?? true,
     nickname: profile?.nickname ?? null,
     referralCode: profile?.referral_code ?? null,
     avatarUrl: profile?.avatar_url ?? null,
@@ -133,6 +143,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       // acima: nunca piscar a nota. Já carregado, `null` passa como null de verdade.
       lastChangelogVersion: data ? data.lastChangelogVersion : CURRENT_VERSION,
       inventorySlots: data?.inventorySlots ?? INVENTORY_BASE_SLOTS,
+      craftUnlocked: data?.craftUnlocked ?? false,
+      craftTutorialSeen: data?.craftTutorialSeen ?? true,
       nickname:   data?.nickname ?? null,
       referralCode: data?.referralCode ?? null,
       avatarUrl:  data?.avatarUrl ?? null,

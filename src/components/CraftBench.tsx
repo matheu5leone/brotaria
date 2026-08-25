@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
-import { X, BookOpen, Loader2 } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { useInventory } from '@/hooks/useInventory';
 import { useItemGain } from '@/components/ItemGain';
 import { useBackpackFull } from '@/components/BackpackFull';
@@ -10,7 +10,8 @@ import { authFetch } from '@/lib/authFetch';
 import { useQueryClient } from '@tanstack/react-query';
 import { RECIPES, CRAFT_BAR, type Recipe } from '@/config/recipes';
 import { TorcendoPano } from '@/components/TorcendoPano';
-import { ITEM_VISUAL } from '@/components/ItemGain';
+import { LivroDeReceitas, ItemIcon } from '@/components/LivroDeReceitas';
+import { CoachMarkOficina, useTutorialOficina } from '@/components/CoachMarkOficina';
 
 /** Quanto do ingrediente o jogador tem na mochila (soma dos stacks). */
 function useEstoque(userId: string | undefined) {
@@ -20,104 +21,6 @@ function useEstoque(userId: string | undefined) {
     for (const it of items) m.set(it.item_type, (m.get(it.item_type) ?? 0) + it.quantity);
     return m;
   }, [items]);
-}
-
-/** Ícone de um ingrediente/resultado — sprite quando existe, senão emoji. */
-function ItemIcon({ tipo, size = 28 }: { tipo: string; size?: number }) {
-  const v = ITEM_VISUAL[tipo];
-  if (v?.src) {
-    return <Image src={v.src} alt={v.label} width={size} height={size} className="object-contain pointer-events-none" draggable={false} />;
-  }
-  return <span className="leading-none pointer-events-none" style={{ fontSize: size * 0.8 }}>{v?.emoji ?? '❔'}</span>;
-}
-
-// ── Livro de receitas ────────────────────────────────────────────────────────
-
-function LivroDeReceitas({ estoque, onClose }: { estoque: Map<string, number>; onClose: () => void }) {
-  return (
-    <div
-      className="evo-fade-in fixed inset-0 z-[10040] flex items-center justify-center"
-      style={{ background: 'rgba(5,8,3,0.62)', backdropFilter: 'blur(4px)' }}
-      onClick={onClose}
-    >
-      <div
-        className="relative flex flex-col mx-4 p-5 rounded-3xl"
-        style={{
-          width: 'min(94vw, 400px)',
-          maxHeight: '86vh',
-          background: 'linear-gradient(180deg, var(--color-parch-light) 0%, var(--color-parch-dark) 100%)',
-          border: '1.5px solid var(--color-wood-light)',
-          boxShadow: '0 32px 80px rgba(0,0,0,0.55), inset 0 1px 1px rgba(242,232,213,0.9)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="absolute top-0 left-8 right-8 h-px pointer-events-none"
-             style={{ background: 'linear-gradient(90deg, transparent, var(--color-gold), transparent)' }} />
-
-        <div className="flex items-start justify-between mb-3">
-          <h2 className="text-lg font-black flex items-center gap-2"
-              style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}>
-            <BookOpen className="w-5 h-5" /> Receitas
-          </h2>
-          <button onClick={onClose} aria-label="Fechar"
-                  className="p-1.5 rounded-full hover:bg-black/10 active:scale-90 transition-all"
-                  style={{ color: 'var(--color-text-muted)' }}>
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="overflow-y-auto flex flex-col gap-3">
-          {RECIPES.map((r) => {
-            const tem = estoque.get(r.input.type) ?? 0;
-            const pronto = tem >= r.input.qty;
-            return (
-              <div key={r.id} className="rounded-2xl p-3"
-                   style={{ background: 'rgba(92,58,30,0.06)', border: '1px solid rgba(92,58,30,0.18)' }}>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <ItemIcon tipo={r.output.type} size={26} />
-                  <span className="text-sm font-black"
-                        style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text-dark)' }}>
-                    {r.name}
-                  </span>
-                </div>
-
-                {/* A receita em si: N ingrediente → resultado */}
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-black"
-                        style={{
-                          fontFamily: 'var(--font-display)',
-                          background: pronto ? 'rgba(42,90,30,0.12)' : 'rgba(92,58,30,0.08)',
-                          color: pronto ? '#2a5a1e' : 'var(--color-text-muted)',
-                          border: `1px solid ${pronto ? 'rgba(42,90,30,0.3)' : 'rgba(92,58,30,0.2)'}`,
-                        }}>
-                    <ItemIcon tipo={r.input.type} size={16} /> {r.input.qty}
-                  </span>
-                  <span style={{ color: 'var(--color-text-muted)' }}>→</span>
-                  <span className="inline-flex items-center gap-1">
-                    <ItemIcon tipo={r.output.type} size={18} />
-                  </span>
-                  <span className="ml-auto text-[10px] font-bold"
-                        style={{ fontFamily: 'var(--font-display)', color: pronto ? '#2a5a1e' : 'var(--color-text-muted)' }}>
-                    você tem {tem}
-                  </span>
-                </div>
-
-                <p className="text-[11px] leading-relaxed"
-                   style={{ fontFamily: 'var(--font-body)', color: 'var(--color-text-mid)' }}>
-                  {r.description}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-
-        <p className="text-[11px] text-center mt-3 pt-3"
-           style={{ fontFamily: 'var(--font-caption)', fontStyle: 'italic', color: 'var(--color-text-muted)', borderTop: '1px solid rgba(92,58,30,0.18)' }}>
-          Ponha os ingredientes na bancada e arraste o macetador por cima.
-        </p>
-      </div>
-    </div>
-  );
 }
 
 // ── Minigame de macetar ──────────────────────────────────────────────────────
@@ -221,6 +124,7 @@ export function CraftBench({ userId }: { userId: string | undefined }) {
   const gain = useItemGain();
   const askBackpack = useBackpackFull();
 
+  const tutorial = useTutorialOficina();
   const [livroAberto, setLivroAberto] = useState(false);
   /** O que está na mesa: receita escolhida (a mesa aceita uma receita por vez). */
   const [naMesa, setNaMesa] = useState<Recipe | null>(null);
@@ -276,10 +180,11 @@ export function CraftBench({ userId }: { userId: string | undefined }) {
 
   return (
     <>
-      {/* Livro de receitas — visível desde o começo, no canto da bancada */}
+      {/* Livro de receitas — visível desde a primeira visita */}
       <button
-        onClick={() => setLivroAberto(true)}
-        className="absolute top-3 right-3 z-20 flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all active:scale-95"
+        data-craft-livro
+        onClick={() => { setLivroAberto(true); tutorial.aoAbrirLivro(); }}
+        className="absolute top-3 right-3 z-[10035] flex items-center gap-1.5 px-2.5 py-2 rounded-xl transition-all active:scale-95"
         style={{
           background: 'rgba(8,14,5,0.6)',
           border: '1.5px solid rgba(201,162,39,0.5)',
@@ -289,13 +194,14 @@ export function CraftBench({ userId }: { userId: string | undefined }) {
         }}
         title="Ver as receitas"
       >
-        <BookOpen className="w-4 h-4" style={{ color: 'var(--color-gold)' }} />
+        <Image src="/imgs/craft/receitas.webp" alt="" width={26} height={26} className="object-contain" />
         <span className="text-xs font-black">Receitas</span>
       </button>
 
-      {/* A MESA — o que está posto */}
+      {/* A MESA — o que está posto. Durante o coach mark ela não aceita toque:
+          o funil é o livro. */}
       <div className="absolute inset-x-0 z-10 flex flex-col items-center justify-center px-6"
-           style={{ top: '22%', bottom: '30%' }}>
+           style={{ top: '22%', bottom: '30%', pointerEvents: tutorial.fase === 'apontando' ? 'none' : undefined }}>
         {naMesa ? (
           <>
             <div className="flex flex-wrap items-center justify-center gap-1.5 mb-3" style={{ maxWidth: 260 }}>
@@ -351,7 +257,8 @@ export function CraftBench({ userId }: { userId: string | undefined }) {
 
       {/* PRATELEIRA — as receitas disponíveis, com o estoque de cada uma */}
       <div className="absolute inset-x-0 bottom-0 z-10 p-3 flex gap-2 justify-center"
-           style={{ background: 'linear-gradient(180deg, transparent, rgba(5,8,3,0.75) 45%)' }}>
+           style={{ background: 'linear-gradient(180deg, transparent, rgba(5,8,3,0.75) 45%)',
+                    pointerEvents: tutorial.fase === 'apontando' ? 'none' : undefined }}>
         {RECIPES.map((r) => {
           const tem = estoque.get(r.input.type) ?? 0;
           const pronto = podeFazer(r);
@@ -381,7 +288,17 @@ export function CraftBench({ userId }: { userId: string | undefined }) {
         })}
       </div>
 
-      {livroAberto && <LivroDeReceitas estoque={estoque} onClose={() => setLivroAberto(false)} />}
+      {livroAberto && (
+        <LivroDeReceitas
+          estoque={estoque}
+          onClose={() => { setLivroAberto(false); tutorial.aoFecharLivro(); }}
+          bloquearFechar={tutorial.travandoLivro}
+          aoVirarPagina={tutorial.aoVirarPagina}
+        />
+      )}
+
+      {/* Coach mark da primeira visita: escurece tudo menos o livro. */}
+      <CoachMarkOficina estado={tutorial} />
       {/* Cada receita fecha do seu jeito: o pilao cobra rapidez, o pano cobra
           o gesto de girar. E a receita que diz qual estacao usar. */}
       {macetando && naMesa && (

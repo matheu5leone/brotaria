@@ -24,7 +24,7 @@ import Image from 'next/image';
 /** Catálogo visual dos itens. Emoji é o padrão; sprite quando existir arte. */
 export const ITEM_VISUAL: Record<string, { label: string; emoji?: string; src?: string }> = {
   minhoca:       { label: 'minhoca',       emoji: '🪱' },
-  terra_molhada: { label: 'terra molhada', emoji: '🟫' },
+  terra_molhada: { label: 'terra molhada', src: '/imgs/craft/terra-molhada.webp' },
   polen:         { label: 'pólen',         src: '/imgs/polen.webp' },
   elixir:        { label: 'elixir',        src: '/imgs/elixir.webp' },
   seed:          { label: 'semente',       src: '/imgs/seed.webp' },

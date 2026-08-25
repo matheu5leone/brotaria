@@ -141,7 +141,7 @@ function SheetButton({
 export function BottomNav() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
-  const { coins, herbo, nickname, referralCode, avatarUrl, lastChangelogVersion } = useWallet();
+  const { coins, herbo, nickname, referralCode, avatarUrl, lastChangelogVersion, craftUnlocked } = useWallet();
   const myGarden = nickname ? `/jardim/${nickname}` : '/';
   const unreadChangelog = hasUnreadChangelog(lastChangelogVersion);
   const [changelogOpen, setChangelogOpen] = useState(false);
@@ -225,9 +225,12 @@ export function BottomNav() {
               <SheetItem href="/missoes" label="Missões" active={pathname === '/missoes'} onClick={() => setMenuOpen(false)} dot={hasClaimableMission}>
                 <Target className="w-5 h-5" />
               </SheetItem>
-              <SheetItem href="/craft" label="Oficina" active={pathname === '/craft'} onClick={() => setMenuOpen(false)}>
-                <Hammer className="w-5 h-5" />
-              </SheetItem>
+              {/* Oficina aparece só depois da primeira obra concluída. */}
+              {craftUnlocked && (
+                <SheetItem href="/craft" label="Oficina" active={pathname === '/craft'} onClick={() => setMenuOpen(false)}>
+                  <Hammer className="w-5 h-5" />
+                </SheetItem>
+              )}
               <SheetButton
                 label="Nota de atualização"
                 onClick={() => { setMenuOpen(false); setChangelogOpen(true); }}

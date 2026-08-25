@@ -22,7 +22,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error, code: result.code }, { status });
     }
 
-    return NextResponse.json({ success: true, loot: result.loot, overflow: result.overflow });
+    // craftUnlocked precisa atravessar: e por ele que o cliente sabe que esta
+    // foi a PRIMEIRA obra da conta e abre o popup da Oficina.
+    return NextResponse.json({
+      success: true,
+      loot: result.loot,
+      overflow: result.overflow,
+      craftUnlocked: result.craftUnlocked ?? false,
+    });
   } catch (error: unknown) {
     console.error('[Pot Conclude API] Error:', error);
     return NextResponse.json({ error: 'Falha ao concluir a obra.' }, { status: 500 });

@@ -327,9 +327,12 @@ function SlotContent({
           ? 'Minhoca — achada ao cavar. Ainda sem uso.'
           : 'Terra molhada — achada ao cavar. Ainda sem uso.'}
       >
-        <span className="leading-none pointer-events-none" style={{ fontSize: 26 }}>
-          {isMinhoca ? '🪱' : '🟫'}
-        </span>
+        {isMinhoca ? (
+          <span className="leading-none pointer-events-none" style={{ fontSize: 26 }}>🪱</span>
+        ) : (
+          <Image src="/imgs/craft/terra-molhada.webp" alt="terra molhada" width={34} height={34}
+                 className="object-contain pointer-events-none" draggable={false} />
+        )}
         {item.quantity > 1 && (
           <span
             className="absolute bottom-0.5 right-1 text-[9px] font-black pointer-events-none"
