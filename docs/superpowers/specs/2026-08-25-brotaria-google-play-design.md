@@ -1,7 +1,7 @@
 # Brotaria nas lojas — Capacitor (Android + iOS)
 
 **Data:** 2026-09-13 · substitui a versão de 2026-08-25, que recomendava TWA
-**Status:** Plano — decisões em aberto marcadas.
+**Status:** Plano — decisões tomadas em 2026-09-13 (§9). Lançamento **só Android**; iOS fica para depois.
 
 ---
 
@@ -100,7 +100,7 @@ Três `redirectTo` usam `window.location.origin` e apontariam para o app:
 - confirmação de e-mail (`signup/page.tsx`)
 - redefinir senha (`esqueci-senha/page.tsx`)
 
-Tratados na Fase 2.
+Tratados na Fase 3.
 
 ---
 
@@ -175,8 +175,8 @@ de HTML/CSS/JS sem passar pela loja. As duas lojas permitem isso para código we
 desde que a atualização não mude a finalidade do app. Mudança nativa (plugin
 novo, permissão nova) continua exigindo build.
 
-**Decisão em aberto:** adotar OTA desde o lançamento, ou aceitar o ritmo de loja
-no começo.
+**Decidido:** OTA desde o lançamento (Fase 2), integrado antes do primeiro envio
+à loja.
 
 ---
 
@@ -194,37 +194,69 @@ no começo.
 
 ## 7. Fases
 
+### Lançamento — Android
+
 | Fase | O quê | Resultado |
 |---|---|---|
 | **0 · Spike** (1–2 dias) | Capacitor apontando para a URL ao vivo → jogo no seu celular em 1 hora. Depois, um export estático mínimo com a API de fora. | Prova que arrastes, realtime e o export funcionam **antes** de investir no resto. |
 | **1 · Dois alvos de build** | Base de API no `authFetch` + as 7 chamadas cruas; CORS no proxy; `next.config` bifurcado; rotas dinâmicas lidas no cliente; **links de convite via `getSiteUrl()`**. | O app abre de verdade, com arquivos locais. |
-| **2 · Auth nativa** | Navegador do sistema para o Google; App Links / Universal Links; allowlist no Supabase; Sign in with Apple. | Login funcionando nas duas plataformas. |
-| **3 · Pagamento** | RevenueCat + webhook → `add_coins`; produtos nas duas lojas; Stripe mantido no web. | Loja de moedas dentro da regra das lojas. |
-| **4 · Google Play** | Conta (US$25), assinatura, `assetlinks.json`, página `/privacidade`, formulário de segurança de dados, classificação, faixa de teste interno. | App Android publicado. |
-| **5 · App Store** | **Mac com Xcode** (obrigatório), Apple Developer (US$99/ano), `apple-app-site-association`, APNs, TestFlight, cuidados com a 4.2. | App iOS publicado. |
-| **6 · Push** | `@capacitor/push-notifications` (FCM + APNs), tabela de tokens, gatilhos: abelha apareceu, planta com sede, presente recebido, obra terminou. | O maior ganho de retenção que o app dá sobre o site. |
+| **2 · Live updates (OTA)** | Capgo ou Appflow integrado **antes** do primeiro envio à loja. | Mudança de tela continua saindo sem revisão da Play — o ritmo de hoje se mantém. |
+| **3 · Auth nativa** | Navegador do sistema para o Google; App Links (`assetlinks.json`); allowlist de redirect no Supabase. | Login funcionando no Android. |
+| **4 · Pagamento** | Play Billing (via RevenueCat) → webhook → `add_coins`. Stripe **mantido** no web. | Loja de moedas dentro da regra da Play. |
+| **5 · Google Play** | Conta (US$25), assinatura, página `/privacidade`, formulário de segurança de dados, classificação, faixa de teste interno. | App Android publicado. |
 
-**Por que Android antes do iOS:** a Play revisa mais rápido e não tem a 4.2, então
-valida todo o encanamento nativo (auth, pagamento, links) com menos atrito. Como
-o Capacitor já gera os dois projetos, o iOS depois é configuração, não migração.
+**Por que o OTA vem antes da loja:** o primeiro build enviado precisa já conter o
+cliente de live update. Se ele entrar depois, todo jogador que instalou a versão
+antiga fica preso nela até atualizar pela loja.
+
+### Depois do lançamento
+
+| Fase | O quê | Por quê esperar |
+|---|---|---|
+| **6 · Push** | `@capacitor/push-notifications` (FCM), tabela de tokens, gatilhos: abelha apareceu, planta com sede, presente recebido, obra terminou. | Decidido para depois do lançamento. É ganho de retenção, não requisito da loja. |
+| **7 · iOS** | Mac com Xcode, Apple Developer (US$99/ano), Universal Links, APNs, **Sign in with Apple**, Apple IAP, TestFlight, cuidados com a 4.2. | Sem Mac disponível hoje. Como o Capacitor já gera o projeto iOS, isso vira configuração, não migração. |
+
+> **RevenueCat mesmo só com Android?** Dá para integrar o Play Billing direto por
+> plugin. O RevenueCat se paga pela validação do recibo no servidor, que ninguém
+> precisa escrever — e quando o iOS chegar, o Apple IAP entra no mesmo SDK, sem
+> uma segunda integração.
 
 ---
 
 ## 8. Pré-requisitos que não são código
 
-- **Um Mac.** Xcode só roda em macOS. Sem Mac não existe build de iOS — dá para
-  alugar (MacinCloud, runners de CI em macOS), mas não dá para contornar.
-- **Contas:** Google Play Console (US$25, uma vez) e Apple Developer (US$99/ano).
+- **Conta:** Google Play Console (US$25, uma vez). A Apple Developer (US$99/ano)
+  só entra com o iOS.
+- **Um Mac** — só para a fase do iOS, não para o lançamento. Xcode só roda em
+  macOS; dá para alugar (MacinCloud, runners de CI em macOS) quando chegar a hora.
 - **Página de política de privacidade** pública — hoje não existe.
 
 ---
 
-## 9. Decisões que dependem de você
+## 9. Decisões
 
-1. **Live updates (OTA) desde o lançamento?** Recomendo sim — preserva o ritmo de
-   publicar várias vezes por semana.
-2. **Taxa das lojas: absorver ou repassar?** Com R$120 de receita histórica,
-   recomendo absorver.
-3. **Stripe continua no web?** Recomendo sim: preserva quem joga no desktop.
-4. **Você tem acesso a um Mac?** Define quando a Fase 5 pode começar.
-5. **Push no lançamento ou depois?** Recomendo depois.
+| # | Decisão | Resposta |
+|---|---|---|
+| 1 | Live updates (OTA) desde o lançamento? | **Sim** — entra como Fase 2, antes do primeiro envio à loja. |
+| 2 | Taxa da Play: absorver ou repassar? | **Em aberto.** Recomendação: absorver (ver abaixo). |
+| 3 | Stripe continua no web? | **Sim.** |
+| 4 | iOS no lançamento? | **Não** — sem Mac hoje. Fica como Fase 7. |
+| 5 | Push no lançamento? | **Depois** — Fase 6. |
+
+### Sobre a taxa (decisão 2)
+
+A Play fica com **15%** de cada compra feita dentro do app (até US$1 milhão/ano).
+Só vale para compra no app — quem compra pelo navegador continua no Stripe.
+
+| Pacote | Jogador paga | Play fica com | Você recebe |
+|---|---|---|---|
+| Saco (10) | R$10 | R$1,50 | R$8,50 |
+| Cesta (65) | R$50 | R$7,50 | R$42,50 |
+| Baú (150) | R$100 | R$15,00 | R$85,00 |
+
+Na receita histórica (R$120), a taxa teria sido **R$18**. Repassar para o preço
+criaria diferença visível entre app e web para proteger quase nada — daí a
+recomendação de absorver agora e rever quando a receita crescer.
+
+**Não fazer:** mensagem ou link dentro do app dizendo "compre mais barato no
+site". É regra própria das lojas e motivo clássico de reprovação.
