@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { getSiteUrl } from "./src/lib/siteUrl";
 
 const securityHeaders = [
   { key: 'X-Frame-Options',           value: 'DENY' },
@@ -29,6 +30,13 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   devIndicators: false,
+  // O getSiteUrl() lê VERCEL_PROJECT_PRODUCTION_URL, que só existe no servidor:
+  // chamado num client component, cairia no fallback de localhost. Resolvido
+  // aqui, no build, o valor é embutido no bundle e o navegador enxerga o mesmo
+  // domínio canônico que o metadataBase.
+  env: {
+    NEXT_PUBLIC_SITE_URL: getSiteUrl(),
+  },
   images: {
     // Otimização da Vercel DESLIGADA de propósito. A cota de "Image
     // Transformations" (5.000/mês no free) é contada por variante ÚNICA de

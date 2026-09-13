@@ -90,7 +90,13 @@ só: o proxy.
 `BottomNav` e `Sidebar` copiam links com `window.location.origin`. No app isso
 copiaria `capacitor://localhost/convite/X` — **um link de convite que ninguém mais
 consegue abrir**, e sem erro visível. Os 4 pontos passam a usar `getSiteUrl()`,
-que já existe. Vale fazer agora, independente do app.
+que já existe.
+
+**Feito em 2026-09-13.** Detalhe que quase passou: o `getSiteUrl()` lê
+`VERCEL_PROJECT_PRODUCTION_URL`, que só existe no servidor — num client component
+ele caía no fallback de `localhost`. O `next.config.ts` agora resolve o valor no
+build e o embute como `NEXT_PUBLIC_SITE_URL`. No build **app**, a env var
+precisa estar presente na máquina que gera o pacote.
 
 ### 2.4 Redirects de autenticação
 
@@ -199,7 +205,7 @@ novo, permissão nova) continua exigindo build.
 | Fase | O quê | Resultado |
 |---|---|---|
 | **0 · Spike** (1–2 dias) | Capacitor apontando para a URL ao vivo → jogo no seu celular em 1 hora. Depois, um export estático mínimo com a API de fora. | Prova que arrastes, realtime e o export funcionam **antes** de investir no resto. |
-| **1 · Dois alvos de build** | Base de API no `authFetch` + as 7 chamadas cruas; CORS no proxy; `next.config` bifurcado; rotas dinâmicas lidas no cliente; **links de convite via `getSiteUrl()`**. | O app abre de verdade, com arquivos locais. |
+| **1 · Dois alvos de build** | Base de API no `authFetch` + as 7 chamadas cruas; CORS no proxy; `next.config` bifurcado; rotas dinâmicas lidas no cliente; ~~links de convite via `getSiteUrl()`~~ (feito). | O app abre de verdade, com arquivos locais. |
 | **2 · Live updates (OTA)** | Capgo ou Appflow integrado **antes** do primeiro envio à loja. | Mudança de tela continua saindo sem revisão da Play — o ritmo de hoje se mantém. |
 | **3 · Auth nativa** | Navegador do sistema para o Google; App Links (`assetlinks.json`); allowlist de redirect no Supabase. | Login funcionando no Android. |
 | **4 · Pagamento** | Play Billing (via RevenueCat) → webhook → `add_coins`. Stripe **mantido** no web. | Loja de moedas dentro da regra da Play. |
@@ -238,7 +244,7 @@ antiga fica preso nela até atualizar pela loja.
 | # | Decisão | Resposta |
 |---|---|---|
 | 1 | Live updates (OTA) desde o lançamento? | **Sim** — entra como Fase 2, antes do primeiro envio à loja. |
-| 2 | Taxa da Play: absorver ou repassar? | **Em aberto.** Recomendação: absorver (ver abaixo). |
+| 2 | Taxa da Play: absorver ou repassar? | **Absorver** — mesmo preço no app e no web (ver abaixo). |
 | 3 | Stripe continua no web? | **Sim.** |
 | 4 | iOS no lançamento? | **Não** — sem Mac hoje. Fica como Fase 7. |
 | 5 | Push no lançamento? | **Depois** — Fase 6. |
@@ -256,7 +262,7 @@ Só vale para compra no app — quem compra pelo navegador continua no Stripe.
 
 Na receita histórica (R$120), a taxa teria sido **R$18**. Repassar para o preço
 criaria diferença visível entre app e web para proteger quase nada — daí a
-recomendação de absorver agora e rever quando a receita crescer.
+decisão de absorver agora e rever quando a receita crescer.
 
 **Não fazer:** mensagem ou link dentro do app dizendo "compre mais barato no
 site". É regra própria das lojas e motivo clássico de reprovação.

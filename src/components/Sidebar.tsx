@@ -18,6 +18,7 @@ import { HerboIcon } from '@/components/HerboIcon';
 import { AvatarCircle } from '@/components/AvatarCircle';
 import { AvatarPickerModal } from '@/components/AvatarPickerModal';
 import { useLikes } from '@/hooks/useLikes';
+import { getSiteUrl } from '@/lib/siteUrl';
 import { useHasClaimableMission } from '@/hooks/useMissions';
 
 /** Bolinha de notificação (sem número) — prêmio de missão pronto para resgatar. */
@@ -45,7 +46,7 @@ export default function Sidebar() {
   const copyGardenLink = async () => {
     if (!nickname) return;
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/jardim/${nickname}`);
+      await navigator.clipboard.writeText(`${getSiteUrl()}/jardim/${nickname}`);
       setCopied(true);
       if (copiedTimer.current) clearTimeout(copiedTimer.current);
       copiedTimer.current = setTimeout(() => setCopied(false), 1600);
@@ -72,7 +73,7 @@ export default function Sidebar() {
   const copyInviteLink = async () => {
     if (!referralCode) return;
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/convite/${referralCode}`);
+      await navigator.clipboard.writeText(`${getSiteUrl()}/convite/${referralCode}`);
       setInviteCopied(true);
       if (inviteTimer.current) clearTimeout(inviteTimer.current);
       inviteTimer.current = setTimeout(() => { setInviteCopied(false); setMenuOpen(false); }, 1400);
