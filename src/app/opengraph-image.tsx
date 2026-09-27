@@ -4,6 +4,10 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import sharp from 'sharp';
 
+// O card do site é sempre o mesmo desenho: declarar estático deixa o Next
+// gerá-lo no build — que é o único jeito de ele existir no export do app.
+export const dynamic = 'force-static';
+
 export const alt = 'Brotaria — Seu Jardim Virtual';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';

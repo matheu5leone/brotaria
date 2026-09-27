@@ -9,6 +9,7 @@ import { useRanking, RankingEntry } from '@/hooks/useRanking';
 import { RarityEffect } from '@/components/RarityEffect';
 import { lifecycleFromOrder } from '@/config/lifecycle';
 import { Rarity } from '@/types';
+import { gardenPath } from '@/config/runtime';
 
 function RarityBadge({ rarity }: { rarity: Rarity }) {
   const labels: Record<Rarity, string> = {
@@ -72,7 +73,7 @@ function RankingCard({ entry }: { entry: RankingEntry }) {
         <div className="flex items-center gap-2 flex-wrap">
           {entry.nickname ? (
             <Link
-              href={`/jardim/${entry.nickname}`}
+              href={gardenPath(entry.nickname)}
               className="font-bold hover:underline truncate transition-colors"
               style={{ color: 'var(--color-wood-mid)', fontFamily: 'var(--font-display)' }}
             >

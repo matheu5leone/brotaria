@@ -1,13 +1,21 @@
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '@/lib/supabaseServer';
+import { getSiteUrl } from '@/lib/siteUrl';
+import { OG_SIZE } from '@/lib/og/jardimCard';
+
+/** URL absoluta do card: crawler de rede social não resolve caminho relativo. */
+function cardUrl(nickname: string) {
+  return `${getSiteUrl()}/api/og/jardim?u=${encodeURIComponent(nickname)}`;
+}
 
 /**
  * Layout server-side do jardim visitado. Existe só para poder exportar
  * `generateMetadata` (título/descrição personalizados por apelido) — a página
  * em si é client component e não consegue exportar metadados.
  *
- * A imagem do card vem de `opengraph-image.tsx` (mesmo segmento), que o Next
- * injeta automaticamente como og:image / twitter:image.
+ * A imagem do card vem de `/api/og/jardim` — e é apontada à mão aqui, porque a
+ * convenção `opengraph-image.tsx` não sobrevive ao build do app (ver o próprio
+ * card em `@/lib/og/jardimCard`).
  */
 export async function generateMetadata(
   { params }: { params: Promise<{ nickname: string }> },
@@ -25,6 +33,7 @@ export async function generateMetadata(
     const title = `@${clean} não encontrado · Brotaria`;
     return { title, description: 'Este jardim não existe (ainda). Crie o seu no Brotaria.' };
   }
+
 
   const { count } = await supabaseAdmin
     .from('pots')
@@ -51,11 +60,13 @@ export async function generateMetadata(
       url: `/jardim/${profile.nickname}`,
       siteName: 'Brotaria',
       locale: 'pt_BR',
+      images: [{ url: cardUrl(profile.nickname), ...OG_SIZE, alt: `Jardim de @${profile.nickname}` }],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
+      images: [cardUrl(profile.nickname)],
     },
   };
 }

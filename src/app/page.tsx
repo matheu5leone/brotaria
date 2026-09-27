@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
+import { gardenPath } from '@/config/runtime';
 
 /**
  * Home = redirecionador. Manda o usuário logado para a URL compartilhável do
@@ -26,7 +27,7 @@ export default function Home() {
       .single()
       .then(({ data }) => {
         if (cancelled) return;
-        if (data?.nickname) router.replace(`/jardim/${data.nickname}`);
+        if (data?.nickname) router.replace(gardenPath(data.nickname));
         else router.replace('/completar-perfil');
       });
     return () => { cancelled = true; };

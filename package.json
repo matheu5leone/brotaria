@@ -6,6 +6,7 @@
     "dev": "next dev",
     "test:ai": "next dev",
     "build": "next build",
+    "build:app": "node scripts/build-app.mjs",
     "start": "next start",
     "lint": "eslint"
   },

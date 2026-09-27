@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import NavLink from '@/components/NavLink';
 import { Sprout } from 'lucide-react';
@@ -109,8 +108,17 @@ type VisitedUser = {
   avatar_url: string | null;
 };
 
-export default function GardenVisitPage() {
-  const { nickname } = useParams<{ nickname: string }>();
+/**
+ * A tela de jardim — a do dono e a de visita, que são a mesma coisa com
+ * permissões diferentes.
+ *
+ * Mora num componente, e não na rota, porque o apelido chega por dois caminhos:
+ * `/jardim/<apelido>` no site (URL bonita, compartilhável, com card de Open
+ * Graph) e `/jardim?u=<apelido>` dentro do app. O export estático do Next não
+ * gera rota dinâmica sem lista de valores conhecida, e apelido é infinito — mas
+ * dentro do app ninguém vê a barra de endereço, então lá a URL feia é grátis.
+ */
+export function GardenVisit({ nickname }: { nickname: string }) {
   const { user, isLoading: authLoading } = useAuth();
 
   const [visitedUser, setVisitedUser] = useState<VisitedUser | null>(null);

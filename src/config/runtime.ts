@@ -28,3 +28,20 @@ export const API_BASE: string = BUILD_TARGET === 'app' ? getSiteUrl() : '';
 export function apiUrl(path: string): string {
   return `${API_BASE}${path}`;
 }
+
+/**
+ * Caminho INTERNO do jardim de alguém.
+ *
+ * No site, a URL bonita `/jardim/<apelido>`. No app, `/jardim?u=<apelido>`:
+ * export estático não gera rota dinâmica sem uma lista finita de valores, e
+ * apelido é infinito. Trocar não custa nada ali, porque a WebView não tem barra
+ * de endereço.
+ *
+ * Para link que SAI do jogo (copiar, compartilhar), use `getSiteUrl()` com a
+ * forma bonita — é o endereço que precisa abrir no navegador de outra pessoa.
+ */
+export function gardenPath(nickname: string): string {
+  return BUILD_TARGET === 'app'
+    ? `/jardim?u=${encodeURIComponent(nickname)}`
+    : `/jardim/${nickname}`;
+}

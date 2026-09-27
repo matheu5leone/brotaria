@@ -19,6 +19,15 @@ const IS_APP = BUILD_TARGET === "app";
 // montar link de convite e, no app, para achar a API.
 const SITE_URL = getSiteUrl();
 
+// O build do app roda fora da Vercel, onde as variáveis de sistema dela não
+// existem — e um app com localhost gravado como endereço da API só funciona na
+// máquina de quem compilou, sem nenhum erro visível. Falhar aqui é mais barato.
+if (IS_APP && SITE_URL.includes('localhost')) {
+  throw new Error(
+    'BUILD_TARGET=app precisa de NEXT_PUBLIC_SITE_URL com o domínio real da API. Use `npm run build:app`.',
+  );
+}
+
 const securityHeaders = [
   { key: 'X-Frame-Options',           value: 'DENY' },
   { key: 'X-Content-Type-Options',    value: 'nosniff' },
@@ -48,9 +57,18 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   devIndicators: false,
+  // No site vale tudo, mais o sufixo `.web.tsx` das rotas que só existem aqui.
+  ...(IS_APP ? {} : { pageExtensions: ["web.tsx", "tsx", "ts", "jsx", "js"] }),
   ...(IS_APP
     ? {
         output: "export" as const,
+        // Como o app é exportado como arquivo estático, ele não pode conter
+        // nada que precise de servidor. A seleção é por EXTENSÃO, sem mover
+        // arquivo de lugar nem manter duas árvores de rotas:
+        //   route.ts      → as 65 rotas de /api ficam de fora (não são .tsx)
+        //   *.web.tsx     → rota só-do-site fica de fora (rota dinâmica, que o
+        //                   export não gera, e o card de Open Graph)
+        pageExtensions: ["tsx"],
         // A WebView serve arquivo do pacote, não tem rewrite: com barra no fim o
         // export emite `craft/index.html`, que resolve como diretório.
         trailingSlash: true,

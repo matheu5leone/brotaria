@@ -18,6 +18,7 @@ import { AvatarPickerModal } from '@/components/AvatarPickerModal';
 import { useLikes } from '@/hooks/useLikes';
 import { getSiteUrl } from '@/lib/siteUrl';
 import { useHasClaimableMission } from '@/hooks/useMissions';
+import { gardenPath } from '@/config/runtime';
 
 /** Bolinha de notificação (sem número) — prêmio de missão pronto para resgatar. */
 function NotifDot({ className = '-top-1 -right-1' }: { className?: string }) {
@@ -143,7 +144,7 @@ export function BottomNav() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
   const { coins, herbo, nickname, referralCode, avatarUrl, lastChangelogVersion, craftUnlocked } = useWallet();
-  const myGarden = nickname ? `/jardim/${nickname}` : '/';
+  const myGarden = nickname ? gardenPath(nickname) : '/';
   const unreadChangelog = hasUnreadChangelog(lastChangelogVersion);
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);

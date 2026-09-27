@@ -20,6 +20,7 @@ import { AvatarPickerModal } from '@/components/AvatarPickerModal';
 import { useLikes } from '@/hooks/useLikes';
 import { getSiteUrl } from '@/lib/siteUrl';
 import { useHasClaimableMission } from '@/hooks/useMissions';
+import { gardenPath } from '@/config/runtime';
 
 /** Bolinha de notificação (sem número) — prêmio de missão pronto para resgatar. */
 function NotifDot() {
@@ -37,7 +38,7 @@ export default function Sidebar() {
   const { data: myLikes } = useLikes(user?.id); // curtidas recebidas no próprio jardim
   const hasClaimableMission = useHasClaimableMission(); // badge de resgate no menu Missões
   const unreadChangelog = hasUnreadChangelog(lastChangelogVersion);
-  const myGarden = nickname ? `/jardim/${nickname}` : '/';
+  const myGarden = nickname ? gardenPath(nickname) : '/';
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [copied, setCopied] = useState(false);

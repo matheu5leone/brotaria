@@ -20,6 +20,7 @@ import { ARCHETYPES } from '@/config/genome/archetypes';
 import { LIFECYCLE } from '@/config/lifecycle';
 import type { Rarity } from '@/types';
 import type { DevPlant, DevPlantVersion } from '@/app/api/dev/plants/route';
+import { gardenPath } from '@/config/runtime';
 
 /**
  * TEMPORÁRIO (dev) — acervo de todas as artes do servidor, para acompanhar o
@@ -103,7 +104,7 @@ function FerramentasDev() {
           olhando para uma página onde nada acontece. */}
       {naTela && nickname && (
         <Link
-          href={`/jardim/${nickname}`}
+          href={gardenPath(nickname)}
           className="px-3 py-2 rounded-lg text-xs font-black transition-transform active:scale-95"
           style={{ background: 'rgba(74,222,128,0.14)', color: '#86efac', border: '1px solid rgba(74,222,128,0.4)' }}
         >

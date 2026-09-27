@@ -1,16 +1,20 @@
 /* eslint-disable @next/next/no-img-element -- next/og (Satori) só aceita <img>; next/image não funciona aqui */
+/**
+ * Card de compartilhamento do jardim de um jogador (Open Graph, 1200×630).
+ *
+ * Mora aqui, e não num `opengraph-image.tsx` dentro de `/jardim/[nickname]`,
+ * porque aquele arquivo é um arquivo-especial do Next dentro de rota dinâmica —
+ * e o build do app (export estático) exige valores conhecidos que apelido nunca
+ * vai ter. Como módulo comum, servido pela rota `/api/og/jardim`, ele fica
+ * naturalmente do lado do servidor, onde já vive o resto da API.
+ */
 import { ImageResponse } from 'next/og';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { supabaseAdmin } from '@/lib/supabaseServer';
 
-export const alt = 'Jardim virtual no Brotaria';
-export const size = { width: 1200, height: 630 };
-export const contentType = 'image/png';
-// Cacheia a imagem gerada por 1h (jardins não mudam a cada segundo; evita
-// re-buscar do Supabase + reprocessar no sharp a cada crawl de link).
-export const revalidate = 3600;
+export const OG_SIZE = { width: 1200, height: 630 };
 
 const MAX_PLANTS_SHOWN = 4;
 
@@ -104,9 +108,8 @@ async function fetchGarden(rawNickname: string): Promise<GardenData | null> {
   return { nickname: profile.nickname, avatar, plantCount, plantImages };
 }
 
-export default async function Image({ params }: { params: Promise<{ nickname: string }> }) {
-  const { nickname: rawNickname } = await params;
-  const decoded = decodeURIComponent(rawNickname);
+export async function jardimCard(nicknameRaw: string) {
+  const decoded = decodeURIComponent(nicknameRaw);
   const [garden, logo] = await Promise.all([fetchGarden(decoded), loadLogo()]);
 
   const nickname = garden?.nickname ?? decoded.replace(/^@/, '');
@@ -239,6 +242,6 @@ export default async function Image({ params }: { params: Promise<{ nickname: st
         </div>
       </div>
     ),
-    { ...size },
+    { ...OG_SIZE },
   );
 }
