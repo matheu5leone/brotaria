@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { PlantDNA, Rarity } from '@/types';
+import { apiUrl } from '@/config/runtime';
 
 export type RankingEntry = {
   rank: number;
@@ -17,7 +18,7 @@ export type RankingEntry = {
 };
 
 async function fetchRanking(): Promise<RankingEntry[]> {
-  const res = await fetch('/api/ranking');
+  const res = await fetch(apiUrl('/api/ranking'));
   if (!res.ok) throw new Error('Failed to fetch ranking');
   return res.json();
 }

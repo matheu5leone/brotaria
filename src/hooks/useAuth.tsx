@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 import { useRouter, usePathname } from 'next/navigation';
+import { apiUrl } from '@/config/runtime';
 
 interface AuthContextType {
   user: User | null;
@@ -64,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         let ref: string | null = null;
         try { ref = localStorage.getItem('brotaria_ref'); } catch { /* storage indisponível */ }
         try {
-          await fetch('/api/auth/init', {
+          await fetch(apiUrl('/api/auth/init'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

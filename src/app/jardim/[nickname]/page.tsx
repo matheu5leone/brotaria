@@ -14,6 +14,7 @@ import { HeartAura } from '@/components/HeartAura';
 import { PlantsGridModal } from '@/components/PlantsGridModal';
 import { useAuth } from '@/hooks/useAuth';
 import { usePots } from '@/hooks/useGardenData';
+import { apiUrl } from '@/config/runtime';
 
 /**
  * Modo visitante: botão "Ver plantas" (canto inferior esquerdo) que abre o mesmo
@@ -118,7 +119,7 @@ export default function GardenVisitPage() {
 
   useEffect(() => {
     if (!nickname) return;
-    fetch(`/api/users/search?nickname=${encodeURIComponent(nickname)}`)
+    fetch(apiUrl(`/api/users/search?nickname=${encodeURIComponent(nickname)}`))
       .then((r) => r.json())
       .then((data) => {
         if (data.error) setNotFound(true);

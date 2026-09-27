@@ -5,6 +5,7 @@ import { PlantDNA } from '@/types';
 import { authFetch } from '@/lib/authFetch';
 import { supabase } from '@/lib/supabase';
 import { reportClientError } from '@/lib/chunkReload';
+import { apiUrl } from '@/config/runtime';
 
 export type PendingGift = {
   id: string;
@@ -144,7 +145,7 @@ export function useDeclineGift(userId: string) {
 }
 
 export async function searchUser(nickname: string): Promise<UserPreview> {
-  const res = await fetch(`/api/users/search?nickname=${encodeURIComponent(nickname)}`);
+  const res = await fetch(apiUrl(`/api/users/search?nickname=${encodeURIComponent(nickname)}`));
   const data = await res.json();
   if (!res.ok) throw new Error(data.error ?? 'Usuário não encontrado');
   return data;

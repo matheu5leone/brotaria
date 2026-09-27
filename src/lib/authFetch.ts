@@ -1,6 +1,12 @@
 'use client';
 import { supabase } from '@/lib/supabase';
+import { API_BASE } from '@/config/runtime';
 
+/**
+ * Funil ÚNICO de chamada autenticada à API. É aqui que o destino app ganha a
+ * base absoluta: no web `API_BASE` é vazio e a chamada continua relativa, na
+ * mesma origem, sem CORS.
+ */
 export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const { data: { session } } = await supabase.auth.getSession();
   const headers: Record<string, string> = {};
@@ -23,5 +29,7 @@ export async function authFetch(url: string, options: RequestInit = {}): Promise
     headers['Authorization'] = `Bearer ${session.access_token}`;
   }
 
-  return fetch(url, { ...options, headers });
+  // Só caminho relativo ganha prefixo: URL absoluta (Supabase, Stripe) passa reta.
+  const target = url.startsWith('/') ? `${API_BASE}${url}` : url;
+  return fetch(target, { ...options, headers });
 }

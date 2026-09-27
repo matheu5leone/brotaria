@@ -1,3 +1,4 @@
+import { apiUrl } from '@/config/runtime';
 /**
  * Recuperação de "chunk skew" (defasagem de build) — alternativa GRATUITA ao
  * Vercel Skew Protection (pago).
@@ -62,7 +63,7 @@ export function reloadWithCacheBust(force = false): boolean {
 }
 
 /** Endpoint do beacon de telemetria de erro client-side. */
-export const CLIENT_ERROR_ENDPOINT = '/api/client-error';
+export const CLIENT_ERROR_ENDPOINT = apiUrl('/api/client-error');
 
 /** Lê (síncrono) o id do usuário logado do cache do supabase-js no localStorage. */
 export function cachedUserId(): string | null {

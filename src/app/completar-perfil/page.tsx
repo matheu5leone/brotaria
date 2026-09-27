@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { FallingLeaves } from '@/components/FallingLeaves';
 import { AtSign, Loader2, Check, X } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
+import { apiUrl } from '@/config/runtime';
 
 const inputClass = 'w-full pl-10 pr-10 py-3 rounded-xl outline-none transition-all text-sm';
 const inputStyle = {
@@ -59,7 +60,7 @@ export default function CompletarPerfilPage() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/users/search?nickname=${encodeURIComponent(clean)}`);
+        const res = await fetch(apiUrl(`/api/users/search?nickname=${encodeURIComponent(clean)}`));
         setStatus(res.ok ? 'taken' : 'available');
       } catch {
         setStatus('available');
@@ -84,7 +85,7 @@ export default function CompletarPerfilPage() {
     try {
       let ref: string | null = null;
       try { ref = localStorage.getItem('brotaria_ref'); } catch { /* storage indisponível */ }
-      const res = await fetch('/api/auth/init', {
+      const res = await fetch(apiUrl('/api/auth/init'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -7,6 +7,7 @@ import NavLink from '@/components/NavLink';
 import { FallingLeaves } from '@/components/FallingLeaves';
 import { Mail, Lock, Loader2, AtSign } from 'lucide-react';
 import { Turnstile } from '@marsidev/react-turnstile';
+import { apiUrl } from '@/config/runtime';
 
 const inputClass =
   'w-full pl-10 pr-4 py-3 rounded-xl outline-none transition-all text-sm';
@@ -62,7 +63,7 @@ export default function SignupPage() {
     if (data.user) {
       let ref: string | null = null;
       try { ref = localStorage.getItem('brotaria_ref'); } catch { /* storage indisponível */ }
-      await fetch('/api/auth/init', {
+      await fetch(apiUrl('/api/auth/init'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: data.user.id, email, nickname: nick, ref }),

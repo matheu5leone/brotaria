@@ -1,6 +1,24 @@
 import type { NextConfig } from "next";
 import { getSiteUrl } from "./src/lib/siteUrl";
 
+/**
+ * Dois destinos de build a partir do mesmo código (ver src/config/runtime.ts):
+ *
+ *   BUILD_TARGET ausente/"web" → Next completo na Vercel (o de sempre).
+ *   BUILD_TARGET="app"         → export estático para dentro do Capacitor.
+ *
+ * O destino app não tem servidor: headers, redirects e proxy não existem lá, e
+ * as 65 rotas de /api continuam só no web. Por isso a config é bifurcada em vez
+ * de duplicada — um arquivo só, e o que é do servidor fica cercado.
+ */
+const BUILD_TARGET = process.env.BUILD_TARGET === "app" ? "app" : "web";
+const IS_APP = BUILD_TARGET === "app";
+
+// Resolvido aqui, no build, onde as variáveis da Vercel ainda são visíveis: o
+// navegador não tem process.env, e o cliente precisa saber a URL canônica para
+// montar link de convite e, no app, para achar a API.
+const SITE_URL = getSiteUrl();
+
 const securityHeaders = [
   { key: 'X-Frame-Options',           value: 'DENY' },
   { key: 'X-Content-Type-Options',    value: 'nosniff' },
@@ -30,12 +48,22 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   devIndicators: false,
+  ...(IS_APP
+    ? {
+        output: "export" as const,
+        // A WebView serve arquivo do pacote, não tem rewrite: com barra no fim o
+        // export emite `craft/index.html`, que resolve como diretório.
+        trailingSlash: true,
+      }
+    : {}),
   // O getSiteUrl() lê VERCEL_PROJECT_PRODUCTION_URL, que só existe no servidor:
   // chamado num client component, cairia no fallback de localhost. Resolvido
   // aqui, no build, o valor é embutido no bundle e o navegador enxerga o mesmo
-  // domínio canônico que o metadataBase.
+  // domínio canônico que o metadataBase. O destino do build entra pelo mesmo
+  // caminho — é o que diz ao cliente se a API mora na mesma origem ou na Vercel.
   env: {
-    NEXT_PUBLIC_SITE_URL: getSiteUrl(),
+    NEXT_PUBLIC_SITE_URL: SITE_URL,
+    NEXT_PUBLIC_BUILD_TARGET: BUILD_TARGET,
   },
   images: {
     // Otimização da Vercel DESLIGADA de propósito. A cota de "Image
@@ -58,6 +86,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Sem servidor no destino app: o Next rejeita headers/redirects com
+  // `output: "export"`, e a CSP ali não se aplica (os assets são locais).
+  ...(IS_APP ? {} : {
   async headers() {
     return [
       {
@@ -80,6 +111,7 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  }),
 };
 
 export default nextConfig;
