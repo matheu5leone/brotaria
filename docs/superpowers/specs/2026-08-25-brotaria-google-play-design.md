@@ -266,3 +266,92 @@ decisão de absorver agora e rever quando a receita crescer.
 
 **Não fazer:** mensagem ou link dentro do app dizendo "compre mais barato no
 site". É regra própria das lojas e motivo clássico de reprovação.
+
+---
+
+## 10. Estrutura de código — um repositório só
+
+**Não é preciso outro repositório.** O app não é outro produto: são as mesmas 15
+páginas, os mesmos componentes e os mesmos hooks, falando com as mesmas 65 rotas
+de API. Repositório separado significaria ou duplicar tudo, ou publicar um pacote
+compartilhado e versioná-lo — com um desenvolvedor só, isso custa dois rituais de
+release, dois `changelog.json` (que é a fonte da verdade da versão do jogo) e a
+chance permanente de o app ficar falando com uma API que já mudou. No mesmo
+repositório, a mudança na API e o ajuste no cliente entram no mesmo commit.
+
+O que o Capacitor acrescenta são pastas na raiz (`android/`, e `ios/` quando
+chegar a hora) — geradas por ele e commitadas como qualquer outro código. A
+Vercel continua compilando só o alvo web e ignora o resto.
+
+```
+brotaria/
+├─ src/app/                    15 páginas + 65 rotas de API (as duas coisas)
+├─ src/config/runtime.ts       NOVO — de onde vem a API e como se endereça o jardim
+├─ scripts/build-app.mjs       NOVO — build do alvo app
+├─ next.config.ts              bifurcado por BUILD_TARGET
+├─ capacitor.config.ts         a criar
+├─ android/                    a criar (gerado, commitado)
+└─ out/                        saída do alvo app (fora do git)
+```
+
+| Comando | Faz |
+|---|---|
+| `npm run dev` | o de sempre |
+| `npm run build` | alvo **web** na Vercel — nada mudou |
+| `npm run build:app` | export estático em `out/`, pronto para o Capacitor |
+
+### A regra que organiza tudo: o alvo app não tem servidor
+
+No alvo app o Next roda em `output: 'export'` — HTML, CSS e JS, sem processo
+nenhum. Então nada que precise de servidor pode estar lá dentro. A seleção é por
+**extensão de arquivo**, sem mover nada de lugar nem manter duas árvores de rotas:
+
+| Arquivo | Alvo web | Alvo app | Por quê |
+|---|---|---|---|
+| `route.ts` | entra | **fora** | as 65 rotas de API são `.ts`; página e layout são `.tsx` |
+| `*.web.tsx` | entra | **fora** | rota que só o site tem (`pageExtensions`) |
+| `page.tsx` / `layout.tsx` | entra | entra | a tela do jogo, igual nos dois |
+
+### As duas coisas que essa regra obrigou a mudar
+
+**1. A tela do jardim ganhou um segundo endereço.** `/jardim/[nickname]` não é só
+a visita ao vizinho — é a tela principal do jogo, onde a home joga todo mundo
+depois do login. E o export estático não gera rota dinâmica sem uma lista finita
+de valores, que apelido nunca vai ter. Então a tela virou componente
+(`GardenVisit`) servido por duas rotas: a URL bonita no site, e `/jardim?u=lele`
+dentro do app. Link interno passa por `gardenPath()`, que escolhe conforme o
+alvo; link que sai do jogo continua usando a forma bonita. **Dentro da WebView
+não existe barra de endereço**, então a URL feia ali não custa nada.
+
+**2. O card de compartilhamento virou rota de API.** A convenção
+`opengraph-image.tsx` dentro de rota dinâmica não sobrevive ao export, e — testado
+— o sufixo `.web.tsx` também não resolve: o Next descobre o arquivo pelo
+`pageExtensions` mas resolve o módulo com uma lista fixa de extensões, e o build
+do **site** quebra. O desenho do card foi para `@/lib/og/jardimCard` (módulo
+comum) e é servido por `/api/og/jardim?u=<apelido>`, arquivo `.ts` que o build do
+app já ignora junto com o resto da API. O `layout.web.tsx` do jardim aponta
+`og:image` para lá.
+
+### O que já está no main
+
+| Commit | O quê |
+|---|---|
+| `9217349` | link de convite e de jardim pelo domínio canônico, não pela origem da página |
+| `0ea19e3` | `authFetch` com base de API resolvida no build + os 7 `fetch` crus no funil; `next.config` bifurcado |
+| `28f9f32` | rota `/jardim?u=`, `gardenPath()`, sufixo `.web.tsx`, card de OG na API |
+
+Provado com build: o alvo web mantém as 4 rotas de servidor
+(`/jardim/[nickname]`, `/convite/[code]`, `/api/og/jardim`, `/opengraph-image`) e
+o alvo app gera 20 páginas estáticas, com `https://brotaria.online` gravado como
+endereço da API.
+
+### O que falta na estrutura, em ordem
+
+1. **CORS** no proxy para `https://localhost` e `capacitor://localhost` — sem
+   isso o app compila mas nenhuma chamada passa.
+2. **Capacitor**: `capacitor.config.ts`, `npx cap add android`, `cap sync` no fim
+   do `build:app`.
+3. **Turnstile no cadastro** — o widget é amarrado a hostname, e dentro do app o
+   hostname é `localhost`. Precisa liberar o hostname ou tratar o cadastro do app
+   por outro caminho.
+4. **Auth pelo navegador do sistema** (Fase 3) e **Play Billing** (Fase 4).
